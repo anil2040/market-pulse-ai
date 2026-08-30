@@ -178,7 +178,7 @@ def synthesize_with_gemini(edward_jones_text, cnbc_text):
         genai.configure(api_key=GEMINI_API_KEY)
         
         # gemini-2.5-flash = fast, capable, free tier friendly
-        model = genai.GenerativeModel("gemini-2.5-flash")
+        model = genai.GenerativeModel("gemini-2.0-flash")
         
         # The prompt -- this is our instruction to Gemini.
         # Notice how structured and specific it is.
