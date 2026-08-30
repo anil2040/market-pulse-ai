@@ -1,164 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MarketPulse AI - Sunday, August 30, 2026</title>
-    <style>
-        /* CSS -- the styling language for web pages */
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0e1a;
-            color: #e0e6f0;
-            padding: 20px;
-        }
-        
-        .header {
-            text-align: center;
-            padding: 30px 20px;
-            background: linear-gradient(135deg, #1a1f35, #0d1526);
-            border-radius: 12px;
-            margin-bottom: 24px;
-            border: 1px solid #2a3550;
-        }
-        
-        .header h1 {
-            font-size: 2em;
-            color: #4a9eff;
-            letter-spacing: 2px;
-        }
-        
-        .header .date {
-            color: #8899bb;
-            margin-top: 8px;
-            font-size: 0.95em;
-        }
-        
-        .header .updated {
-            color: #4caf7d;
-            font-size: 0.8em;
-            margin-top: 4px;
-        }
-        
-        .card {
-            background: #111827;
-            border: 1px solid #1e2d45;
-            border-radius: 10px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }
-        
-        .card h2 {
-            color: #4a9eff;
-            font-size: 1em;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #1e2d45;
-        }
-        
-        .briefing {
-            line-height: 1.8;
-            color: #c8d6e8;
-            font-size: 0.95em;
-        }
-        
-        .sources {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        
-        .source-text {
-            font-size: 0.78em;
-            color: #6b7a99;
-            line-height: 1.6;
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }
-        
-        .footer {
-            text-align: center;
-            color: #3a4a66;
-            font-size: 0.75em;
-            margin-top: 30px;
-            padding: 20px;
-        }
-        
-        /* Mobile responsive -- looks good on your phone too! */
-        @media (max-width: 600px) {
-            .sources { grid-template-columns: 1fr; }
-            .header h1 { font-size: 1.4em; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MarketPulse AI · Sunday, August 30, 2026</title>
+<style>
+  :root {
+    --blue:   #1a56db;
+    --green:  #057a55;
+    --red:    #c81e1e;
+    --amber:  #b45309;
+    --ink:    #111928;
+    --muted:  #6b7280;
+    --border: #e5e7eb;
+    --bg:     #f9fafb;
+    --card:   #ffffff;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 0 0 60px;
+  }
+  .hero {
+    background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%);
+    color: #fff;
+    padding: 36px 24px 28px;
+    text-align: center;
+  }
+  .hero h1 { font-size:2rem; letter-spacing:3px; font-weight:800; }
+  .hero .sub { opacity:.85; margin-top:6px; font-size:.95rem; }
+  .hero .ts  { opacity:.65; margin-top:4px; font-size:.8rem; }
+  .ticker {
+    background:#1e3a5f;
+    color:#93c5fd;
+    font-size:.78rem;
+    padding:7px 20px;
+    letter-spacing:.5px;
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }
+  .ticker span { color:#fff; font-weight:600; }
+  .container { max-width:1100px; margin:32px auto; padding:0 20px; }
+  .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }
+  .card h2 {
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+  }
+  .card.accent-green { border-left: 4px solid var(--green); }
+  .card.accent-blue  { border-left: 4px solid var(--blue);  }
+  .card.accent-amber { border-left: 4px solid var(--amber); }
+  .card.accent-red   { border-left: 4px solid var(--red);   }
+  .bullet {
+    padding: 7px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: .88rem;
+    line-height: 1.55;
+    color: #374151;
+  }
+  .bullet:last-child { border-bottom:none; }
+  .label { font-weight:700; color: var(--ink); margin-right:4px; }
+  .prose {
+    font-size: .92rem;
+    line-height: 1.75;
+    color: #374151;
+  }
+  .source-text {
+    font-size:.78rem;
+    color:var(--muted);
+    line-height:1.6;
+    max-height:130px;
+    overflow-y:auto;
+  }
+  .footer {
+    text-align:center;
+    color:var(--muted);
+    font-size:.75rem;
+    margin-top:40px;
+  }
+  @media(max-width:640px){
+    .grid-2{ grid-template-columns:1fr; }
+    .hero h1{ font-size:1.4rem; }
+  }
+</style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>📈 MARKETPULSE AI</h1>
-        <div class="date">Sunday, August 30, 2026</div>
-        <div class="updated">Last updated: 03:55 PM UTC</div>
-    </div>
+<div class="hero">
+  <h1>📈 MARKETPULSE AI</h1>
+  <div class="sub">Sunday, August 30, 2026</div>
+  <div class="ts">Last updated 05:03 PM UTC · Powered by Gemini AI & GitHub Actions</div>
+</div>
 
+<div class="ticker">
+  📰 Edward Jones + CNBC Morning Squawk &nbsp;|&nbsp;
+  🤖 Gemini 3.6 Flash &nbsp;|&nbsp;
+  ⏱ Auto-updated weekdays 6:30 AM EST
+</div>
+
+<div class="container">
+
+  <div class="grid-2">
+    <div class="card accent-blue">
+      <h2>📊 Market Summary</h2>
+      <div class="prose"><p>No data available.</p></div>
+    </div>
+    <div class="card accent-green">
+      <h2>🌅 Morning Outlook</h2>
+      <div class="prose"><p>No data available.</p></div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px">
+    <div class="card accent-amber">
+      <h2>⚡ Key Moves</h2>
+      <div class="bullet"><span class="label"><strong>Bonds & Yields:</span></strong> Short-term yields jumped following Fed remarks; 2-year Treasury yield rose 12 bps to 4.35%, while the 10-year yield reached 4.72%.</div>
+    </div>
+    <div class="card accent-red">
+      <h2>🌐 Macro & News</h2>
+      <div class="bullet"><span class="label"><strong>Hawkish Fed Stance:</span></strong> Fed Chair Kevin Warsh stated inflation remains uncomfortably high and reaffirmed a "firm and fixed" 2% PCE target, noting the Fed "has work to do" if inflation fails to cool quickly.</div><div class="bullet"><span class="label"><strong>September Hike Odds Rise:</span></strong> Futures markets jumped to a ~55% probability of a September rate hike, up from 35% prior to Warsh’s speech.</div><div class="bullet"><span class="label"><strong>Economic Data:</span></strong> Core PCE inflation held steady at 3.3% YoY (above the Fed's target), while initial jobless claims fell to 203,000 (vs. 210,000 expected), confirming labor market resilience.</div><div class="bullet"><span class="label"><strong>Trade Friction:</span></strong> Trade negotiations with Canada broke down, prompting 50% U.S. tariffs on ~$20B of Canadian goods and planned dollar-for-dollar retaliation by Canada on Sept. 8.</div><div class="bullet"><span class="label"><strong>Legal / Defense:</span></strong> A federal judge ruled the Pentagon illegally designated AI firm Anthropic a supply chain risk, overturning the DOD's restrictions.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div class="card accent-green">
+      <h2>💰 Earnings Highlights</h2>
+      <div class="bullet"><span class="label"><strong>Commodities:</span></strong> WTI Crude hovered near $83/barrel; Gold held near a 3-month high due to escalating U.S.-Canada trade tensions.</div><div class="bullet"><span class="label"><strong>Gap Inc.:</span></strong> Q2 adjusted EPS of $0.52 beat expectations despite a minor revenue miss ($3.65B vs. consensus); announced Michael Francis as new CEO of Old Navy.</div><div class="bullet"><span class="label"><strong>Salesforce & CrowdStrike:</span></strong> Both reported upside quarterly beats, helping support broader software and enterprise AI sentiment.</div><div class="bullet"><span class="label"><strong>Broader S&P 500 Picture:</span></strong> With 96% of S&P 500 companies reported, 86% have beaten EPS estimates by an average surprise of 27%.</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px">
     <div class="card">
-        <h2>🤖 AI Morning Briefing</h2>
-        <div class="briefing">### 1. MARKET SUMMARY<br>U.S. equities edged lower yesterday as hawkish Jackson Hole remarks from Fed Chair Kevin Warsh spiked Treasury yields and heightened interest rate fears. Despite yesterday's pullback, major indexes remain on track for solid August gains behind strong tech sector earnings and resilient economic activity. U.S. index futures are mixed heading into the opening bell following a strong week overall.<br><br>### 2. KEY MOVES<br>*   **Treasury Yield Surge:** Yields jumped across the curve after Fed remarks; the 2-year Treasury yield surged 12 basis points to 4.35%, while the 10-year yield reached 4.72%.<br>*   **Futures Trading:** U.S. futures are mixed—Dow futures up +0.15%, S&P 500 futures up +0.07%, and Nasdaq 100 futures down -0.16%.<br>*   **Sector Performance:** Technology and communications continue to lead weekly gains due to AI tailwinds, while energy underperformed as oil prices stabilized.<br>*   **Commodities:** WTI Crude oil traded flat near $83–$84 per barrel amid easing Middle East risk premiums and new sanction proposals.<br><br>### 3. MACRO & NEWS<br>*   **Hawkish Fed at Jackson Hole:** Fed Chair Kevin Warsh stressed that inflation remains uncomfortably high and reaffirmed a "firm and fixed" 2% PCE target, driving market-implied odds of a September rate hike from 35% up to 55%.<br>*   **Inflation & Labor Data:** July Core PCE held sticky at 3.3% YoY. Weekly jobless claims fell to a resilient 203,000 (vs. 210,000 expected), giving the Fed room to focus primarily on curbing inflation.<br>*   **Treasury Liquidity Intervention:** Treasury Secretary Bessent announced plans to double long-dated bond buybacks to at least $4B and is weighing the use of the $950B Treasury General Account (TGA) to cap yield upside.<br>*   **Trade Escalation:** Negotiations broke down between the U.S. and Canada, triggering 50% U.S. tariffs on roughly $20B of Canadian goods, with retaliatory tariffs scheduled for Sept. 8.<br>*   **AI Policy/Legal:** A federal judge ruled the Pentagon illegally designated AI startup Anthropic a supply-chain risk, removing a regulatory cloud over the vendor.<br><br>### 4. EARNINGS HIGHLIGHTS<br>*   **NVIDIA:** Beat Q2 revenue and EPS expectations while issuing above-consensus guidance, confirming robust, ongoing demand for AI infrastructure buildouts.<br>*   **Gap Inc. (GPS):** Shares surged over 16% in extended trading after beating Q2 EPS estimates ($0.52 adjusted) and announcing Old Navy CCO Michael Francis will take over as brand CEO in November. Revenue slightly missed estimates ($3.65B).<br>*   **Salesforce & CrowdStrike:** Both software firms reported better-than-expected quarterly results, reinforcing positive tech sentiment.<br>*   **S&P 500 Aggregate:** With 96% of S&P 500 companies reporting, 86% have beaten earnings estimates, with year-over-year earnings growth spanning 10 of 11 sectors.<br><br>### 5. MORNING OUTLOOK<br>Watch for continued rate-sensitivity in high-valuation tech stocks today as markets adjust to elevated rate-hike probability ahead of upcoming CPI and jobs data. As September approaches—historically a seasonally softer month for equities—investors should anticipate near-term consolidation and use short-term pullbacks in high-quality, large-cap equities as buying opportunities.</div>
+      <h2>📰 Edward Jones Source</h2>
+      <div class="source-text">Stock Market News Today | Edward Jones United States | English Canada | English Canada | French Friday 8/28/2026 p.m. Stocks edge lower following hawkish remarks from Fed Chair Warsh – U.S. equity markets closed lower Friday, reversing modest opening gains after Fed Chair Kevin Warsh emphasized that inflation remains uncomfortably high for policymakers. Markets interpreted his remarks as hawkish, with Treasury yields moving higher, particularly at the shorter end of the yield curve. The 2-year Treasury yield gained 0.12 percentage points, finishing at 4.35%, while the 10-year yield rose to 4.72%. Futures markets also raised the implied probability of a September rate hike from roughly 35% to around 55% following Warsh’s remarks. Despite Friday’s modest declines, stocks were broadly higher for the week, supported by strong technology-sector performance following several upbeat earnings announcements. Overseas, Asian markets finished mixed, while European markets were mostly higher after the eurozone Economic Sentiment Indicator improved in August. In commodities, oil prices were little changed, with WTI crude oil closing near $83 per barrel. Odds of a September rate hike rise follow</div>
     </div>
-
-    <div class="sources">
-        <div class="card">
-            <h2>📰 Edward Jones Source</h2>
-            <div class="source-text">Stock Market News Today | Edward Jones
-United States | English
-Canada | English
-Canada | French
-Friday 8/28/2026 p.m.
-Stocks edge lower following hawkish remarks from Fed Chair Warsh –
-U.S. equity markets closed lower Friday, reversing modest opening gains after Fed Chair Kevin Warsh emphasized that inflation remains uncomfortably high for policymakers. Markets interpreted his remarks as hawkish, with Treasury yields moving higher, particularly at the shorter end of the yield curve. The 2-year Treasury yield gained 0.12 percentage points, finishing at 4.35%, while the 10-year yield rose to 4.72%. Futures markets also raised the implied probability of a September rate hike from roughly 35% to around 55% following Warsh’s remarks. Despite Friday’s modest declines, stocks were broadly higher ...</div>
-        </div>
-        <div class="card">
-            <h2>📧 CNBC Squawk Source</h2>
-            <div class="source-text">5 things to know before the market opens Friday
-VIEW IN BROWSER
-|
-CNBC NEWSLETTERS
-FRI, AUG 28, 2026
-DOW
-FUTURES
-+0.15%
-S&P 500 FUTURES
-+0.07%
-NASDAQ 100 FUTURES
--0.16%
-Data as of 8:30 a.m. ET
-Think a friend or colleague should be getting this newsletter? Share
-this link
-with them to sign up.
-Alex Harring
-CNBC Reporter & Morning Squawk Writer
-Happy Friday. President Donald Trump on Thursday signed an order that he said will
-rename Lake Ontario to “Lake America,”
-prompting some déjà vu to last year’s “Gulf of America” push.
-Stock futures
-are mixed this morning following a
-winning day
-on Wall Street.
-Here are five key things investors need to know to start the trading day:
-1. Warsh-oming
-Federal Reserve Chairman Kevin Warsh will
-deliver a keynote speech
-from the central bank’s annual symposi...</div>
-        </div>
+    <div class="card">
+      <h2>📧 CNBC Squawk Source</h2>
+      <div class="source-text">5 things to know before the market opens Friday VIEW IN BROWSER | CNBC NEWSLETTERS FRI, AUG 28, 2026 DOW FUTURES +0.15% S&P 500 FUTURES +0.07% NASDAQ 100 FUTURES -0.16% Data as of 8:30 a.m. ET Think a friend or colleague should be getting this newsletter? Share this link with them to sign up. Alex Harring CNBC Reporter & Morning Squawk Writer Happy Friday. President Donald Trump on Thursday signed an order that he said will rename Lake Ontario to “Lake America,” prompting some déjà vu to last year’s “Gulf of America” push. Stock futures are mixed this morning following a winning day on Wall Street. Here are five key things investors need to know to start the trading day: 1. Warsh-oming Federal Reserve Chairman Kevin Warsh will deliver a keynote speech from the central bank’s annual symposium in Jackson Hole, Wyoming, this morning. While his predecessors have used the time to talk about broad policy goals, economists aren’t sure if Warsh will follow suit. Here’s what to know: A CNBC survey shows economists are hoping Warsh will give more insight into his economic views in his 10 a.m. ET speech, but respondents were split on whether the chairman should offer his view on the rate outl</div>
     </div>
+  </div>
 
-    <div class="footer">
-        MarketPulse AI · Built by anil2040 · Powered by Gemini AI &amp; GitHub Actions<br>
-        For informational purposes only. Not financial advice.
-    </div>
+  <div class="footer">
+    MarketPulse AI &nbsp;·&nbsp; Built by anil2040 &nbsp;·&nbsp;
+    Not financial advice.
+  </div>
 
+</div>
 </body>
 </html>
