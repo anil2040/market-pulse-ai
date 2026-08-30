@@ -220,7 +220,9 @@ def build_html(briefing_text, ej_text, cnbc_text):
     print("\n🎨 Building HTML dashboard...")
 
     today     = datetime.now().strftime("%A, %B %d, %Y")
-    now       = datetime.now().strftime("%I:%M %p UTC")
+    from datetime import timezone, timedelta
+    mst = timezone(timedelta(hours=-6))
+    now = datetime.now(mst).strftime("%I:%M %p MT")
 
     sections = {
         "MARKET SUMMARY":   "",
@@ -232,11 +234,14 @@ def build_html(briefing_text, ej_text, cnbc_text):
     current = None
     for line in briefing_text.splitlines():
         upper = line.upper()
-        if "MARKET SUMMARY"  in upper: current = "MARKET SUMMARY";  continue
-        if "KEY MOVES"       in upper: current = "KEY MOVES";        continue
-        if "MACRO"           in upper: current = "MACRO & NEWS";     continue
-        if "EARNINGS"        in upper: current = "EARNINGS";         continue
-        if "MORNING OUTLOOK" in upper: current = "MORNING OUTLOOK";  continue
+        # Strip leading numbers like "1. " "2. " before matching
+        import re
+        stripped = re.sub(r"^\d+\.\s*", "", upper).strip()
+        if "MARKET SUMMARY"  in stripped: current = "MARKET SUMMARY";  continue
+        if "KEY MOVES"       in stripped: current = "KEY MOVES";        continue
+        if "MACRO"           in stripped: current = "MACRO & NEWS";     continue
+        if "EARNINGS"        in stripped: current = "EARNINGS";         continue
+        if "MORNING OUTLOOK" in stripped: current = "MORNING OUTLOOK";  continue
         if current:
             sections[current] += line + "\n"
 
@@ -371,8 +376,8 @@ def build_html(briefing_text, ej_text, cnbc_text):
 
 <div class="hero">
   <h1>📈 MARKETPULSE AI</h1>
-  <div class="sub">{today}</div>
-  <div class="ts">Last updated {now} · Powered by Gemini AI & GitHub Actions</div>
+  <div class="sub">Anil Abraham &nbsp;·&nbsp; {today}</div>
+  <div class="ts">Last updated {now} MST · Powered by Gemini AI & GitHub Actions</div>
 </div>
 
 <div class="ticker">
