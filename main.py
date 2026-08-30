@@ -139,15 +139,20 @@ def fetch_cnbc_email():
         
         # Emails can have multiple parts: HTML version, plain text version
         # We want the plain text version -- easier to pass to Gemini
-        body = ""
-        if msg.is_multipart():
-            for part in msg.walk():
-                # "text/plain" = the plain text version of the email
-                if part.get_content_type() == "text/plain":
-                    body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                    break
-        else:
-            body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
+body = ""
+if msg.is_multipart():
+    for part in msg.walk():
+        if part.get_content_type() == "text/plain":
+            body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+            break
+    if not body:
+        for part in msg.walk():
+            if part.get_content_type() == "text/html":
+                html_body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                body = BeautifulSoup(html_body, "html.parser").get_text(separator="\n", strip=True)
+                break
+else:
+    body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
         
         # Trim to first 3000 characters -- enough context for Gemini
         body = body[:3000].strip()
@@ -178,7 +183,7 @@ def synthesize_with_gemini(edward_jones_text, cnbc_text):
         genai.configure(api_key=GEMINI_API_KEY)
         
         # gemini-2.5-flash = fast, capable, free tier friendly
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        model = genai.GenerativeModel("gemini-3.6-flash")
         
         # The prompt -- this is our instruction to Gemini.
         # Notice how structured and specific it is.
