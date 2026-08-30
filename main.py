@@ -218,149 +218,222 @@ Format your response with these exact sections:
 
 def build_html(briefing_text, ej_text, cnbc_text):
     print("\n🎨 Building HTML dashboard...")
-    
-    today = datetime.now().strftime("%A, %B %d, %Y")
-    now   = datetime.now().strftime("%I:%M %p UTC")
-    
-    # Convert Gemini's plain text to HTML paragraphs
-    # We replace newlines with <br> tags so they show up on the page
-    briefing_html = briefing_text.replace("\n", "<br>")
-    
+
+    today     = datetime.now().strftime("%A, %B %d, %Y")
+    now       = datetime.now().strftime("%I:%M %p UTC")
+
+    sections = {
+        "MARKET SUMMARY":   "",
+        "KEY MOVES":        "",
+        "MACRO & NEWS":     "",
+        "EARNINGS":         "",
+        "MORNING OUTLOOK":  "",
+    }
+    current = None
+    for line in briefing_text.splitlines():
+        upper = line.upper()
+        if "MARKET SUMMARY"  in upper: current = "MARKET SUMMARY";  continue
+        if "KEY MOVES"       in upper: current = "KEY MOVES";        continue
+        if "MACRO"           in upper: current = "MACRO & NEWS";     continue
+        if "EARNINGS"        in upper: current = "EARNINGS";         continue
+        if "MORNING OUTLOOK" in upper: current = "MORNING OUTLOOK";  continue
+        if current:
+            sections[current] += line + "\n"
+
+    def fmt(raw):
+        import re
+        html = ""
+        for line in raw.strip().splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            line = re.sub(r"^\*+\s*", "", line)
+            line = re.sub(r"^-+\s*",  "", line)
+            line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
+            if ":" in line[:60]:
+                parts = line.split(":", 1)
+                html += f'<div class="bullet"><span class="label">{parts[0].strip()}:</span>{parts[1]}</div>'
+            else:
+                html += f'<div class="bullet">{line}</div>'
+        return html or "<p>No data available.</p>"
+
+    def plain(raw):
+        lines = [l.strip() for l in raw.strip().splitlines() if l.strip()]
+        return " ".join(lines[:60])
+
+    s  = sections
+    ej = plain(ej_text[:1200])
+    cb = plain(cnbc_text[:1200])
+
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MarketPulse AI - {today}</title>
-    <style>
-        /* CSS -- the styling language for web pages */
-        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
-        
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #0a0e1a;
-            color: #e0e6f0;
-            padding: 20px;
-        }}
-        
-        .header {{
-            text-align: center;
-            padding: 30px 20px;
-            background: linear-gradient(135deg, #1a1f35, #0d1526);
-            border-radius: 12px;
-            margin-bottom: 24px;
-            border: 1px solid #2a3550;
-        }}
-        
-        .header h1 {{
-            font-size: 2em;
-            color: #4a9eff;
-            letter-spacing: 2px;
-        }}
-        
-        .header .date {{
-            color: #8899bb;
-            margin-top: 8px;
-            font-size: 0.95em;
-        }}
-        
-        .header .updated {{
-            color: #4caf7d;
-            font-size: 0.8em;
-            margin-top: 4px;
-        }}
-        
-        .card {{
-            background: #111827;
-            border: 1px solid #1e2d45;
-            border-radius: 10px;
-            padding: 24px;
-            margin-bottom: 20px;
-        }}
-        
-        .card h2 {{
-            color: #4a9eff;
-            font-size: 1em;
-            letter-spacing: 1px;
-            text-transform: uppercase;
-            margin-bottom: 16px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #1e2d45;
-        }}
-        
-        .briefing {{
-            line-height: 1.8;
-            color: #c8d6e8;
-            font-size: 0.95em;
-        }}
-        
-        .sources {{
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }}
-        
-        .source-text {{
-            font-size: 0.78em;
-            color: #6b7a99;
-            line-height: 1.6;
-            max-height: 200px;
-            overflow-y: auto;
-            white-space: pre-wrap;
-        }}
-        
-        .footer {{
-            text-align: center;
-            color: #3a4a66;
-            font-size: 0.75em;
-            margin-top: 30px;
-            padding: 20px;
-        }}
-        
-        /* Mobile responsive -- looks good on your phone too! */
-        @media (max-width: 600px) {{
-            .sources {{ grid-template-columns: 1fr; }}
-            .header h1 {{ font-size: 1.4em; }}
-        }}
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>MarketPulse AI · {today}</title>
+<style>
+  :root {{
+    --blue:   #1a56db;
+    --green:  #057a55;
+    --red:    #c81e1e;
+    --amber:  #b45309;
+    --ink:    #111928;
+    --muted:  #6b7280;
+    --border: #e5e7eb;
+    --bg:     #f9fafb;
+    --card:   #ffffff;
+  }}
+  * {{ box-sizing:border-box; margin:0; padding:0; }}
+  body {{
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    padding: 0 0 60px;
+  }}
+  .hero {{
+    background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%);
+    color: #fff;
+    padding: 36px 24px 28px;
+    text-align: center;
+  }}
+  .hero h1 {{ font-size:2rem; letter-spacing:3px; font-weight:800; }}
+  .hero .sub {{ opacity:.85; margin-top:6px; font-size:.95rem; }}
+  .hero .ts  {{ opacity:.65; margin-top:4px; font-size:.8rem; }}
+  .ticker {{
+    background:#1e3a5f;
+    color:#93c5fd;
+    font-size:.78rem;
+    padding:7px 20px;
+    letter-spacing:.5px;
+    display:flex;
+    gap:28px;
+    flex-wrap:wrap;
+    justify-content:center;
+  }}
+  .ticker span {{ color:#fff; font-weight:600; }}
+  .container {{ max-width:1100px; margin:32px auto; padding:0 20px; }}
+  .grid-2 {{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }}
+  .card {{
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 24px;
+    box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  }}
+  .card h2 {{
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--blue);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--border);
+  }}
+  .card.accent-green {{ border-left: 4px solid var(--green); }}
+  .card.accent-blue  {{ border-left: 4px solid var(--blue);  }}
+  .card.accent-amber {{ border-left: 4px solid var(--amber); }}
+  .card.accent-red   {{ border-left: 4px solid var(--red);   }}
+  .bullet {{
+    padding: 7px 0;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: .88rem;
+    line-height: 1.55;
+    color: #374151;
+  }}
+  .bullet:last-child {{ border-bottom:none; }}
+  .label {{ font-weight:700; color: var(--ink); margin-right:4px; }}
+  .prose {{
+    font-size: .92rem;
+    line-height: 1.75;
+    color: #374151;
+  }}
+  .source-text {{
+    font-size:.78rem;
+    color:var(--muted);
+    line-height:1.6;
+    max-height:130px;
+    overflow-y:auto;
+  }}
+  .footer {{
+    text-align:center;
+    color:var(--muted);
+    font-size:.75rem;
+    margin-top:40px;
+  }}
+  @media(max-width:640px){{
+    .grid-2{{ grid-template-columns:1fr; }}
+    .hero h1{{ font-size:1.4rem; }}
+  }}
+</style>
 </head>
 <body>
 
-    <div class="header">
-        <h1>📈 MARKETPULSE AI</h1>
-        <div class="date">{today}</div>
-        <div class="updated">Last updated: {now}</div>
-    </div>
+<div class="hero">
+  <h1>📈 MARKETPULSE AI</h1>
+  <div class="sub">{today}</div>
+  <div class="ts">Last updated {now} · Powered by Gemini AI & GitHub Actions</div>
+</div>
 
+<div class="ticker">
+  📰 Edward Jones + CNBC Morning Squawk &nbsp;|&nbsp;
+  🤖 Gemini 3.6 Flash &nbsp;|&nbsp;
+  ⏱ Auto-updated weekdays 6:30 AM EST
+</div>
+
+<div class="container">
+
+  <div class="grid-2">
+    <div class="card accent-blue">
+      <h2>📊 Market Summary</h2>
+      <div class="prose">{fmt(s["MARKET SUMMARY"])}</div>
+    </div>
+    <div class="card accent-green">
+      <h2>🌅 Morning Outlook</h2>
+      <div class="prose">{fmt(s["MORNING OUTLOOK"])}</div>
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px">
+    <div class="card accent-amber">
+      <h2>⚡ Key Moves</h2>
+      {fmt(s["KEY MOVES"])}
+    </div>
+    <div class="card accent-red">
+      <h2>🌐 Macro & News</h2>
+      {fmt(s["MACRO & NEWS"])}
+    </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <div class="card accent-green">
+      <h2>💰 Earnings Highlights</h2>
+      {fmt(s["EARNINGS"])}
+    </div>
+  </div>
+
+  <div class="grid-2" style="margin-top:20px">
     <div class="card">
-        <h2>🤖 AI Morning Briefing</h2>
-        <div class="briefing">{briefing_html}</div>
+      <h2>📰 Edward Jones Source</h2>
+      <div class="source-text">{ej}</div>
     </div>
-
-    <div class="sources">
-        <div class="card">
-            <h2>📰 Edward Jones Source</h2>
-            <div class="source-text">{ej_text[:800]}...</div>
-        </div>
-        <div class="card">
-            <h2>📧 CNBC Squawk Source</h2>
-            <div class="source-text">{cnbc_text[:800]}...</div>
-        </div>
+    <div class="card">
+      <h2>📧 CNBC Squawk Source</h2>
+      <div class="source-text">{cb}</div>
     </div>
+  </div>
 
-    <div class="footer">
-        MarketPulse AI · Built by anil2040 · Powered by Gemini AI &amp; GitHub Actions<br>
-        For informational purposes only. Not financial advice.
-    </div>
+  <div class="footer">
+    MarketPulse AI &nbsp;·&nbsp; Built by anil2040 &nbsp;·&nbsp;
+    Not financial advice.
+  </div>
 
+</div>
 </body>
 </html>"""
-    
-    # Write the HTML to index.html in the current directory
-    # GitHub Pages will automatically serve this file as your website!
+
     with open("index.html", "w", encoding="utf-8") as f:
         f.write(html)
-    
     print("   ✅ index.html written successfully")
 
 
