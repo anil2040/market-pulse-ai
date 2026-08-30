@@ -1,1 +1,76 @@
-# placeholder
+# ============================================================
+# MarketPulse AI - Daily Workflow
+# This file is the robot scheduler. It tells GitHub Actions:
+#   WHEN to run, WHAT machine to use, and HOW to execute.
+# ============================================================
+
+name: MarketPulse Daily Briefing  # Display name in GitHub Actions tab
+
+on:
+  # TRIGGER 1: Scheduled run every morning
+  # Cron format has 5 fields: minute hour day month weekday
+  # "30 11 * * 1-5" means: at 11:30 UTC = 6:30 AM EST, Monday-Friday only
+  # * means "every" -- so "every day, every month, Mon-Fri"
+  schedule:
+    - cron: "30 11 * * 1-5"
+
+  # TRIGGER 2: Manual "Run Now" button in GitHub Actions tab
+  # This is how you'll test it and run on demand anytime!
+  workflow_dispatch:
+
+jobs:
+  build:
+    # Use a free Ubuntu Linux virtual machine hosted by GitHub
+    # This machine spins up fresh every run, does the work, then disappears
+    # Think of it as a disposable robot that cleans up after itself
+    runs-on: ubuntu-latest
+
+    # Grant permission to write files back to the repo
+    # This is how index.html gets saved and published to GitHub Pages
+    permissions:
+      contents: write
+
+    steps:
+      # STEP 1: Check out your code onto the virtual machine
+      # "Checking out" = downloading your repo files onto the Linux machine
+      # Without this, the machine has no idea what code to run!
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # STEP 2: Install Python on the Linux machine
+      # Remember -- this machine is brand new every run, nothing pre-installed
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # STEP 3: Install Python libraries our script needs
+      # pip = Python's app store, installs libraries from the internet
+      # requests = web scraping, beautifulsoup4 = HTML parsing
+      # google-generativeai = Gemini AI library
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 google-generativeai
+
+      # STEP 4: Run our Python script!
+      # env: block passes our GitHub Secrets into the Linux environment
+      # This is how main.py reads them via os.environ.get()
+      # The secrets are injected securely -- never visible in logs
+      - name: Run MarketPulse AI
+        env:
+          GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
+          YAHOO_EMAIL:         ${{ secrets.YAHOO_EMAIL }}
+          YAHOO_APP_PASSWORD:  ${{ secrets.YAHOO_APP_PASSWORD }}
+        run: python main.py
+
+      # STEP 5: Save index.html back to the repo
+      # After main.py runs, it creates index.html on the Linux machine
+      # This step commits that file back to your GitHub repo
+      # GitHub Pages then automatically serves it as your website!
+      - name: Commit and push dashboard
+        run: |
+          git config user.name  "MarketPulse Bot"
+          git config user.email "actions@github.com"
+          git add index.html
+          git diff --staged --quiet || git commit -m "Auto-update: MarketPulse briefing $(date +'%Y-%m-%d')"
+          git push
