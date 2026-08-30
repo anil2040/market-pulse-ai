@@ -117,7 +117,7 @@ def fetch_cnbc_email():
         
         # Search for emails FROM CNBC
         # IMAP search syntax: ("FROM", "sender@domain.com")
-        status, messages = mail.search(None, '(FROM "newsletters@cnbc.com")')
+        status, messages = mail.search(None, '(FROM "morningsquawk@response.cnbc.com")')
         
         if status != "OK" or not messages[0]:
             print("   ⚠️ No CNBC emails found - check sender address")
