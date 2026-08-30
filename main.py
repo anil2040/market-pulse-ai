@@ -103,58 +103,46 @@ def fetch_cnbc_email():
     print("\n📬 Connecting to Yahoo Mail via IMAP...")
     
     try:
-        # Yahoo's IMAP server address and port
-        # Port 993 = secure IMAP (encrypted with SSL)
-        # Think of ports like different doors on the same building
         mail = imaplib.IMAP4_SSL("imap.mail.yahoo.com", 993)
-        
-        # Log in with your email and App Password
         mail.login(YAHOO_EMAIL, YAHOO_PASSWORD)
         print("   ✅ Logged into Yahoo Mail")
         
-        # SELECT INBOX -- like clicking on your inbox folder
         mail.select("INBOX")
-        
-        # Search for emails FROM CNBC
-        # IMAP search syntax: ("FROM", "sender@domain.com")
         status, messages = mail.search(None, '(FROM "morningsquawk@response.cnbc.com")')
         
         if status != "OK" or not messages[0]:
-            print("   ⚠️ No CNBC emails found - check sender address")
+            print("   ⚠️ No CNBC emails found")
             return "CNBC Morning Squawk not found in inbox today."
         
-        # messages[0] gives us a list of email ID numbers
-        # We want the LAST one (most recent) -- that's [-1]
         email_ids = messages[0].split()
         latest_id = email_ids[-1]
         print(f"   Found {len(email_ids)} CNBC emails, reading latest...")
         
-        # FETCH the actual email content
-        # "RFC822" means fetch the complete raw email
         status, msg_data = mail.fetch(latest_id, "(RFC822)")
-        
-        # Parse the raw email bytes into a readable object
         raw_email = msg_data[0][1]
         msg = email.message_from_bytes(raw_email)
         
-        # Emails can have multiple parts: HTML version, plain text version
-        # We want the plain text version -- easier to pass to Gemini
-body = ""
-if msg.is_multipart():
-    for part in msg.walk():
-        if part.get_content_type() == "text/plain":
-            body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-            break
-    if not body:
-        for part in msg.walk():
-            if part.get_content_type() == "text/html":
-                html_body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                body = BeautifulSoup(html_body, "html.parser").get_text(separator="\n", strip=True)
-                break
-else:
-    body = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
+        body = ""
         
-        # Trim to first 3000 characters -- enough context for Gemini
+        # Try plain text first
+        if msg.is_multipart():
+            for part in msg.walk():
+                if part.get_content_type() == "text/plain":
+                    body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                    break
+        
+        # If no plain text, fall back to HTML and strip tags
+        if not body:
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/html":
+                        html_body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                        body = BeautifulSoup(html_body, "html.parser").get_text(separator="\n", strip=True)
+                        break
+            else:
+                raw = msg.get_payload(decode=True).decode("utf-8", errors="ignore")
+                body = BeautifulSoup(raw, "html.parser").get_text(separator="\n", strip=True)
+        
         body = body[:3000].strip()
         print(f"   ✅ CNBC email captured: {len(body)} characters")
         
