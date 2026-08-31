@@ -21,7 +21,7 @@ from email.mime.text import MIMEText             # Adds text/HTML content to ema
 from datetime import datetime   # So we can stamp our briefing with today's date
 import requests                 # Makes web requests -- how we scrape Edward Jones
 from bs4 import BeautifulSoup   # Parses HTML -- finds the text we want in a webpage
-import google.generativeai as genai  # The Gemini AI library
+import google.genai as genai  # Gemini AI library (new SDK)
 from datetime import date, timedelta  # For date calculations in FRED
 
 # --- CONFIGURATION: Reading our secrets ---
@@ -261,11 +261,10 @@ def synthesize_with_gemini(edward_jones_text, cnbc_text, fred_data=None):
     print("\n🤖 Sending to Gemini AI for synthesis...")
     
     try:
-        # Initialize Gemini with our API key
-        genai.configure(api_key=GEMINI_API_KEY)
-        
-        # gemini-2.5-flash = fast, capable, free tier friendly
-        model = genai.GenerativeModel("gemini-3.6-flash")
+        # Initialize Gemini with new google-genai SDK
+        # Client pattern replaces the old configure+GenerativeModel pattern
+        # gemini-2.5-flash = current fast free-tier model in new SDK
+        client = genai.Client(api_key=GEMINI_API_KEY)
         
         # The prompt -- this is our instruction to Gemini.
         # Notice how structured and specific it is.
@@ -294,7 +293,10 @@ Format your response with these exact sections:
 {cnbc_text}
 """
         
-        response = model.generate_content(prompt)
+        response = client.models.generate_content(
+            model="gemini-2.5-flash",  # New SDK uses correct model name
+            contents=prompt
+        )
         briefing = response.text
         
         print(f"   ✅ Gemini synthesis complete: {len(briefing)} characters")

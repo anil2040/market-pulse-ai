@@ -22,13 +22,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 google-generativeai
+          pip install requests beautifulsoup4 google-genai
 
       - name: Run MarketPulse AI
         env:
           GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
           YAHOO_EMAIL:         ${{ secrets.YAHOO_EMAIL }}
           YAHOO_APP_PASSWORD:  ${{ secrets.YAHOO_APP_PASSWORD }}
+          FRED_API_KEY:        ${{ secrets.FRED_API_KEY }}
         run: python main.py
 
       - name: Commit and push dashboard
