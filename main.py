@@ -22,6 +22,7 @@ from datetime import datetime   # So we can stamp our briefing with today's date
 import requests                 # Makes web requests -- how we scrape Edward Jones
 from bs4 import BeautifulSoup   # Parses HTML -- finds the text we want in a webpage
 import google.generativeai as genai  # The Gemini AI library
+from datetime import date, timedelta  # For date calculations in FRED
 
 # --- CONFIGURATION: Reading our secrets ---
 # Remember those secrets we stored in GitHub?
@@ -29,11 +30,104 @@ import google.generativeai as genai  # The Gemini AI library
 # On your LOCAL computer these would be empty -- they only exist in GitHub's environment.
 
 GEMINI_API_KEY   = os.environ.get("GEMINI_API_KEY")
+FRED_API_KEY = os.environ.get("FRED_API_KEY")
 YAHOO_EMAIL      = os.environ.get("YAHOO_EMAIL")
 YAHOO_PASSWORD   = os.environ.get("YAHOO_APP_PASSWORD")
 
 print("✅ Configuration loaded")
 print(f"📧 Email configured: {YAHOO_EMAIL}")
+
+# ============================================================
+# FRED API: Federal Reserve Economic Data
+# ============================================================
+# FRED is the St. Louis Federal Reserve's free database.
+# 800,000+ economic time series. We pull exactly 10 indicators.
+# API pattern: one call per series, returns JSON with observations.
+# Each observation = {date, value} pair. We grab latest + history.
+# ============================================================
+
+def fetch_fred_data():
+    print("\n🏦 Fetching FRED macro indicators...")
+
+    # The 10 series we want -- FRED's own internal codes
+    series = {
+        "Fed Funds Rate":         "FEDFUNDS",
+        "CPI (Headline)":         "CPIAUCSL",
+        "Core CPI":               "CPILFESL",
+        "PCE (Headline)":         "PCEPI",
+        "Core PCE":               "PCEPILFE",
+        "Unemployment Rate":      "UNRATE",
+        "10Y Treasury Yield":     "GS10",
+        "2Y Treasury Yield":      "GS2",
+        "Yield Curve (10Y-2Y)":   "T10Y2Y",
+        "Consumer Sentiment":     "UMCSENT",
+    }
+
+    # Date range: pull last 13 months so we have
+    # current, 3-month-ago, and 12-month-ago values
+    end_date   = date.today().strftime("%Y-%m-%d")
+    start_date = (date.today() - timedelta(days=400)).strftime("%Y-%m-%d")
+
+    results = {}
+
+    for label, series_id in series.items():
+        try:
+            # This is a JSON API call -- clean structured data back!
+            # No HTML parsing needed -- FRED designed this for computers
+            url = (
+                f"https://api.stlouisfed.org/fred/series/observations"
+                f"?series_id={series_id}"
+                f"&api_key={FRED_API_KEY}"
+                f"&file_type=json"
+                f"&observation_start={start_date}"
+                f"&observation_end={end_date}"
+                f"&sort_order=desc"   # Latest first
+                f"&limit=13"          # Last 13 months max
+            )
+
+            response = requests.get(url, timeout=10)
+            data     = response.json()
+
+            # Filter out missing values (FRED uses "." for unavailable)
+            obs = [
+                o for o in data.get("observations", [])
+                if o["value"] != "."
+            ]
+
+            if not obs:
+                results[label] = {"current": "N/A", "3mo": "N/A", "12mo": "N/A"}
+                continue
+
+            # Extract current, 3-month, and 12-month values
+            current = float(obs[0]["value"])
+            mo3     = float(obs[min(2, len(obs)-1)]["value"])
+            mo12    = float(obs[min(11, len(obs)-1)]["value"])
+
+            # Trend arrow: simple direction indicator
+            if current > mo3 + 0.05:
+                trend = "▲"   # Rising
+            elif current < mo3 - 0.05:
+                trend = "▼"   # Falling
+            else:
+                trend = "→"   # Stable
+
+            results[label] = {
+                "current": f"{current:.2f}",
+                "3mo":     f"{mo3:.2f}",
+                "12mo":    f"{mo12:.2f}",
+                "trend":   trend,
+                "date":    obs[0]["date"],
+            }
+
+            print(f"   ✅ {label}: {current:.2f}% {trend}")
+
+        except Exception as e:
+            print(f"   ❌ {label} failed: {e}")
+            results[label] = {"current": "N/A", "3mo": "N/A", "12mo": "N/A", "trend": "?", "date": "N/A"}
+
+    print(f"   🏦 FRED fetch complete: {len(results)} indicators")
+    return results
+
 # ============================================================
 # STEP 1: SCRAPE EDWARD JONES
 # ============================================================
@@ -163,7 +257,7 @@ def fetch_cnbc_email():
 # The "prompt" is our instruction to the AI -- like a very
 # precise question. Prompt engineering is a real skill!
 
-def synthesize_with_gemini(edward_jones_text, cnbc_text):
+def synthesize_with_gemini(edward_jones_text, cnbc_text, fred_data=None):
     print("\n🤖 Sending to Gemini AI for synthesis...")
     
     try:
@@ -189,6 +283,9 @@ Format your response with these exact sections:
 3. MACRO & NEWS (bullet points: Fed news, economic data, major headlines)
 4. EARNINGS HIGHLIGHTS (bullet points: any notable earnings from either source)
 5. MORNING OUTLOOK (2-3 sentences: what to watch today, overall sentiment)
+
+--- MACRO INDICATORS (FRED - Federal Reserve Data) ---
+{chr(10).join([f"{k}: {v.get('current','N/A')} (3mo ago: {v.get('3mo','N/A')}, 12mo ago: {v.get('12mo','N/A')}) {v.get('trend','')}" for k,v in (fred_data or {}).items()])}
 
 --- SOURCE 1: EDWARD JONES DAILY RECAP ---
 {edward_jones_text}
@@ -216,7 +313,7 @@ Format your response with these exact sections:
 # This is called "templating" -- combining a fixed design
 # with dynamic data that changes every day.
 
-def build_html(briefing_text, ej_text, cnbc_text):
+def build_html(briefing_text, ej_text, cnbc_text, fred_data=None):
     print("\n🎨 Building HTML dashboard...")
 
     today     = datetime.now().strftime("%A, %B %d, %Y")
@@ -267,6 +364,36 @@ def build_html(briefing_text, ej_text, cnbc_text):
         return " ".join(lines[:60])
 
     s  = sections
+        # Build FRED indicators HTML table
+    fred_html = ""
+    if fred_data:
+        fred_html = """
+        <div class="card full" style="margin-top:20px">
+          <h2>🏦 Macro Indicators (Federal Reserve FRED Data)</h2>
+          <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+            <thead>
+              <tr style="background:#f3f4f6;">
+                <th style="padding:8px;text-align:left;border-bottom:2px solid #e5e7eb;">Indicator</th>
+                <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb;">Current</th>
+                <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb;">3 Months Ago</th>
+                <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb;">12 Months Ago</th>
+                <th style="padding:8px;text-align:center;border-bottom:2px solid #e5e7eb;">Trend</th>
+              </tr>
+            </thead>
+            <tbody>
+        """
+        for label, vals in fred_data.items():
+            trend_color = "#057a55" if vals.get("trend") == "▲" else "#c81e1e" if vals.get("trend") == "▼" else "#6b7280"
+            fred_html += f"""
+              <tr style="border-bottom:1px solid #f3f4f6;">
+                <td style="padding:8px;font-weight:600;">{label}</td>
+                <td style="padding:8px;text-align:center;font-weight:700;">{vals.get('current','N/A')}</td>
+                <td style="padding:8px;text-align:center;color:#6b7280;">{vals.get('3mo','N/A')}</td>
+                <td style="padding:8px;text-align:center;color:#6b7280;">{vals.get('12mo','N/A')}</td>
+                <td style="padding:8px;text-align:center;font-size:1.1rem;color:{trend_color};">{vals.get('trend','?')}</td>
+              </tr>
+            """
+        fred_html += "</tbody></table></div>"
     ej = plain(ej_text[:1200])
     cb = plain(cnbc_text[:1200])
 
@@ -417,6 +544,7 @@ def build_html(briefing_text, ej_text, cnbc_text):
     </div>
   </div>
 
+    {fred_html}
   <div class="grid-2" style="margin-top:20px">
     <div class="card">
       <h2>📰 Edward Jones Source</h2>
@@ -498,10 +626,11 @@ if __name__ == "__main__":
     print("=" * 50)
     
     # Run all steps in sequence
+    fred_data  = fetch_fred_data()
     ej_text    = scrape_edward_jones()
     cnbc_text  = fetch_cnbc_email()
-    briefing   = synthesize_with_gemini(ej_text, cnbc_text)
-    build_html(briefing, ej_text, cnbc_text)
+    briefing   = synthesize_with_gemini(ej_text, cnbc_text, fred_data)
+    build_html(briefing, ej_text, cnbc_text, fred_data)
     send_email(briefing)
     
     print("\n" + "=" * 50)
