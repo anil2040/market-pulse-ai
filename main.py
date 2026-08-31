@@ -50,17 +50,25 @@ def fetch_fred_data():
     print("\n🏦 Fetching FRED macro indicators...")
 
     # The 10 series we want -- FRED's own internal codes
+    # Series that are RATES (shown as-is, already percentages)
+    # vs INDEX series (need year-over-year % change calculated)
     series = {
         "Fed Funds Rate":         "FEDFUNDS",
-        "CPI (Headline)":         "CPIAUCSL",
-        "Core CPI":               "CPILFESL",
-        "PCE (Headline)":         "PCEPI",
-        "Core PCE":               "PCEPILFE",
+        "CPI YoY %":              "CPIAUCSL",   # Index -- we calc YoY
+        "Core CPI YoY %":         "CPILFESL",   # Index -- we calc YoY
+        "PCE YoY %":              "PCEPI",       # Index -- we calc YoY
+        "Core PCE YoY %":         "PCEPILFE",   # Index -- we calc YoY
         "Unemployment Rate":      "UNRATE",
         "10Y Treasury Yield":     "GS10",
         "2Y Treasury Yield":      "GS2",
         "Yield Curve (10Y-2Y)":   "T10Y2Y",
         "Consumer Sentiment":     "UMCSENT",
+    }
+    
+    # These series are price INDEXES -- must calculate YoY % change
+    # instead of showing the raw index value (which would show ~330!)
+    index_series = {
+        "CPI YoY %", "Core CPI YoY %", "PCE YoY %", "Core PCE YoY %"
     }
 
     # Date range: pull last 13 months so we have
@@ -82,7 +90,7 @@ def fetch_fred_data():
                 f"&observation_start={start_date}"
                 f"&observation_end={end_date}"
                 f"&sort_order=desc"   # Latest first
-                f"&limit=13"          # Last 13 months max
+                f"&limit=15"          # Last 15 months for YoY calculations
             )
 
             response = requests.get(url, timeout=10)
@@ -100,26 +108,41 @@ def fetch_fred_data():
 
             # Extract current, 3-month, and 12-month values
             current = float(obs[0]["value"])
-            mo3     = float(obs[min(2, len(obs)-1)]["value"])
+            mo3     = float(obs[min(2,  len(obs)-1)]["value"])
             mo12    = float(obs[min(11, len(obs)-1)]["value"])
 
-            # Trend arrow: simple direction indicator
-            if current > mo3 + 0.05:
-                trend = "▲"   # Rising
-            elif current < mo3 - 0.05:
-                trend = "▼"   # Falling
+            # For INDEX series (CPI, PCE): calculate year-over-year % change
+            # Formula: (current - 12mo ago) / 12mo ago * 100
+            # This gives the INFLATION RATE not the raw index level
+            if label in index_series and mo12 != 0:
+                display_current = (current - mo12) / mo12 * 100
+                display_mo3     = (mo3 - float(obs[min(13, len(obs)-1)]["value"])) / float(obs[min(13, len(obs)-1)]["value"]) * 100 if len(obs) > 13 else display_current
+                display_mo12    = display_current  # baseline
+                unit = "% YoY"
             else:
-                trend = "→"   # Stable
+                # For RATE series: show as-is (already a percentage)
+                display_current = current
+                display_mo3     = mo3
+                display_mo12    = mo12
+                unit = "%"
+
+            # Trend arrow based on direction vs 3 months ago
+            if display_current > display_mo3 + 0.05:
+                trend = "▲"
+            elif display_current < display_mo3 - 0.05:
+                trend = "▼"
+            else:
+                trend = "→"
 
             results[label] = {
-                "current": f"{current:.2f}",
-                "3mo":     f"{mo3:.2f}",
-                "12mo":    f"{mo12:.2f}",
+                "current": f"{display_current:.2f}{unit}",
+                "3mo":     f"{display_mo3:.2f}{unit}",
+                "12mo":    f"{display_mo12:.2f}{unit}",
                 "trend":   trend,
                 "date":    obs[0]["date"],
             }
 
-            print(f"   ✅ {label}: {current:.2f}% {trend}")
+            print(f"   ✅ {label}: {display_current:.2f}{unit} {trend}")
 
         except Exception as e:
             print(f"   ❌ {label} failed: {e}")
@@ -294,7 +317,7 @@ Format your response with these exact sections:
 """
         
         response = client.models.generate_content(
-            model="gemini-2.5-flash",  # New SDK uses correct model name
+            model="gemini-2.0-flash",  # Stable free tier model
             contents=prompt
         )
         briefing = response.text
