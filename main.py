@@ -316,11 +316,14 @@ Format your response with these exact sections:
 {cnbc_text}
 """
         
-        response = client.models.generate_content(
-            model="gemini-2.0-flash",  # Stable free tier model
-            contents=prompt
+        # gemini-3.6-flash = current stable free tier model August 2026
+        # Using Interactions API -- Google's recommended pattern for
+        # single-turn text generation (not chat/multi-turn)
+        interaction = client.interactions.create(
+            model="gemini-3.6-flash",
+            input=prompt,
         )
-        briefing = response.text
+        briefing = interaction.output_text
         
         print(f"   ✅ Gemini synthesis complete: {len(briefing)} characters")
         return briefing
