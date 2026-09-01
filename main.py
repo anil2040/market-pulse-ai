@@ -347,7 +347,7 @@ def build_html(briefing_text, ej_text, cnbc_text, fred_data=None):
     today     = datetime.now().strftime("%A, %B %d, %Y")
     from datetime import timezone, timedelta
     mst = timezone(timedelta(hours=-6))
-    now = datetime.now(mst).strftime("%I:%M %p MT")
+    now = datetime.now(mst).strftime("%I:%M %p")
 
     sections = {
         "MARKET SUMMARY":   "",
@@ -356,18 +356,23 @@ def build_html(briefing_text, ej_text, cnbc_text, fred_data=None):
         "EARNINGS":         "",
         "MORNING OUTLOOK":  "",
     }
+    import re
     current = None
     for line in briefing_text.splitlines():
         upper = line.upper()
-        # Strip leading numbers like "1. " "2. " before matching
-        import re
+        # Strip numbered prefixes (1. 2.) AND markdown headers (## **) 
+        # before matching section names -- Gemini formats inconsistently!
         stripped = re.sub(r"^\d+\.\s*", "", upper).strip()
+        stripped = re.sub(r"^#+\s*",    "", stripped).strip()
+        stripped = re.sub(r"^\*+\s*",   "", stripped).strip()
+        # Remove emojis by stripping non-ASCII characters
+        stripped = stripped.encode("ascii", "ignore").decode().strip()
         if "MARKET SUMMARY"  in stripped: current = "MARKET SUMMARY";  continue
         if "KEY MOVES"       in stripped: current = "KEY MOVES";        continue
         if "MACRO"           in stripped: current = "MACRO & NEWS";     continue
         if "EARNINGS"        in stripped: current = "EARNINGS";         continue
         if "MORNING OUTLOOK" in stripped: current = "MORNING OUTLOOK";  continue
-        if current:
+        if current and line.strip():
             sections[current] += line + "\n"
 
     def fmt(raw):

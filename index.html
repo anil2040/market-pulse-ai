@@ -251,9 +251,48 @@
     </div>
   </div>
 
+  <!-- ============================================================
+       MARKET CONTEXT DIV -- FOR CHROME EXTENSION USE
+       This hidden div contains clean plain text that your
+       Finviz Chrome extension can fetch via:
+       document.getElementById('market-context').innerText
+       It provides macro context for stock-level analysis!
+       ============================================================ -->
+  <div id="market-context" style="display:none;">
+MARKETPULSE AI MACRO CONTEXT - {today}
+Generated: {now} MT
+
+MARKET SUMMARY:
+{sections.get("MARKET SUMMARY","unavailable").strip()}
+
+KEY MOVES:
+{sections.get("KEY MOVES","unavailable").strip()}
+
+MACRO AND NEWS:
+{sections.get("MACRO & NEWS","unavailable").strip()}
+
+EARNINGS:
+{sections.get("EARNINGS","unavailable").strip()}
+
+MORNING OUTLOOK:
+{sections.get("MORNING OUTLOOK","unavailable").strip()}
+
+FRED MACRO INDICATORS:
+{chr(10).join([f"{k}: {v.get('current','N/A')} (trend: {v.get('trend','?')})" for k,v in (fred_data or {}).items()])}
+
+SOURCES: Edward Jones Daily Market Recap (edwardjones.com) | CNBC Morning Squawk Newsletter | Federal Reserve FRED API (fred.stlouisfed.org)
+  </div>
+
   <div class="footer">
     MarketPulse AI &nbsp;·&nbsp; Built by anil2040 &nbsp;·&nbsp;
-    Not financial advice.
+    Sources: 
+    <a href="https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/daily-market-recap" 
+       target="_blank" style="color:#1a56db;">Edward Jones</a> &nbsp;·&nbsp;
+    <a href="https://www.cnbc.com/newsletters/" 
+       target="_blank" style="color:#1a56db;">CNBC Morning Squawk</a> &nbsp;·&nbsp;
+    <a href="https://fred.stlouisfed.org" 
+       target="_blank" style="color:#1a56db;">FRED API</a>
+    &nbsp;·&nbsp; Not financial advice.
   </div>
 
 </div>
