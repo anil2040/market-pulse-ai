@@ -2,7 +2,7 @@ name: MarketPulse Daily Briefing
 
 on:
   schedule:
-    - cron: "30 11 * * 1-5"
+    - cron: "55 12 * * 1-5"
   workflow_dispatch:
 
 jobs:
