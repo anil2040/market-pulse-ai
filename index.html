@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>MarketPulse AI · Wednesday, September 02, 2026</title>
+<!-- Favicon: simple chart emoji rendered as SVG -->
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <style>
   :root {
     --blue:   #1a56db;
@@ -17,254 +19,243 @@
     --card:   #ffffff;
   }
   * { box-sizing:border-box; margin:0; padding:0; }
-  body {
-    font-family: 'Segoe UI', system-ui, sans-serif;
-    background: var(--bg); color: var(--ink);
-    padding-bottom: 60px;
-  }
-  .hero {
-    background: linear-gradient(135deg, #1e3a5f 0%, #1a56db 100%);
-    color:#fff; padding:26px 24px 20px; text-align:center;
-  }
-  .hero h1 { font-size:1.8rem; letter-spacing:3px; font-weight:800; }
-  .hero .sub { opacity:.85; margin-top:5px; font-size:.88rem; }
-  .hero .ts  { opacity:.6;  margin-top:3px; font-size:.72rem; }
-  .ticker {
-    background:#1e3a5f; color:#93c5fd; font-size:.72rem;
-    padding:5px 16px; display:flex; gap:16px;
-    flex-wrap:wrap; justify-content:center;
-  }
-  .container { max-width:1200px; margin:20px auto; padding:0 14px; }
+  body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--ink); padding-bottom:60px; }
+  .hero { background:linear-gradient(135deg,#1e3a5f,#1a56db); color:#fff; padding:24px 20px 18px; text-align:center; }
+  .hero h1 { font-size:1.7rem; letter-spacing:3px; font-weight:800; }
+  .hero .sub { opacity:.8; margin-top:4px; font-size:.85rem; }
+  .hero .ts  { opacity:.55; margin-top:3px; font-size:.7rem; }
+  .container { max-width:1200px; margin:18px auto; padding:0 14px; }
   .grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
   .grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; }
-  .card {
-    background:var(--card); border:1px solid var(--border);
-    border-radius:10px; padding:16px 18px;
-    box-shadow:0 1px 3px rgba(0,0,0,.05);
-  }
-  .card h2 {
-    font-size:.65rem; font-weight:700; letter-spacing:1.5px;
-    text-transform:uppercase; color:var(--blue);
-    margin-bottom:10px; padding-bottom:8px;
-    border-bottom:2px solid var(--border);
-  }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; box-shadow:0 1px 3px rgba(0,0,0,.05); }
+  .card h2 { font-size:.63rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--blue); margin-bottom:10px; padding-bottom:7px; border-bottom:2px solid var(--border); }
   .card.accent-green { border-left:4px solid var(--green); }
   .card.accent-blue  { border-left:4px solid var(--blue);  }
   .card.accent-amber { border-left:4px solid var(--amber); }
   .card.accent-red   { border-left:4px solid var(--red);   }
   .card ul { list-style:none; padding:0; margin:0; }
-  .card ul li {
-    padding:5px 0 5px 14px; border-bottom:1px solid #f3f4f6;
-    font-size:.84rem; line-height:1.5; color:#374151; position:relative;
-  }
-  .card ul li:before {
-    content:"▸"; position:absolute; left:0;
-    color:var(--blue); font-size:.78rem;
-  }
+  .card ul li { padding:5px 0 5px 14px; border-bottom:1px solid #f3f4f6; font-size:.83rem; line-height:1.5; color:#374151; position:relative; }
+  .card ul li:before { content:"▸"; position:absolute; left:0; color:var(--blue); font-size:.75rem; }
   .card ul li:last-child { border-bottom:none; }
-  .fred-table { width:100%; border-collapse:collapse; font-size:.78rem; }
+  .fred-table { width:100%; border-collapse:collapse; font-size:.76rem; }
   .fred-table thead tr { background:#f3f4f6; }
-  .fred-table th {
-    padding:7px 10px; text-align:left; font-size:.65rem;
-    letter-spacing:.5px; text-transform:uppercase;
-    color:var(--muted); border-bottom:2px solid var(--border);
-  }
-  .fred-table tbody tr { border-bottom:1px solid #f3f4f6; }
+  .fred-table th { padding:7px 9px; text-align:left; font-size:.62rem; letter-spacing:.5px; text-transform:uppercase; color:var(--muted); border-bottom:2px solid var(--border); }
   .fred-table tbody tr:hover { background:#fafafa; }
-  .td-label   { padding:7px 10px; font-weight:600; color:var(--ink); min-width:180px; }
-  .td-val     { padding:7px 10px; text-align:center; }
-  .td-center  { padding:7px 10px; text-align:center; }
-  .td-date    { padding:7px 10px; font-size:.72rem; white-space:nowrap; }
-  .td-insight { padding:7px 10px; font-size:.72rem; }
+  .td-label   { padding:7px 9px; font-weight:600; color:var(--ink); min-width:160px; }
+  .td-val     { padding:7px 9px; text-align:center; }
+  .td-center  { padding:7px 9px; text-align:center; }
+  .td-date    { padding:7px 9px; font-size:.68rem; white-space:nowrap; }
+  .td-insight { padding:7px 9px; font-size:.7rem; }
   .muted      { color:var(--muted); }
-  .source-text {
-    font-size:.73rem; color:var(--muted); line-height:1.55;
-    max-height:110px; overflow-y:auto;
-  }
-  .footer {
-    text-align:center; color:var(--muted);
-    font-size:.7rem; margin-top:28px; padding:0 14px;
-  }
-  .footer a { color:var(--blue); text-decoration:none; }
+  .cal-table  { width:100%; border-collapse:collapse; font-size:.8rem; }
+  .footer     { text-align:center; color:var(--muted); font-size:.7rem; margin-top:28px; }
+  .footer a   { color:var(--blue); text-decoration:none; }
   @media(max-width:640px){
     .grid-2,.grid-3{ grid-template-columns:1fr; }
     .hero h1{ font-size:1.3rem; }
-    .td-insight,.td-date{ display:none; }
+    .td-insight{ display:none; }
   }
 </style>
 </head>
 <body>
 
-<!--
-  HIDDEN MARKET CONTEXT DIV
-  For Chrome Extension use:
-    fetch('https://anil2040.github.io/market-pulse-ai/')
-      .then(r => r.text())
-      .then(html => {
-        const doc = new DOMParser().parseFromString(html,'text/html');
-        const ctx = doc.getElementById('market-context').innerText;
-        // Append ctx to your Finviz stock analysis!
-      });
--->
+<!-- HIDDEN: Chrome Extension macro context
+     Usage: fetch page, parse div#market-context innerText -->
 <div id="market-context" style="display:none;white-space:pre;">MARKETPULSE AI MACRO CONTEXT
-Generated: Wednesday, September 02, 2026 at 07:00 AM MT
+Generated: Wednesday, September 02, 2026 at 07:27 PM MT
 
 MARKET SUMMARY:
-- US stock futures are down with Nasdaq 100 futures dropping 1.25 percent before the open.
-- Market sentiment has pushed the Fear and Greed Index into fear territory at 31 out of 100.
-- Healthcare, utilities, and energy outperformed while industrials, materials, and consumer discretionary sectors lagged behind.
-- S&P 500 futures are down 0.66 percent while Dow futures decreased 0.65 percent pre-market.
+- Stock futures are mixed with Dow futures up 0.19% and Nasdaq futures down 0.20%.
+- CNN Fear & Greed Index stands at 33, signaling market pessimism for value entries.
+- Equities rebounded yesterday led by small-caps as the rally in oil and yields slowed.
+- WTI crude oil remains elevated at $91.50 per barrel amid ongoing military conflict in Iran.
 
 KEY MOVES:
-- The 10-year Treasury yield reached a year-to-date high of approximately 4.8 percent.
-- The 30-year Treasury yield climbed to just below 5.3 percent during recent trading.
-- Japan 10-year yield reached 3 percent for the first time since 1996 as global yields rose.
-- John Ternus officially takes over as chief executive officer of Apple today, replacing Tim Cook.
+- 10-Year Treasury yield rose to 4.68%, while 2-Year yield moved up to 4.22%.
+- Dell shares surged 15% following better-than-expected quarterly financial results.
+- GoPro stock skyrocketed 40% after announcing an AI pivot and defense market merger.
+- High-yield credit spreads hold steady at 2.65%, indicating stable corporate credit risk.
 
 MACRO AND NEWS:
-- Geopolitical tensions escalated following attacks on two oil tankers transiting the Strait of Hormuz.
-- United States launched military strikes against Iranian targets following naval conflict in the Middle East.
-- Core PCE inflation stands at 3.3 percent, remaining well above the Federal Reserve two percent target.
-- The domestic labor market is characterized as being at a standstill while unemployment sits at 4.10 percent.
+- August ADP private payrolls added just 38,000 jobs, missing expectations and showing hiring slowdown.
+- Core PCE inflation increased to 3.3% annually, remaining above the Fed target.
+- United States launched new military strikes against Iran, raising geopolitical risk and energy prices.
+- University of Michigan Consumer Sentiment ticked up to 55.2 alongside declining headline CPI.
 
 EARNINGS AND CALENDAR:
-- Nvidia continues to showcase strong financial performance amid broader market volatility and tech pressure.
-- Federal funds rate sits at 3.63 percent amid persistent Core PCE inflation figures.
-- The yield curve spread between 10-year and 2-year Treasuries currently stands at 0.40 percent.
-- High yield credit spreads remain flat at 2.63 percent, indicating steady credit market conditions.
+- Federal Reserve maintained Fed Funds rate target at 3.63% following recent FOMC meeting.
+- Market focus shifts to broader employment data after weak ADP private hiring report.
+- Corporate margin outlook remains tested as crude oil hovers near summer highs.
 
 PRE-MARKET OUTLOOK:
-- Weakness in cyclical sectors may begin uncovering long-term deep-value entries for disciplined capital.
-- Rising Treasury yields increase discount rates, compressing equity valuations and widening margins of safety.
-- Elevated market fear presents potential mean reversion opportunities in high return-on-capital businesses.
-- Geopolitical energy risk reinforces the necessity of prioritizing strong balance sheets and robust earnings power.
+- Elevated fear index creates potential high-margin-of-safety entry points for deep-value investors.
+- High 10-Year Treasury yield at 4.68% compresses valuation multiples on quality businesses.
+- Surging energy costs offer short-term headwinds, generating classic mean-reversion buying opportunities.
+- Target high-quality companies with durable balance sheets trading far below intrinsic value.
 
-FEAR AND GREED: 31/100 (Fear) -- Fear -- Market pessimism, watch for mean reversion entries
-MARKET BREADTH: N/A -- Data unavailable
+FEAR AND GREED: 33/100 (Fear) -- Fear -- Market pessimism, watch for mean reversion entries
+MARKET BREADTH: N/A -- Data temporarily unavailable -- Yahoo Finance API limit
+
+ECONOMIC CALENDAR (next 7 days):
+  3d ago: FOMC Rate (🔴 High)
 
 FRED MACRO INDICATORS:
-  Fed Funds Rate: 3.63% (3mo: 3.63%, trend: →) -- Cost of borrowing -- rising = headwind for stocks
-  CPI Inflation: 3.5% (3mo: 3.7%, trend: ▼) -- Headline inflation including food & energy
-  Core CPI (ex Food/Energy): 2.8% (3mo: 2.6%, trend: ▲) -- Cleaner inflation signal -- Fed watches closely
-  PCE Inflation: 3.7% (3mo: 3.6%, trend: ▲) -- Fed's preferred inflation measure (broader than CPI)
-  Core PCE (Fed's 2% Target): 3.3% (3mo: 3.1%, trend: ▲) -- THE number Fed targets -- above 2% = rates stay high
-  Unemployment Rate: 4.10% (3mo: 4.30%, trend: ▼) -- Labor market health -- rising = recession risk
-  10Y Treasury Yield: 4.68% (3mo: 4.48%, trend: ▲) -- Risk-free rate -- benchmark for all stock valuations
-  2Y Treasury Yield: 4.22% (3mo: 4.00%, trend: ▲) -- Fed expectations -- rises when rate hikes expected
-  Yield Curve (10Y minus 2Y): 0.40% (3mo: 0.47%, trend: ▼) -- Negative = inverted = historically predicts recession
-  HY Credit Spread: 2.63% (3mo: 2.67%, trend: →) -- Widening = credit stress = systemic risk rising (bad for dip buys)
-  WTI Crude Oil: 83.90% (3mo: 89.75%, trend: ▼) -- Energy prices -- affects inflation, margins, energy stocks
-  U of Michigan Sentiment: 55.2 (3mo: 49.8, trend: ▲) -- Consumer confidence -- leading indicator for spending
+  Core PCE (Fed Target 2%): 3.3% (3mo: 3.1%, trend: ▲) -- Fed's primary target -- above 2% = rates stay elevated
+  Core CPI (ex Food/Energy): 2.8% (3mo: 2.6%, trend: ▲) -- Cleaner inflation signal -- Fed watches this closely
+  CPI Inflation (Headline): 3.5% (3mo: 3.7%, trend: ▼) -- Headline CPI including food & energy prices
+  Fed Funds Rate: 3.63% (3mo: 3.63%, trend: →) -- Cost of borrowing -- rising = headwind for equities
+  HY Credit Spread: 2.65% (3mo: 2.63%, trend: →) -- Widening = credit stress = systemic risk (caution on dip buys)
+  PCE Inflation (Headline): 3.7% (3mo: 3.6%, trend: ▲) -- Fed preferred inflation gauge (broader than CPI)
+  Unemployment Rate: 4.10% (3mo: 4.30%, trend: ▼) -- Labor market -- rising signals recession risk ahead
+  U of Michigan Sentiment: 55.2 (3mo: 49.8, trend: ▲) -- Consumer confidence 0-100 -- leading spending indicator
+  WTI Crude Oil: $91.5 (3mo: $84.8, trend: ▲) -- Energy prices -- drives inflation & energy stock moves
+  10Y Treasury Yield: 4.68% (3mo: 4.48%, trend: ▲) -- Risk-free rate -- benchmark for all equity valuations
+  2Y Treasury Yield: 4.22% (3mo: 4.00%, trend: ▲) -- Fed expectations barometer -- rises with rate hike bets
+  Yield Curve (10Y-2Y): 0.40% (3mo: 0.39%, trend: →) -- Negative = inverted curve = historically predicts recession
 
-SOURCES:
-- Edward Jones Daily Market Recap (edwardjones.com)
-- CNBC Morning Squawk (morningsquawk@response.cnbc.com)
-- Yahoo Finance Morning Brief
-- Federal Reserve FRED API (fred.stlouisfed.org)
-- CNN Fear and Greed Index</div>
+SOURCES: Edward Jones, CNBC Morning Squawk, Yahoo Finance, FRED API, CNN Fear & Greed</div>
 
+<!-- HEADER: clean, no repeated credits -->
 <div class="hero">
   <h1>📈 MARKETPULSE AI</h1>
   <div class="sub">Anil Abraham &nbsp;·&nbsp; Wednesday, September 02, 2026</div>
-  <div class="ts">
-    Last updated 07:00 AM MT &nbsp;·&nbsp;
-    Gemini 3.6 Flash &nbsp;·&nbsp; FRED API &nbsp;·&nbsp;
-    CNN Fear &amp; Greed &nbsp;·&nbsp; Edward Jones &nbsp;·&nbsp; CNBC Squawk &nbsp;·&nbsp; Yahoo Finance
-  </div>
-</div>
-
-<div class="ticker">
-  ⏱ Auto-updated 6:55 AM MT weekdays &nbsp;|&nbsp;
-  🤖 Gemini 3.6 Flash &nbsp;|&nbsp;
-  🏦 FRED &nbsp;|&nbsp; 😨 CNN Fear &amp; Greed &nbsp;|&nbsp;
-  📰 Edward Jones &nbsp;|&nbsp; 📧 CNBC + Yahoo Finance
+  <div class="ts">Last updated 07:27 PM MT</div>
 </div>
 
 <div class="container">
 
-  <!-- ROW 1: Sentiment gauges + Market Summary + Pre-Market Outlook -->
+  <!-- AI FUN FACT (top of page) -->
+  
+<div style="
+  background:linear-gradient(135deg,#1e3a5f,#1a56db);
+  color:white;border-radius:10px;padding:14px 20px;
+  margin-bottom:16px;display:flex;align-items:center;gap:14px;
+">
+  <div style="font-size:2rem;flex-shrink:0;">🤖</div>
+  <div>
+    <div style="font-size:.62rem;font-weight:700;letter-spacing:1.5px;
+                text-transform:uppercase;opacity:.7;margin-bottom:4px;">
+      AI Fun Fact of the Day
+    </div>
+    <div style="font-size:.88rem;line-height:1.55;opacity:.95;">
+      In 1987, early algorithmic trading models triggered automated sell orders during Black Monday, causing the S&P 500 to fall 20.5% in a single day.
+    </div>
+  </div>
+</div>
+
+  <!-- ROW 1: Sentiment + Market Summary + Pre-Market Outlook -->
   <div class="grid-3">
 
-    <!-- FEAR & GREED + MARKET BREADTH combined card -->
     <div class="card accent-red">
       <h2>😨 Sentiment Indicators</h2>
       
-    <svg viewBox="0 0 200 110" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:280px;display:block;margin:0 auto;">
-      <!-- Gauge arc segments: red=fear, orange, gray=neutral, green, blue=greed -->
-      <!-- Each segment is a thick arc drawn with stroke-dasharray trick -->
-      <path d="M 20 100 A 80 80 0 0 1 52 27" fill="none" stroke="#c81e1e" stroke-width="18" stroke-linecap="butt"/>
-      <path d="M 52 27 A 80 80 0 0 1 100 20" fill="none" stroke="#e97316" stroke-width="18" stroke-linecap="butt"/>
-      <path d="M 100 20 A 80 80 0 0 1 148 27" fill="none" stroke="#9ca3af" stroke-width="18" stroke-linecap="butt"/>
-      <path d="M 148 27 A 80 80 0 0 1 180 100" fill="none" stroke="#059669" stroke-width="18" stroke-linecap="butt"/>
-      <!-- Labels -->
-      <text x="12" y="112" font-size="7" fill="#c81e1e" text-anchor="middle">Fear</text>
-      <text x="188" y="112" font-size="7" fill="#059669" text-anchor="middle">Greed</text>
-      <text x="100" y="15" font-size="7" fill="#6b7280" text-anchor="middle">Neutral</text>
-      <!-- Needle: rotates from center of arc base -->
-      <g transform="translate(100,100) rotate(-124.19999999999999)">
-        <line x1="0" y1="0" x2="0" y2="-72" stroke="#1e3a5f" stroke-width="3" stroke-linecap="round"/>
-        <circle cx="0" cy="0" r="6" fill="#1e3a5f"/>
-      </g>
-      <!-- Score text -->
-      <text x="100" y="92" font-size="22" font-weight="bold" fill="#e97316" text-anchor="middle">31</text>
-      <text x="100" y="105" font-size="8" fill="#e97316" text-anchor="middle">FEAR</text>
-    </svg>
-      <div style="font-size:.75rem;color:#e97316;text-align:center;margin-top:4px;line-height:1.4;">Fear -- Market pessimism, watch for mean reversion entries</div>
-      <div style="margin-top:6px;font-size:.7rem;color:var(--muted);display:grid;grid-template-columns:1fr 1fr;gap:4px;">
-        <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;">
-          <div style="color:var(--muted);">Yesterday</div>
-          <div style="font-weight:700;">45</div>
-        </div>
-        <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;">
-          <div style="color:var(--muted);">1 Week Ago</div>
-          <div style="font-weight:700;">54</div>
-        </div>
-        <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;">
-          <div style="color:var(--muted);">1 Month Ago</div>
-          <div style="font-weight:700;">45</div>
-        </div>
-        <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;">
-          <div style="color:var(--muted);">1 Year Ago</div>
-          <div style="font-weight:700;">62</div>
-        </div>
-      </div>
-      <div style="margin-top:12px;">
-        <div style="font-size:.65rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--blue);margin-bottom:6px;">
-          📊 Market Breadth (% above 200MA)
-        </div>
-        
-    <div style="margin-top:8px;">
-      <div style="display:flex;justify-content:space-between;font-size:.72rem;color:#6b7280;margin-bottom:3px;">
-        <span>0% Oversold</span><span>50% Neutral</span><span>100% Overbought</span>
-      </div>
-      <div style="background:#e5e7eb;border-radius:99px;height:14px;overflow:hidden;">
-        <div style="width:50%;background:#6b7280;height:100%;border-radius:99px;transition:width .5s;"></div>
-      </div>
-      <div style="font-size:.78rem;color:#6b7280;font-weight:700;margin-top:4px;">
-        N/A &nbsp;·&nbsp; Data unavailable
-      </div>
-      <div style="font-size:.72rem;color:#9ca3af;margin-top:2px;">
-        vs Yesterday: N/A (N/A)
-      </div>
-    </div>
-      </div>
+<div style="text-align:center;padding:8px 0;">
+  <!-- Gauge container -->
+  <div style="position:relative;width:200px;height:105px;margin:0 auto;overflow:hidden;">
+    <!-- Colored arc background (conic-gradient half circle) -->
+    <div style="
+      position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+      width:200px;height:100px;
+      background:conic-gradient(
+        from 270deg,
+        #c81e1e 0deg 36deg,
+        #e97316 36deg 72deg,
+        #d4d400 72deg 108deg,
+        #86c440 108deg 144deg,
+        #059669 144deg 180deg
+      );
+      border-radius:100px 100px 0 0;
+    "></div>
+    <!-- White inner circle (creates donut shape) -->
+    <div style="
+      position:absolute;bottom:0;left:50%;transform:translateX(-50%);
+      width:130px;height:65px;
+      background:white;border-radius:65px 65px 0 0;
+    "></div>
+    <!-- Needle -->
+    <div style="
+      position:absolute;bottom:5px;left:50%;
+      width:3px;height:80px;
+      background:#1e3a5f;border-radius:3px 3px 0 0;
+      transform-origin:bottom center;
+      transform:translateX(-50%) rotate(-30.6deg);
+    "></div>
+    <!-- Center dot -->
+    <div style="
+      position:absolute;bottom:0px;left:50%;transform:translateX(-50%);
+      width:14px;height:14px;background:#1e3a5f;border-radius:50%;
+      margin-bottom:-2px;
+    "></div>
+  </div>
+  <!-- Labels -->
+  <div style="display:flex;justify-content:space-between;width:200px;margin:2px auto 0;font-size:.65rem;color:#9ca3af;">
+    <span>Fear</span><span>Neutral</span><span>Greed</span>
+  </div>
+  <!-- Score + Rating -->
+  <div style="font-size:2.2rem;font-weight:800;color:#e97316;line-height:1;margin-top:8px;">33</div>
+  <div style="font-size:.85rem;font-weight:700;color:#e97316;">FEAR</div>
+  <div style="font-size:.72rem;color:#6b7280;margin-top:4px;line-height:1.4;">Fear -- Market pessimism, watch for mean reversion entries</div>
+</div>
+<!-- History grid -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:10px;">
+  <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;font-size:.72rem;">
+    <div style="color:#9ca3af;">Yesterday</div>
+    <div style="font-weight:700;">45</div>
+  </div>
+  <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;font-size:.72rem;">
+    <div style="color:#9ca3af;">1 Week Ago</div>
+    <div style="font-weight:700;">54</div>
+  </div>
+  <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;font-size:.72rem;">
+    <div style="color:#9ca3af;">1 Month Ago</div>
+    <div style="font-weight:700;">45</div>
+  </div>
+  <div style="background:#f9fafb;border-radius:6px;padding:5px 7px;font-size:.72rem;">
+    <div style="color:#9ca3af;">1 Year Ago</div>
+    <div style="font-weight:700;">62</div>
+  </div>
+</div>
+      
+<div style="margin-top:12px;">
+  <div style="font-size:.65rem;font-weight:700;letter-spacing:1px;
+              text-transform:uppercase;color:#1a56db;margin-bottom:6px;">
+    📊 Market Breadth (% S&P 500 above 200-Day MA)
+  </div>
+  <div style="display:flex;justify-content:space-between;font-size:.62rem;color:#9ca3af;margin-bottom:3px;">
+    <span>0% Oversold</span><span>50%</span><span>100% Overbought</span>
+  </div>
+  <div style="background:#e5e7eb;border-radius:99px;height:12px;overflow:hidden;">
+    <div style="width:50.0%;background:#6b7280;height:100%;border-radius:99px;"></div>
+  </div>
+  <div style="font-size:.75rem;font-weight:700;color:#6b7280;margin-top:4px;">
+    N/A &nbsp;·&nbsp; Data temporarily unavailable -- Yahoo Finance API limit
+  </div>
+  <div style="font-size:.68rem;color:#9ca3af;margin-top:2px;">
+    vs Yesterday: N/A (N/A)
+  </div>
+  <div style="font-size:.68rem;color:#6b7280;margin-top:6px;line-height:1.4;
+              background:#f9fafb;border-radius:6px;padding:5px 7px;">
+    💡 Below 25% = deeply oversold market (mean reversion buy signal).
+    Above 75% = overbought (be selective on new positions).
+  </div>
+</div>
     </div>
 
     <div class="card accent-blue">
       <h2>📊 Market Summary</h2>
-      <ul>        <li>US stock futures are down with Nasdaq 100 futures dropping 1.25 percent before the open.</li>
-        <li>Market sentiment has pushed the Fear and Greed Index into fear territory at 31 out of 100.</li>
-        <li>Healthcare, utilities, and energy outperformed while industrials, materials, and consumer discretionary sectors lagged behind.</li>
-        <li>S&P 500 futures are down 0.66 percent while Dow futures decreased 0.65 percent pre-market.</li>
+      <ul>        <li>Stock futures are mixed with Dow futures up 0.19% and Nasdaq futures down 0.20%.</li>
+        <li>CNN Fear & Greed Index stands at 33, signaling market pessimism for value entries.</li>
+        <li>Equities rebounded yesterday led by small-caps as the rally in oil and yields slowed.</li>
+        <li>WTI crude oil remains elevated at $91.50 per barrel amid ongoing military conflict in Iran.</li>
 </ul>
     </div>
 
     <div class="card accent-green">
       <h2>🌅 Pre-Market Outlook</h2>
-      <ul>        <li>Weakness in cyclical sectors may begin uncovering long-term deep-value entries for disciplined capital.</li>
-        <li>Rising Treasury yields increase discount rates, compressing equity valuations and widening margins of safety.</li>
-        <li>Elevated market fear presents potential mean reversion opportunities in high return-on-capital businesses.</li>
-        <li>Geopolitical energy risk reinforces the necessity of prioritizing strong balance sheets and robust earnings power.</li>
+      <ul>        <li>Elevated fear index creates potential high-margin-of-safety entry points for deep-value investors.</li>
+        <li>High 10-Year Treasury yield at 4.68% compresses valuation multiples on quality businesses.</li>
+        <li>Surging energy costs offer short-term headwinds, generating classic mean-reversion buying opportunities.</li>
+        <li>Target high-quality companies with durable balance sheets trading far below intrinsic value.</li>
 </ul>
     </div>
 
@@ -274,41 +265,68 @@ SOURCES:
   <div class="grid-2" style="margin-top:14px;">
     <div class="card accent-amber">
       <h2>⚡ Key Moves</h2>
-      <ul>        <li>The 10-year Treasury yield reached a year-to-date high of approximately 4.8 percent.</li>
-        <li>The 30-year Treasury yield climbed to just below 5.3 percent during recent trading.</li>
-        <li>Japan 10-year yield reached 3 percent for the first time since 1996 as global yields rose.</li>
-        <li>John Ternus officially takes over as chief executive officer of Apple today, replacing Tim Cook.</li>
+      <ul>        <li>10-Year Treasury yield rose to 4.68%, while 2-Year yield moved up to 4.22%.</li>
+        <li>Dell shares surged 15% following better-than-expected quarterly financial results.</li>
+        <li>GoPro stock skyrocketed 40% after announcing an AI pivot and defense market merger.</li>
+        <li>High-yield credit spreads hold steady at 2.65%, indicating stable corporate credit risk.</li>
 </ul>
     </div>
     <div class="card accent-red">
       <h2>🌐 Macro & News</h2>
-      <ul>        <li>Geopolitical tensions escalated following attacks on two oil tankers transiting the Strait of Hormuz.</li>
-        <li>United States launched military strikes against Iranian targets following naval conflict in the Middle East.</li>
-        <li>Core PCE inflation stands at 3.3 percent, remaining well above the Federal Reserve two percent target.</li>
-        <li>The domestic labor market is characterized as being at a standstill while unemployment sits at 4.10 percent.</li>
+      <ul>        <li>August ADP private payrolls added just 38,000 jobs, missing expectations and showing hiring slowdown.</li>
+        <li>Core PCE inflation increased to 3.3% annually, remaining above the Fed target.</li>
+        <li>United States launched new military strikes against Iran, raising geopolitical risk and energy prices.</li>
+        <li>University of Michigan Consumer Sentiment ticked up to 55.2 alongside declining headline CPI.</li>
 </ul>
     </div>
   </div>
 
-  <!-- ROW 3: Earnings & Calendar (full width) -->
-  <div style="margin-top:14px;">
+  <!-- ROW 3: AI Briefing + Economic Calendar side by side -->
+  <div class="grid-2" style="margin-top:14px;">
+
     <div class="card accent-green">
-      <h2>💰 Earnings & Economic Calendar</h2>
-      <ul>        <li>Nvidia continues to showcase strong financial performance amid broader market volatility and tech pressure.</li>
-        <li>Federal funds rate sits at 3.63 percent amid persistent Core PCE inflation figures.</li>
-        <li>The yield curve spread between 10-year and 2-year Treasuries currently stands at 0.40 percent.</li>
-        <li>High yield credit spreads remain flat at 2.63 percent, indicating steady credit market conditions.</li>
+      <h2>💰 Earnings & AI Highlights</h2>
+      <ul>        <li>Federal Reserve maintained Fed Funds rate target at 3.63% following recent FOMC meeting.</li>
+        <li>Market focus shifts to broader employment data after weak ADP private hiring report.</li>
+        <li>Corporate margin outlook remains tested as crude oil hovers near summer highs.</li>
 </ul>
     </div>
+
+    <div class="card accent-blue">
+      <h2>📅 Economic Calendar
+        <span style="font-weight:400;color:var(--muted);font-size:.58rem;">
+          &nbsp; Last 3 days + Next 7 days · High-impact only · Source: FRED
+        </span>
+      </h2>
+      <table class="cal-table">
+        <thead>
+          <tr style="background:#f3f4f6;">
+            <th style="padding:6px 10px;font-size:.62rem;text-transform:uppercase;color:var(--muted);">When</th>
+            <th style="padding:6px 10px;font-size:.62rem;text-transform:uppercase;color:var(--muted);">Impact</th>
+            <th style="padding:6px 10px;font-size:.62rem;text-transform:uppercase;color:var(--muted);">Release</th>
+            <th style="padding:6px 10px;font-size:.62rem;text-transform:uppercase;color:var(--muted);">Full Name</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+        <tr style="background:#f9fafb;border-bottom:1px solid #f3f4f6;">
+          <td style="padding:7px 10px;font-size:.78rem;color:#6b7280;white-space:nowrap;">3d ago</td>
+          <td style="padding:7px 10px;font-size:.78rem;">🔴 High</td>
+          <td style="padding:7px 10px;font-size:.82rem;font-weight:600;">FOMC Rate</td>
+          <td style="padding:7px 10px;font-size:.75rem;color:#6b7280;">FOMC Statement</td>
+        </tr>
+        </tbody>
+      </table>
+    </div>
+
   </div>
 
-  <!-- ROW 4: FRED Macro Table -->
+  <!-- ROW 4: FRED Macro Table (alphabetical, with dynamic insights) -->
   <div style="margin-top:14px;">
     <div class="card">
-      <h2>
-        🏦 Macro Indicators
-        <span style="font-weight:400;color:var(--muted);font-size:.6rem;">
-          &nbsp; Federal Reserve FRED API (fred.stlouisfed.org) · Updated daily
+      <h2>🏦 Macro Indicators
+        <span style="font-weight:400;color:var(--muted);font-size:.58rem;">
+          &nbsp; Source: Federal Reserve FRED API · Sorted alphabetically · As-of dates shown
         </span>
       </h2>
       <div style="overflow-x:auto;">
@@ -321,118 +339,131 @@ SOURCES:
               <th style="text-align:center;">12 Mo Ago</th>
               <th style="text-align:center;">Trend</th>
               <th>As Of</th>
-              <th>Why It Matters</th>
+              <th>What It Measures</th>
+              <th>Today's Signal</th>
             </tr>
           </thead>
           <tbody>
             
-        <tr>
-          <td class="td-label">Fed Funds Rate</td>
-          <td class="td-val"><strong>3.63%</strong></td>
-          <td class="td-val muted">3.63%</td>
-          <td class="td-val muted">4.33%</td>
-          <td class="td-center" style="color:#6b7280;font-size:1.1rem;">→</td>
-          <td class="td-date muted">Aug 2026</td>
-          <td class="td-insight muted">Cost of borrowing -- rising = headwind for stocks</td>
-        </tr>
-        <tr>
-          <td class="td-label">CPI Inflation</td>
-          <td class="td-val"><strong>3.5%</strong></td>
-          <td class="td-val muted">3.7%</td>
-          <td class="td-val muted">3.7%</td>
-          <td class="td-center" style="color:#057a55;font-size:1.1rem;">▼</td>
-          <td class="td-date muted">Jul 2026</td>
-          <td class="td-insight muted">Headline inflation including food & energy</td>
-        </tr>
-        <tr>
-          <td class="td-label">Core CPI (ex Food/Energy)</td>
-          <td class="td-val"><strong>2.8%</strong></td>
-          <td class="td-val muted">2.6%</td>
-          <td class="td-val muted">2.6%</td>
-          <td class="td-center" style="color:#c81e1e;font-size:1.1rem;">▲</td>
-          <td class="td-date muted">Jul 2026</td>
-          <td class="td-insight muted">Cleaner inflation signal -- Fed watches closely</td>
-        </tr>
-        <tr>
-          <td class="td-label">PCE Inflation</td>
-          <td class="td-val"><strong>3.7%</strong></td>
-          <td class="td-val muted">3.6%</td>
-          <td class="td-val muted">3.6%</td>
-          <td class="td-center" style="color:#c81e1e;font-size:1.1rem;">▲</td>
-          <td class="td-date muted">Jul 2026</td>
-          <td class="td-insight muted">Fed's preferred inflation measure (broader than CPI)</td>
-        </tr>
-        <tr>
-          <td class="td-label">Core PCE (Fed's 2% Target)</td>
-          <td class="td-val"><strong>3.3%</strong></td>
-          <td class="td-val muted">3.1%</td>
-          <td class="td-val muted">3.1%</td>
-          <td class="td-center" style="color:#c81e1e;font-size:1.1rem;">▲</td>
-          <td class="td-date muted">Jul 2026</td>
-          <td class="td-insight muted">THE number Fed targets -- above 2% = rates stay high</td>
-        </tr>
-        <tr>
-          <td class="td-label">Unemployment Rate</td>
-          <td class="td-val"><strong>4.10%</strong></td>
-          <td class="td-val muted">4.30%</td>
-          <td class="td-val muted">4.10%</td>
-          <td class="td-center" style="color:#c81e1e;font-size:1.1rem;">▼</td>
-          <td class="td-date muted">Jul 2026</td>
-          <td class="td-insight muted">Labor market health -- rising = recession risk</td>
-        </tr>
-        <tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
           <td class="td-label">10Y Treasury Yield</td>
           <td class="td-val"><strong>4.68%</strong></td>
           <td class="td-val muted">4.48%</td>
           <td class="td-val muted">4.26%</td>
-          <td class="td-center" style="color:#057a55;font-size:1.1rem;">▲</td>
-          <td class="td-date muted">Aug 2026</td>
-          <td class="td-insight muted">Risk-free rate -- benchmark for all stock valuations</td>
+          <td class="td-center" style="color:#057a55;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Aug 01 2026</td>
+          <td class="td-insight muted">Risk-free rate -- benchmark for all equity valuations</td>
+          <td class="td-insight" style="color:#1e3a5f;">⚠️ Rising -- headwind for high-multiple growth stocks</td>
         </tr>
-        <tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
           <td class="td-label">2Y Treasury Yield</td>
           <td class="td-val"><strong>4.22%</strong></td>
           <td class="td-val muted">4.00%</td>
           <td class="td-val muted">3.70%</td>
-          <td class="td-center" style="color:#057a55;font-size:1.1rem;">▲</td>
-          <td class="td-date muted">Aug 2026</td>
-          <td class="td-insight muted">Fed expectations -- rises when rate hikes expected</td>
+          <td class="td-center" style="color:#057a55;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Aug 01 2026</td>
+          <td class="td-insight muted">Fed expectations barometer -- rises with rate hike bets</td>
+          <td class="td-insight" style="color:#1e3a5f;">→ Stable -- Fed rate expectations anchored</td>
         </tr>
-        <tr>
-          <td class="td-label">Yield Curve (10Y minus 2Y)</td>
-          <td class="td-val"><strong>0.40%</strong></td>
-          <td class="td-val muted">0.47%</td>
-          <td class="td-val muted">0.51%</td>
-          <td class="td-center" style="color:#c81e1e;font-size:1.1rem;">▼</td>
-          <td class="td-date muted">Sep 2026</td>
-          <td class="td-insight muted">Negative = inverted = historically predicts recession</td>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">CPI Inflation (Headline)</td>
+          <td class="td-val"><strong>3.5%</strong></td>
+          <td class="td-val muted">3.7%</td>
+          <td class="td-val muted">3.7%</td>
+          <td class="td-center" style="color:#057a55;font-size:1.05rem;">▼</td>
+          <td class="td-date muted">Jul 01 2026</td>
+          <td class="td-insight muted">Headline CPI including food & energy prices</td>
+          <td class="td-insight" style="color:#1e3a5f;">📉 Cooling trend -- positive for rate-sensitive stocks</td>
         </tr>
-        <tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">Core CPI (ex Food/Energy)</td>
+          <td class="td-val"><strong>2.8%</strong></td>
+          <td class="td-val muted">2.6%</td>
+          <td class="td-val muted">2.6%</td>
+          <td class="td-center" style="color:#c81e1e;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Jul 01 2026</td>
+          <td class="td-insight muted">Cleaner inflation signal -- Fed watches this closely</td>
+          <td class="td-insight" style="color:#1e3a5f;">⚠️ Still above target -- watch for hawkish Fed signals</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">Core PCE (Fed Target 2%)</td>
+          <td class="td-val"><strong>3.3%</strong></td>
+          <td class="td-val muted">3.1%</td>
+          <td class="td-val muted">3.1%</td>
+          <td class="td-center" style="color:#c81e1e;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Jul 01 2026</td>
+          <td class="td-insight muted">Fed's primary target -- above 2% = rates stay elevated</td>
+          <td class="td-insight" style="color:#1e3a5f;">⚠️ Persistently high -- rates likely staying elevated</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">Fed Funds Rate</td>
+          <td class="td-val"><strong>3.63%</strong></td>
+          <td class="td-val muted">3.63%</td>
+          <td class="td-val muted">4.33%</td>
+          <td class="td-center" style="color:#6b7280;font-size:1.05rem;">→</td>
+          <td class="td-date muted">Aug 01 2026</td>
+          <td class="td-insight muted">Cost of borrowing -- rising = headwind for equities</td>
+          <td class="td-insight" style="color:#1e3a5f;">→ Holding steady -- market watching for pivot signals</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
           <td class="td-label">HY Credit Spread</td>
-          <td class="td-val"><strong>2.63%</strong></td>
+          <td class="td-val"><strong>2.65%</strong></td>
+          <td class="td-val muted">2.63%</td>
           <td class="td-val muted">2.67%</td>
-          <td class="td-val muted">2.71%</td>
-          <td class="td-center" style="color:#6b7280;font-size:1.1rem;">→</td>
-          <td class="td-date muted">Aug 2026</td>
-          <td class="td-insight muted">Widening = credit stress = systemic risk rising (bad for dip buys)</td>
+          <td class="td-center" style="color:#6b7280;font-size:1.05rem;">→</td>
+          <td class="td-date muted">Sep 01 2026</td>
+          <td class="td-insight muted">Widening = credit stress = systemic risk (caution on dip buys)</td>
+          <td class="td-insight" style="color:#1e3a5f;">✅ Tight spreads -- credit market calm, risk appetite healthy</td>
         </tr>
-        <tr>
-          <td class="td-label">WTI Crude Oil</td>
-          <td class="td-val"><strong>83.90%</strong></td>
-          <td class="td-val muted">89.75%</td>
-          <td class="td-val muted">79.77%</td>
-          <td class="td-center" style="color:#c81e1e;font-size:1.1rem;">▼</td>
-          <td class="td-date muted">Aug 2026</td>
-          <td class="td-insight muted">Energy prices -- affects inflation, margins, energy stocks</td>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">PCE Inflation (Headline)</td>
+          <td class="td-val"><strong>3.7%</strong></td>
+          <td class="td-val muted">3.6%</td>
+          <td class="td-val muted">3.6%</td>
+          <td class="td-center" style="color:#c81e1e;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Jul 01 2026</td>
+          <td class="td-insight muted">Fed preferred inflation gauge (broader than CPI)</td>
+          <td class="td-insight" style="color:#1e3a5f;">⚠️ Persistently high -- rates likely staying elevated</td>
         </tr>
-        <tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
           <td class="td-label">U of Michigan Sentiment</td>
           <td class="td-val"><strong>55.2</strong></td>
           <td class="td-val muted">49.8</td>
           <td class="td-val muted">61.7</td>
-          <td class="td-center" style="color:#057a55;font-size:1.1rem;">▲</td>
-          <td class="td-date muted">Jul 2026</td>
-          <td class="td-insight muted">Consumer confidence -- leading indicator for spending</td>
+          <td class="td-center" style="color:#057a55;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Jul 01 2026</td>
+          <td class="td-insight muted">Consumer confidence 0-100 -- leading spending indicator</td>
+          <td class="td-insight" style="color:#1e3a5f;">⚠️ Low confidence -- consumer spending under pressure</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">Unemployment Rate</td>
+          <td class="td-val"><strong>4.10%</strong></td>
+          <td class="td-val muted">4.30%</td>
+          <td class="td-val muted">4.10%</td>
+          <td class="td-center" style="color:#c81e1e;font-size:1.05rem;">▼</td>
+          <td class="td-date muted">Jul 01 2026</td>
+          <td class="td-insight muted">Labor market -- rising signals recession risk ahead</td>
+          <td class="td-insight" style="color:#1e3a5f;">✅ Labor market stable -- no immediate recession signal</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">WTI Crude Oil</td>
+          <td class="td-val"><strong>$91.5</strong></td>
+          <td class="td-val muted">$84.8</td>
+          <td class="td-val muted">$84.0</td>
+          <td class="td-center" style="color:#057a55;font-size:1.05rem;">▲</td>
+          <td class="td-date muted">Sep 01 2026</td>
+          <td class="td-insight muted">Energy prices -- drives inflation & energy stock moves</td>
+          <td class="td-insight" style="color:#1e3a5f;">⚠️ High oil -- inflation pressure, positive for energy stocks</td>
+        </tr>
+        <tr style="border-bottom:1px solid #f3f4f6;">
+          <td class="td-label">Yield Curve (10Y-2Y)</td>
+          <td class="td-val"><strong>0.40%</strong></td>
+          <td class="td-val muted">0.39%</td>
+          <td class="td-val muted">0.53%</td>
+          <td class="td-center" style="color:#6b7280;font-size:1.05rem;">→</td>
+          <td class="td-date muted">Sep 02 2026</td>
+          <td class="td-insight muted">Negative = inverted curve = historically predicts recession</td>
+          <td class="td-insight" style="color:#1e3a5f;">✅ Positive slope -- normal curve, growth expected</td>
         </tr>
           </tbody>
         </table>
@@ -440,30 +471,15 @@ SOURCES:
     </div>
   </div>
 
-  <!-- ROW 5: Raw Sources -->
-  <div class="grid-3" style="margin-top:14px;">
-    <div class="card">
-      <h2>📰 Edward Jones <span style="font-weight:400;font-size:.6rem;color:var(--muted);">edwardjones.com</span></h2>
-      <div class="source-text">Stock Market News Today | Edward Jones United States | English Canada | English Canada | French Tuesday 9/1/2026 p.m. Rising bond yields and renewed geopolitical tensions weigh on sentiment to begin September – U.S. equity markets closed lower on Tuesday, with renewed upward pressure on bond yields weighing on investor sentiment, in our view. The 10-year Treasury yield rose to a year-to-date high of approximately 4.8%, while the 30-year Treasury yield climbed to just below 5.3%. The rise in government bond yields was not isolated to the U.S. Japan’s 10-year government bond yield reached 3% for the first time since 1996, while yields in the United Kingdom and the euro area also moved broadly</div>
-    </div>
-    <div class="card">
-      <h2>📧 CNBC Squawk <span style="font-weight:400;font-size:.6rem;color:var(--muted);">morningsquawk@response.cnbc.com</span></h2>
-      <div class="source-text">5 things to know before the market opens Tuesday VIEW IN BROWSER | CNBC NEWSLETTERS TUE, SEP 01, 2026 DOW FUTURES -0.65% S&P 500 FUTURES -0.66% NASDAQ 100 FUTURES -1.25% Data as of 8:35 a.m. ET Think a friend or colleague should be getting this newsletter? Share this link with them to sign up. Alex Harring CNBC Reporter & Morning Squawk Writer Happy Tuesday. If you ran into some technology troubles at work yesterday, you weren’t alone. Stock futures are down this morning. The market is coming off a losing day. Here are five key things investors need to know to start the trading day: 1. New Cook in the kitchen John Ternus officially takes over as CEO of Apple today. He succeeds Tim Cook, who</div>
-    </div>
-    <div class="card">
-      <h2>📧 Yahoo Morning Brief <span style="font-weight:400;font-size:.6rem;color:var(--muted);">Yahoo Finance</span></h2>
-      <div class="source-text">Subject Line: Morning Brief: Iran is still a key market risk Preheader: Plus: The labor market is at a 'standstill,' and Nvidia flexes its financial might once again. It looks like your email client might not support HTML formatted email. Try opening this email in another email client. Or, open the following link to view this email in a browser: https://e.newsletters.yahoo.net/click?ZdJBNS_NAEID3t8y5afYrmd2e3lJeEZFc1IuXMNmPNpBsJRsNIv53qTV48vzMM88w_yn1Q0vdRCcaW8qv_97pdD5fouzwAWPvYQcCjVFaVbqyVkqHHq3WxnsNG3Az7ODbKVJY8hDmOUyFVTyoGGsVBUZXGcRO-84575FjjbwQsIHJr-olB5_saf3FWx-W7e-6vL1OpTCXY8iZjiGXfx5VTrSwh-fbNl3ttmke9w23XEouayel4dpIdp8GwY70EsXNnt2t-PCDvwYAela0aec22d --------------------</div>
-    </div>
-  </div>
-
-  <div class="footer">
-    MarketPulse AI &nbsp;·&nbsp; Built by anil2040 &nbsp;·&nbsp;
+  <!-- FOOTER: single clean credits line -->
+  <div class="footer" style="margin-top:24px;">
+    Built by <strong>Anil Abraham</strong> &nbsp;·&nbsp;
     <a href="https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/daily-market-recap" target="_blank">Edward Jones</a> &nbsp;·&nbsp;
     <a href="https://www.cnbc.com/newsletters/" target="_blank">CNBC Squawk</a> &nbsp;·&nbsp;
-    <a href="https://finance.yahoo.com/newsletters/" target="_blank">Yahoo Finance</a> &nbsp;·&nbsp;
+    <a href="https://finance.yahoo.com" target="_blank">Yahoo Finance</a> &nbsp;·&nbsp;
     <a href="https://fred.stlouisfed.org" target="_blank">FRED API</a> &nbsp;·&nbsp;
-    <a href="https://www.cnn.com/markets/fear-and-greed" target="_blank">CNN Fear &amp; Greed</a>
-    &nbsp;·&nbsp; For informational purposes only. Not financial advice.
+    <a href="https://www.cnn.com/markets/fear-and-greed" target="_blank">CNN Fear &amp; Greed</a> &nbsp;·&nbsp;
+    Gemini 3.6 Flash &nbsp;·&nbsp; GitHub Actions &nbsp;·&nbsp; Not financial advice.
   </div>
 
 </div>
