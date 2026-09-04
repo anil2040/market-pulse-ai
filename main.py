@@ -1,19 +1,18 @@
 # ============================================================
 # MarketPulse AI - main.py
-# Final version: September 2026
+# Updated: September 2026
 # ============================================================
 # Pipeline:
 #   1.  FRED macro indicators (12 series, parallel, 20s)
 #   2.  CNN Fear & Greed (JSON)
-#   3.  VIX + S&P 500 + Russell 2000 (Yahoo Finance API)
-#       Exact same classification as Chrome extension background.js
-#   4.  Edward Jones daily recap (web scrape)
-#   5.  CNBC Morning Squawk (Yahoo IMAP)
-#   6.  Yahoo Finance Morning Brief (Yahoo IMAP)
-#   7.  McClellan Oscillator newsletter (Yahoo IMAP, weekly)
-#   8.  Gemini AI synthesis (150s timeout, gemini-3.6-flash)
-#   9.  Build HTML dashboard (index.html -> GitHub Pages)
-# Email DISABLED -- dashboard is primary output.
+#   3.  VIX + S&P 500 + Russell 2000 (Yahoo Finance)
+#   4.  Macro Regime Score (computed from actual data)
+#   5.  Edward Jones daily recap (web scrape)
+#   6.  CNBC Morning Squawk (Yahoo IMAP)
+#   7.  Yahoo Finance Morning Brief (Yahoo IMAP)
+#   8.  McClellan Oscillator newsletter (Yahoo IMAP, weekly)
+#   9.  Gemini AI synthesis + Fun Fact + AI Learning (150s)
+#  10.  Build HTML dashboard (index.html -> GitHub Pages)
 # ============================================================
 
 import os
@@ -31,7 +30,7 @@ YAHOO_EMAIL    = os.environ.get("YAHOO_EMAIL")
 YAHOO_PASSWORD = os.environ.get("YAHOO_APP_PASSWORD")
 FRED_API_KEY   = os.environ.get("FRED_API_KEY")
 
-# Boise MDT = UTC-6 (summer), change to UTC-7 in November
+# Boise MDT = UTC-6 (summer), change to -7 in November
 MT = timezone(timedelta(hours=-6))
 
 print("✅ Configuration loaded")
@@ -39,108 +38,124 @@ print(f"📧 Email: {YAHOO_EMAIL}")
 
 
 # ============================================================
-# STEP 1: FRED MACRO INDICATORS (12 series, parallel, 20s)
+# STEP 1: FRED MACRO INDICATORS
+# ============================================================
+# Grouped by category for display:
+#   INFLATION: CPI Headline, CPI Core, PCE Headline, PCE Core
+#   TREASURY:  10Y Yield, 2Y Yield, 10Y-2Y Curve
+#   ECONOMIC:  Fed Funds, Unemployment, WTI Crude, U of Michigan
+#   CREDIT:    HY Spread
 # ============================================================
 
 FRED_SERIES = [
-    {"label":"Core PCE (Fed Target 2%)",   "id":"PCEPILFE",     "is_index":True,
-     "insight":"Fed's primary inflation target -- above 2% = rates stay elevated"},
-    {"label":"Core CPI (ex Food/Energy)",  "id":"CPILFESL",     "is_index":True,
-     "insight":"Cleaner inflation signal the Fed watches most closely"},
-    {"label":"CPI Inflation (Headline)",   "id":"CPIAUCSL",     "is_index":True,
-     "insight":"Headline CPI including food & energy prices"},
-    {"label":"Fed Funds Rate",             "id":"FEDFUNDS",     "is_index":False,
-     "insight":"Cost of borrowing -- rising = headwind for equity valuations"},
-    {"label":"HY Credit Spread",           "id":"BAMLH0A0HYM2", "is_index":False,
-     "insight":"Widening = credit stress = systemic risk rising"},
-    {"label":"PCE Inflation (Headline)",   "id":"PCEPI",        "is_index":True,
+    # INFLATION GROUP
+    {"label":"CPI Inflation",          "id":"CPIAUCSL",     "is_index":True,  "group":"INFLATION",
+     "insight":"Headline CPI including food & energy"},
+    {"label":"Core CPI",               "id":"CPILFESL",     "is_index":True,  "group":"INFLATION",
+     "insight":"CPI ex food/energy -- Fed watches this closely"},
+    {"label":"PCE Inflation",          "id":"PCEPI",        "is_index":True,  "group":"INFLATION",
      "insight":"Fed's preferred inflation gauge (broader than CPI)"},
-    {"label":"Unemployment Rate",          "id":"UNRATE",       "is_index":False,
-     "insight":"Labor market health -- rising = consumer spending risk"},
-    {"label":"U of Michigan Sentiment",    "id":"UMCSENT",      "is_index":False,
-     "no_pct":True, "insight":"Consumer confidence 0-100 (historical avg ~75)"},
-    {"label":"WTI Crude Oil",              "id":"DCOILWTICO",   "is_index":False,
-     "prefix":"$", "insight":"Energy prices -- drives inflation & energy stocks"},
-    {"label":"10Y Treasury Yield",         "id":"GS10",         "is_index":False,
+    {"label":"Core PCE",               "id":"PCEPILFE",     "is_index":True,  "group":"INFLATION",
+     "insight":"Fed's 2% target -- most important inflation measure"},
+    # TREASURY GROUP
+    {"label":"10Y Treasury",           "id":"GS10",         "is_index":False, "group":"TREASURY",
      "insight":"Risk-free benchmark -- rising = headwind for high-multiple stocks"},
-    {"label":"2Y Treasury Yield",          "id":"GS2",          "is_index":False,
-     "insight":"Fed rate expectations -- rising = markets pricing in no cuts"},
-    {"label":"Yield Curve (10Y-2Y)",       "id":"T10Y2Y",       "is_index":False,
+    {"label":"2Y Treasury",            "id":"GS2",          "is_index":False, "group":"TREASURY",
+     "insight":"Fed rate expectations -- rises when markets price in no cuts"},
+    {"label":"Yield Curve (10Y-2Y)",   "id":"T10Y2Y",       "is_index":False, "group":"TREASURY",
      "insight":"Negative = inverted = historically predicts recession ahead"},
+    # ECONOMIC GROUP
+    {"label":"Fed Funds Rate",         "id":"FEDFUNDS",     "is_index":False, "group":"ECONOMIC",
+     "insight":"Cost of borrowing -- cutting cycle = positive for equities"},
+    {"label":"Unemployment",           "id":"UNRATE",       "is_index":False, "group":"ECONOMIC",
+     "insight":"Labor market -- rising signals recession risk ahead"},
+    {"label":"WTI Crude Oil",          "id":"DCOILWTICO",   "is_index":False, "group":"ECONOMIC",
+     "prefix":"$", "insight":"Energy prices -- drives inflation & energy stocks"},
+    {"label":"Consumer Sentiment",     "id":"UMCSENT",      "is_index":False, "group":"ECONOMIC",
+     "no_pct":True, "insight":"U of Michigan 0-100 confidence score (avg ~75)"},
+    # CREDIT GROUP
+    {"label":"HY Credit Spread",       "id":"BAMLH0A0HYM2", "is_index":False, "group":"CREDIT",
+     "insight":"High Yield spread -- widening = credit stress, be selective"},
 ]
+
+# Group display order and colors
+GROUP_META = {
+    "INFLATION": {"icon":"🔥","color":"#c81e1e","label":"Inflation"},
+    "TREASURY":  {"icon":"📊","color":"#1a56db","label":"Treasury Yields"},
+    "ECONOMIC":  {"icon":"⚙️","color":"#b45309","label":"Economic"},
+    "CREDIT":    {"icon":"💳","color":"#7f1d1d","label":"Credit"},
+}
 
 
 def _signal(label, cur_str, mo3_str, trend):
-    """Signal: trend checked FIRST to prevent contradictions (e.g. 2Y rising but 'stable')."""
+    """Signal: trend checked FIRST to prevent contradictions."""
     try:
         cur = float(re.sub(r"[%$]","",str(cur_str)))
         mo3 = float(re.sub(r"[%$]","",str(mo3_str)))
     except:
         return ""
-
-    if "Core PCE" in label or "Core CPI" in label:
-        if cur <= 2.0:                  return "✅ At Fed 2% target -- rate cuts more likely"
-        elif cur <= 2.5 and trend=="▼": return "📉 Cooling toward target -- Fed likely patient"
-        elif cur > 3.0 and trend=="▲":  return "⚠️ Rising & above target -- rates staying elevated longer"
-        elif cur > 3.0:                 return "⚠️ Significantly above target -- rates staying elevated"
-        elif trend=="▼":                return "📉 Cooling -- positive for rate-sensitive stocks"
+    if "Core PCE" in label or "Core CPI" in label or label in ("Core PCE","Core CPI"):
+        if cur <= 2.0:                  return "✅ At Fed 2% target"
+        elif cur <= 2.5 and trend=="▼": return "📉 Cooling toward 2% target"
+        elif cur > 3.0 and trend=="▲":  return "⚠️ Rising & above target -- rates stay elevated longer"
+        elif cur > 3.0:                 return "⚠️ Above target -- rates staying elevated"
+        elif trend=="▼":                return "📉 Cooling trend"
         elif trend=="▲":                return "⚠️ Rising -- hawkish Fed signal"
-        else:                           return "→ Flat -- Fed watching for sustained cooling"
+        else:                           return "→ Flat -- watching for sustained cooling"
     elif "PCE" in label or "CPI" in label:
-        if trend=="▼":   return "📉 Cooling inflation"
-        elif trend=="▲": return "⚠️ Heating up -- inflation persistence"
-        else:            return "→ Stable"
+        if trend=="▼": return "📉 Cooling"
+        elif trend=="▲": return "⚠️ Heating up"
+        else:          return "→ Stable"
     elif "Fed Funds" in label:
-        if trend=="▼":   return "📉 Cutting cycle underway -- positive for rate-sensitive sectors"
-        elif trend=="▲": return "⚠️ Rising -- tightening in progress"
-        elif cur >= 5.0: return "⚠️ Restrictive territory -- significant growth headwind"
-        elif cur <= 3.0: return "✅ Accommodative -- supportive for equities"
-        else:            return "→ On hold -- Fed watching for more inflation data"
+        if trend=="▼":   return "📉 Cutting cycle -- positive for rate-sensitive sectors"
+        elif trend=="▲": return "⚠️ Rising -- tightening"
+        elif cur >= 5.0: return "⚠️ Restrictive -- growth headwind"
+        elif cur <= 3.0: return "✅ Accommodative"
+        else:            return "→ On hold"
     elif "Unemployment" in label:
-        if trend=="▲":               return "⚠️ Rising -- watch consumer discretionary & retail"
+        if trend=="▲":               return "⚠️ Rising -- watch consumer discretionary"
         elif trend=="▼" and cur<=4.0:return "✅ Tightening -- strong labor market"
-        elif cur <= 4.0:             return "✅ Strong labor market -- consumer spending resilient"
+        elif cur <= 4.0:             return "✅ Strong labor market"
         elif cur >= 5.0:             return "⚠️ Weakening -- recession risk elevated"
-        else:                        return "✅ Stable -- no immediate recession signal"
-    elif "HY Credit" in label:
-        if trend=="▲":   return "⚠️ Widening -- systemic risk rising, be selective on dip-buys"
-        elif trend=="▼": return "📉 Tightening -- credit improving, risk appetite recovering"
-        elif cur <= 3.0: return "✅ Tight spreads -- credit markets calm"
-        elif cur >= 6.0: return "⚠️ Wide spreads -- credit stress, avoid leveraged balance sheets"
-        else:            return "→ Stable -- no credit market alarm"
+        else:                        return "✅ Stable"
+    elif "HY Credit" in label or "HY" in label:
+        if trend=="▲":   return "⚠️ Widening -- systemic risk rising, be selective"
+        elif trend=="▼": return "📉 Tightening -- credit improving"
+        elif cur <= 3.0: return "✅ Tight -- credit markets calm"
+        elif cur >= 6.0: return "⚠️ Wide -- avoid leveraged balance sheets"
+        else:            return "→ Stable"
     elif "Yield Curve" in label:
-        if cur < 0:      return "⚠️ Inverted -- historically predicts recession 12-18 months out"
-        elif cur < 0.3:  return "→ Nearly flat -- muted growth signal"
+        if cur < 0:      return "⚠️ Inverted -- recession signal (12-18mo lead)"
+        elif cur < 0.3:  return "→ Nearly flat"
         elif trend=="▲": return "✅ Steepening -- growth expectations improving"
-        else:            return "✅ Positive slope -- normal healthy curve"
+        else:            return "✅ Positive slope -- normal"
     elif "10Y" in label:
-        if trend=="▲" and cur>=5.0: return "⚠️ High & rising -- P/E compression risk intensifying"
-        elif trend=="▲":            return "⚠️ Rising -- headwind for high-multiple growth stocks"
+        if trend=="▲" and cur>=5.0: return "⚠️ High & rising -- P/E compression risk"
+        elif trend=="▲":            return "⚠️ Rising -- headwind for growth stocks"
         elif trend=="▼":            return "📉 Falling -- relief for rate-sensitive stocks"
-        elif cur >= 5.0:            return "⚠️ High -- expensive borrowing, P/E compression risk"
-        elif cur <= 3.5:            return "✅ Low -- supports higher equity valuations"
-        else:                       return "→ Stable -- watch for direction change"
+        elif cur >= 5.0:            return "⚠️ High -- P/E compression risk"
+        elif cur <= 3.5:            return "✅ Low -- supports higher valuations"
+        else:                       return "→ Stable"
     elif "2Y" in label:
-        # Trend checked FIRST -- prevents 'rising trend but stable signal' contradiction
-        if trend=="▲" and cur>=4.5: return "⚠️ Rising & elevated -- markets pricing in no rate cuts soon"
-        elif trend=="▲":            return "⚠️ Rising -- markets pricing in rate hikes or delayed cuts"
-        elif trend=="▼":            return "✅ Falling -- markets pricing in rate cuts ahead"
-        elif cur >= 5.0:            return "⚠️ Elevated -- rates expected to stay high"
-        else:                       return "→ Stable -- Fed rate expectations anchored"
-    elif "Michigan" in label:
-        if trend=="▼" and cur<=65:  return "⚠️ Declining & below avg -- consumers increasingly worried"
-        elif trend=="▼":            return "⚠️ Declining -- watch consumer discretionary stocks"
-        elif cur <= 55:             return "⚠️ Well below avg (~75) -- consumers worried about jobs & prices"
-        elif cur <= 65:             return "→ Below average -- mixed consumer economic outlook"
-        elif cur >= 80:             return "✅ High confidence -- solid consumer economic outlook"
-        else:                       return "→ Near average -- consumer confidence broadly stable"
+        if trend=="▲" and cur>=4.5: return "⚠️ Rising & elevated -- no cuts priced in"
+        elif trend=="▲":            return "⚠️ Rising -- delayed cuts priced in"
+        elif trend=="▼":            return "✅ Falling -- rate cuts priced in"
+        elif cur >= 5.0:            return "⚠️ Elevated"
+        else:                       return "→ Stable"
+    elif "Consumer Sentiment" in label or "Michigan" in label:
+        if trend=="▼" and cur<=65:  return "⚠️ Declining & below avg"
+        elif trend=="▼":            return "⚠️ Declining"
+        elif cur <= 55:             return "⚠️ Well below avg (~75)"
+        elif cur <= 65:             return "→ Below average"
+        elif cur >= 80:             return "✅ High confidence"
+        else:                       return "→ Near average"
     elif "WTI" in label:
-        if trend=="▲" and cur>=90:  return "⚠️ High & rising -- inflation pressure & energy tailwind"
+        if trend=="▲" and cur>=90:  return "⚠️ High & rising -- inflation pressure"
         elif trend=="▲":            return "⚠️ Rising -- watch for inflation spillover"
         elif trend=="▼":            return "📉 Falling -- easing energy inflation"
-        elif cur >= 90:             return "⚠️ High -- inflationary, positive for energy stocks"
-        elif cur <= 60:             return "✅ Low -- consumer-friendly, headwind for energy stocks"
-        else:                       return "→ Stable -- limited macro impact today"
+        elif cur >= 90:             return "⚠️ High -- inflationary"
+        elif cur <= 60:             return "✅ Low -- consumer-friendly"
+        else:                       return "→ Stable"
     return ""
 
 
@@ -194,7 +209,113 @@ def fetch_fred_data():
 
 
 # ============================================================
-# STEP 2: CNN FEAR & GREED
+# STEP 2: MACRO REGIME SCORE (computed from actual data)
+# ============================================================
+# Scores 0-100 reflecting how favorable the macro environment
+# is for deep-value mean reversion investing.
+# Key insight: extreme fear (F&G < 30) gets a BONUS because
+# that's exactly the Pabrai/Buffett buying environment!
+# ============================================================
+
+def compute_regime_score(fred_data, fg_data, mkt_data):
+    """
+    Macro Regime Score for mean reversion investing (0-100).
+    High score = favorable environment for buying beaten-down quality.
+    """
+    score = 0
+    breakdown = []
+
+    def get_fred(label):
+        r = next((x for x in fred_data if x["label"]==label), None)
+        if not r or r["current"]=="N/A": return None, None
+        try: return float(re.sub(r"[%$]","",r["current"])), r["trend"]
+        except: return None, None
+
+    # 1. Inflation trend (max 20pts) -- cooling is good for rates & valuations
+    core_pce, pce_trend = get_fred("Core PCE")
+    if core_pce is not None:
+        if core_pce <= 2.0:                   pts=20; note="Core PCE at target"
+        elif core_pce <= 2.5 and pce_trend=="▼": pts=16; note="Core PCE cooling"
+        elif core_pce <= 3.0 and pce_trend=="▼": pts=12; note="Core PCE easing"
+        elif pce_trend=="▼":                  pts=8;  note="Core PCE trending down"
+        elif pce_trend=="→":                  pts=5;  note="Core PCE stable"
+        else:                                 pts=0;  note="Core PCE rising"
+        score+=pts; breakdown.append(f"Inflation: +{pts}/20 ({note})")
+
+    # 2. Credit stress (max 15pts) -- tight spreads = calm markets
+    hy, hy_trend = get_fred("HY Credit Spread")
+    if hy is not None:
+        if hy <= 3.0:                         pts=15; note=f"HY spread {hy:.2f}% tight"
+        elif hy <= 4.0:                       pts=10; note=f"HY spread {hy:.2f}% normal"
+        elif hy <= 6.0:                       pts=5;  note=f"HY spread {hy:.2f}% elevated"
+        else:                                 pts=0;  note=f"HY spread {hy:.2f}% wide"
+        score+=pts; breakdown.append(f"Credit: +{pts}/15 ({note})")
+
+    # 3. Fed posture (max 15pts) -- cutting = supportive
+    fed, fed_trend = get_fred("Fed Funds Rate")
+    if fed is not None:
+        if fed_trend=="▼":                    pts=15; note="Fed cutting"
+        elif fed_trend=="→" and fed<=3.5:     pts=12; note="Fed on hold, low rates"
+        elif fed_trend=="→":                  pts=8;  note="Fed on hold"
+        elif fed_trend=="▲":                  pts=2;  note="Fed hiking"
+        else:                                 pts=5;  note="Fed neutral"
+        score+=pts; breakdown.append(f"Fed: +{pts}/15 ({note})")
+
+    # 4. Yield curve (max 10pts)
+    curve, curve_trend = get_fred("Yield Curve (10Y-2Y)")
+    if curve is not None:
+        if curve >= 0.5:                      pts=10; note="Curve steep, growth expected"
+        elif curve >= 0.0:                    pts=7;  note="Curve positive"
+        elif curve >= -0.5:                   pts=3;  note="Curve mildly inverted"
+        else:                                 pts=0;  note="Curve deeply inverted"
+        score+=pts; breakdown.append(f"Yield Curve: +{pts}/10 ({note})")
+
+    # 5. Labor market (max 10pts)
+    unemp, unemp_trend = get_fred("Unemployment")
+    if unemp is not None:
+        if unemp <= 4.0 and unemp_trend!="▲":pts=10; note="Strong labor market"
+        elif unemp <= 4.5:                   pts=7;  note="Solid labor market"
+        elif unemp <= 5.0:                   pts=4;  note="Softening labor market"
+        else:                                pts=0;  note="Weak labor market"
+        score+=pts; breakdown.append(f"Labor: +{pts}/10 ({note})")
+
+    # 6. VIX (max 10pts)
+    try:
+        vix = float(mkt_data["vix"]["value"])
+        if vix < 15:   pts=5;  note=f"VIX {vix:.1f} complacent"    # Low VIX = complacent, less opportunity
+        elif vix < 20: pts=7;  note=f"VIX {vix:.1f} normal"
+        elif vix < 30: pts=10; note=f"VIX {vix:.1f} elevated fear"  # Elevated VIX = opportunity
+        else:          pts=10; note=f"VIX {vix:.1f} high fear"
+        score+=pts; breakdown.append(f"VIX: +{pts}/10 ({note})")
+    except: pass
+
+    # 7. Fear & Greed -- THE MEAN REVERSION SIGNAL (max 20pts)
+    # Extreme fear = BONUS because that's the Buffett/Pabrai buying moment
+    try:
+        fg = int(fg_data.get("score",50))
+        if fg <= 25:   pts=20; note=f"F&G {fg} EXTREME FEAR -- Pabrai entry zone"
+        elif fg <= 40: pts=16; note=f"F&G {fg} fear -- good setup"
+        elif fg <= 55: pts=10; note=f"F&G {fg} neutral"
+        elif fg <= 70: pts=4;  note=f"F&G {fg} greed -- caution"
+        else:          pts=0;  note=f"F&G {fg} extreme greed -- avoid"
+        score+=pts; breakdown.append(f"Fear&Greed: +{pts}/20 ({note})")
+    except: pass
+
+    # Classify overall score
+    if   score >= 80: label="🟢 STRONG BUY ENVIRONMENT";   color="#057a55"
+    elif score >= 65: label="🟡 FAVORABLE";                 color="#059669"
+    elif score >= 50: label="🟠 NEUTRAL -- SELECTIVE";      color="#b45309"
+    elif score >= 35: label="🔴 CAUTIOUS";                  color="#c81e1e"
+    else:             label="⛔ HOSTILE -- WAIT";           color="#7f1d1d"
+
+    print(f"\n📊 Macro Regime Score: {score}/100 ({label})")
+    for b in breakdown: print(f"   {b}")
+
+    return {"score":score,"label":label,"color":color,"breakdown":breakdown}
+
+
+# ============================================================
+# STEP 3: CNN FEAR & GREED
 # ============================================================
 
 def fetch_fear_greed():
@@ -206,10 +327,10 @@ def fetch_fear_greed():
         score=round(float(fg.get("score",50)))
         rating=fg.get("rating","Unknown").replace("_"," ").title()
         if   score<=24: lbl="Extreme Fear"; col="#c81e1e"; sig="Historically strong buying opportunity"
-        elif score<=44: lbl="Fear";         col="#e97316"; sig="Market pessimism -- watch for mean reversion entries"
-        elif score<=55: lbl="Neutral";      col="#6b7280"; sig="No strong directional signal -- stay selective"
-        elif score<=74: lbl="Greed";        col="#059669"; sig="Optimism elevated -- exercise caution on new buys"
-        else:           lbl="Extreme Greed";col="#1a56db"; sig="Market overheated -- high reversal risk"
+        elif score<=44: lbl="Fear";         col="#e97316"; sig="Pessimism -- watch for mean reversion entries"
+        elif score<=55: lbl="Neutral";      col="#6b7280"; sig="No strong directional signal"
+        elif score<=74: lbl="Greed";        col="#059669"; sig="Optimism elevated -- exercise caution"
+        else:           lbl="Extreme Greed";col="#1a56db"; sig="Overheated -- high reversal risk"
         print(f"   ✅ Fear & Greed: {score}/100 ({lbl})")
         return {"score":score,"label":lbl,"color":col,"signal":sig,
                 "prev_close":round(float(fg.get("previous_close",score))),
@@ -223,38 +344,34 @@ def fetch_fear_greed():
 
 
 # ============================================================
-# STEP 3: MARKET INDICATORS (VIX, S&P 500, Russell 2000)
+# STEP 4: MARKET PERFORMANCE (VIX, S&P 500, Russell 2000)
 # ============================================================
-# EXACT thresholds from Chrome extension background.js:
+# Exact thresholds from Chrome extension background.js:
 #   VIX: CALM(<15) NORMAL(<20) CAUTIOUS(<25) FEARFUL(<30) PANIC(>=30)
 #   Index: SELLOFF(≤-1%) DOWN(-1 to -0.1%) FLAT(-0.1 to 0.1%)
 #          UP(0.1 to 1%) RALLY(>1%)
-# Detects market-closed state (0% change) and labels gracefully.
 # ============================================================
 
 def _classify_vix(v):
-    if v < 15: return "CALM",    "#059669"
-    if v < 20: return "NORMAL",  "#6b7280"
-    if v < 25: return "CAUTIOUS","#e97316"
-    if v < 30: return "FEARFUL", "#c81e1e"
-    return         "PANIC",     "#7f1d1d"
-
+    if v<15: return "CALM",    "#059669"
+    if v<20: return "NORMAL",  "#6b7280"
+    if v<25: return "CAUTIOUS","#e97316"
+    if v<30: return "FEARFUL", "#c81e1e"
+    return       "PANIC",     "#7f1d1d"
 
 def _classify_index(chg):
-    if chg >  1.0: return "RALLY",   "#059669"
-    if chg >  0.1: return "UP",      "#86c440"
-    if chg > -0.1: return "FLAT",    "#6b7280"
-    if chg > -1.0: return "DOWN",    "#e97316"
-    return          "SELLOFF",       "#c81e1e"
-
+    if chg> 1.0: return "RALLY",  "#059669"
+    if chg> 0.1: return "UP",     "#86c440"
+    if chg>-0.1: return "FLAT",   "#6b7280"
+    if chg>-1.0: return "DOWN",   "#e97316"
+    return        "SELLOFF",      "#c81e1e"
 
 def _vix_signal(v):
-    if v >= 30: return "⚠️ Elevated fear -- mean reversion entries emerging"
-    if v >= 25: return "⚠️ Cautious -- watch for volatility spikes"
-    if v >= 20: return "→ Slightly elevated -- no broad panic yet"
-    if v >= 15: return "→ Normal -- market not showing stress"
-    return             "✅ Calm -- low fear, complacent, rally intact"
-
+    if v>=30: return "⚠️ Fear/panic -- mean reversion entries emerging"
+    if v>=25: return "⚠️ Cautious -- watch for volatility spikes"
+    if v>=20: return "→ Slightly elevated"
+    if v>=15: return "→ Normal -- no market stress"
+    return          "✅ Calm -- low fear, rally intact"
 
 def _yahoo_quote(ticker):
     url=f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=2d"
@@ -264,71 +381,55 @@ def _yahoo_quote(ticker):
     price=float(meta.get("regularMarketPrice",0))
     prev=float(meta.get("previousClose",price))
     chg=((price-prev)/prev*100) if prev else 0
-    # Detect market closed: Yahoo returns same price when market is shut
-    market_state=meta.get("marketState","UNKNOWN")
-    return price,prev,chg,market_state
-
+    state=meta.get("marketState","UNKNOWN")
+    return price,prev,chg,state
 
 def fetch_market_indicators():
-    print("\n📊 Fetching Market Indicators (VIX, SPX, RUT)...")
-    result={
-        "vix":{"value":"N/A","label":"N/A","color":"#6b7280","signal":"","prev":"N/A"},
-        "spx":{"value":"N/A","chg":"N/A","label":"N/A","color":"#6b7280","prev":"N/A"},
-        "rut":{"value":"N/A","chg":"N/A","label":"N/A","color":"#6b7280","prev":"N/A"},
-        "market_state":"UNKNOWN",
-        "pulse":"",
-    }
+    print("\n📊 Fetching Market Performance (VIX, SPX, RUT)...")
+    result={"vix":{"value":"N/A","label":"N/A","color":"#6b7280","signal":"","prev":"N/A"},
+            "spx":{"value":"N/A","chg":"N/A","label":"N/A","color":"#6b7280","prev":"N/A"},
+            "rut":{"value":"N/A","chg":"N/A","label":"N/A","color":"#6b7280","prev":"N/A"},
+            "market_state":"UNKNOWN","pulse":""}
     try:
         with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
             fv=ex.submit(_yahoo_quote,"%5EVIX")
             fs=ex.submit(_yahoo_quote,"%5EGSPC")
             fr=ex.submit(_yahoo_quote,"%5ERUT")
-            vix_p,vix_prev,_,      vix_state=fv.result(timeout=15)
-            spx_p,spx_prev,spx_chg,spx_state=fs.result(timeout=15)
-            rut_p,rut_prev,rut_chg,rut_state=fr.result(timeout=15)
+            vix_p,vix_prev,_,      vstate=fv.result(timeout=15)
+            spx_p,spx_prev,spx_chg,sstate=fs.result(timeout=15)
+            rut_p,rut_prev,rut_chg,rstate=fr.result(timeout=15)
 
-        # Detect if market is closed (after hours / weekend)
-        market_closed = spx_state in ("CLOSED","POST","PRE") or abs(spx_chg) < 0.001
-        result["market_state"] = "CLOSED" if market_closed else "OPEN"
+        mkt_closed=sstate in("CLOSED","POST","PRE") or abs(spx_chg)<0.001
+        result["market_state"]="CLOSED" if mkt_closed else "OPEN"
 
         vix_lbl,vix_col=_classify_vix(vix_p)
         spx_lbl,spx_col=_classify_index(spx_chg)
         rut_lbl,rut_col=_classify_index(rut_chg)
         vix_sig=_vix_signal(vix_p)
 
-        # If market closed, show last close values with clear label
-        chg_display_spx = "Market Closed" if market_closed else f"{spx_chg:+.2f}%"
-        chg_display_rut = "Market Closed" if market_closed else f"{rut_chg:+.2f}%"
-        if market_closed:
-            spx_lbl="CLOSED"; spx_col="#6b7280"
-            rut_lbl="CLOSED"; rut_col="#6b7280"
-
-        result["vix"]={"value":f"{vix_p:.2f}","label":vix_lbl,"color":vix_col,
-                       "signal":vix_sig,"prev":f"{vix_prev:.2f}"}
-        result["spx"]={"value":f"{spx_p:,.0f}","chg":chg_display_spx,
-                       "label":spx_lbl,"color":spx_col,"prev":f"{spx_prev:,.0f}"}
-        result["rut"]={"value":f"{rut_p:,.0f}","chg":chg_display_rut,
-                       "label":rut_lbl,"color":rut_col,"prev":f"{rut_prev:,.0f}"}
-
-        if market_closed:
-            result["pulse"]=(f"Markets closed -- last close: S&P 500 {spx_p:,.0f} · "
-                             f"Russell 2000 {rut_p:,.0f} · VIX {vix_p:.1f} ({vix_lbl})")
+        if mkt_closed:
+            spx_lbl="CLOSED"; spx_col="#9ca3af"
+            rut_lbl="CLOSED"; rut_col="#9ca3af"
+            spx_chg_str="last close"; rut_chg_str="last close"
         else:
-            if vix_p>=30 or spx_lbl=="SELLOFF":
-                tone="broad market stress -- mean reversion entries emerging"
-            elif spx_lbl in("UP","RALLY") and rut_lbl in("UP","RALLY"):
-                tone="broad strength -- exercise caution buying new deep-value positions"
-            elif spx_lbl=="FLAT":
-                tone="indecisive tape -- focus on individual stock catalysts"
-            else:
-                tone="mixed signals -- stay selective"
-            result["pulse"]=(f"S&P 500 {spx_chg:+.2f}% ({spx_lbl}) · "
-                             f"Russell {rut_chg:+.2f}% ({rut_lbl}) · "
-                             f"VIX {vix_p:.1f} ({vix_lbl}) -- {tone}")
+            spx_chg_str=f"{spx_chg:+.2f}%"; rut_chg_str=f"{rut_chg:+.2f}%"
 
-        print(f"   ✅ S&P 500: {spx_p:,.0f} ({chg_display_spx} {spx_lbl})")
-        print(f"   ✅ Russell: {rut_p:,.0f} ({chg_display_rut} {rut_lbl})")
-        print(f"   ✅ VIX: {vix_p:.2f} ({vix_lbl}) | Market: {result['market_state']}")
+        result["vix"]={"value":f"{vix_p:.2f}","label":vix_lbl,"color":vix_col,"signal":vix_sig,"prev":f"{vix_prev:.2f}"}
+        result["spx"]={"value":f"{spx_p:,.0f}","chg":spx_chg_str,"label":spx_lbl,"color":spx_col,"prev":f"{spx_prev:,.0f}"}
+        result["rut"]={"value":f"{rut_p:,.0f}","chg":rut_chg_str,"label":rut_lbl,"color":rut_col,"prev":f"{rut_prev:,.0f}"}
+
+        if mkt_closed:
+            result["pulse"]=f"Last close -- S&P 500 {spx_p:,.0f} · Russell {rut_p:,.0f} · VIX {vix_p:.1f} ({vix_lbl})"
+        else:
+            if vix_p>=30 or spx_lbl=="SELLOFF":   tone="broad stress -- mean reversion entries emerging"
+            elif spx_lbl in("UP","RALLY") and rut_lbl in("UP","RALLY"): tone="broad strength -- caution on new buys"
+            elif spx_lbl=="FLAT":                  tone="indecisive -- focus on individual catalysts"
+            else:                                   tone="mixed -- stay selective"
+            result["pulse"]=f"S&P {spx_chg_str} ({spx_lbl}) · Russell {rut_chg_str} ({rut_lbl}) · VIX {vix_p:.1f} ({vix_lbl}) -- {tone}"
+
+        print(f"   ✅ S&P 500: {spx_p:,.0f} ({spx_chg_str} {spx_lbl})")
+        print(f"   ✅ Russell: {rut_p:,.0f} ({rut_chg_str} {rut_lbl})")
+        print(f"   ✅ VIX: {vix_p:.2f} ({vix_lbl}) | State: {result['market_state']}")
     except Exception as e:
         print(f"   ❌ Market indicators failed: {e}")
         result["pulse"]="Market data unavailable."
@@ -336,7 +437,7 @@ def fetch_market_indicators():
 
 
 # ============================================================
-# STEP 4: EDWARD JONES SCRAPE
+# STEP 5: EDWARD JONES SCRAPE
 # ============================================================
 
 def scrape_edward_jones():
@@ -358,55 +459,36 @@ def scrape_edward_jones():
 
 
 # ============================================================
-# STEPS 5, 6, 7: EMAIL VIA IMAP
-# ============================================================
-# Generic fetcher with:
-# - Exact FROM search, then domain fallback
-# - Full debug logging of headers
-# - search_last_n for weekly newsletters (McClellan)
+# STEPS 6-8: EMAIL VIA IMAP
 # ============================================================
 
-def _fetch_email(sender, label, char_limit=2500, search_last_n=1):
-    """Generic IMAP email fetcher with debug logging and fallback search."""
-    print(f"\n📬 Fetching {label}...")
-    print(f"   Sender: {sender}")
+def _fetch_email(sender, label, char_limit=2500):
+    """IMAP fetcher with exact search and domain fallback."""
+    print(f"\n📬 Fetching {label} (sender: {sender})...")
     try:
         mail=imaplib.IMAP4_SSL("imap.mail.yahoo.com",993)
         mail.login(YAHOO_EMAIL,YAHOO_PASSWORD)
         print(f"   ✅ Logged in")
         mail.select("INBOX")
-
-        # Try exact FROM match first
         status,messages=mail.search(None,f'(FROM "{sender}")')
         count=len(messages[0].split()) if messages[0] else 0
-        print(f"   Exact search: {status}, found: {count} emails")
-
-        # Fallback: domain-only search if exact fails
+        print(f"   Found: {count} emails")
         if status!="OK" or not messages[0]:
             domain=sender.split("@")[-1] if "@" in sender else sender
-            print(f"   Trying domain fallback: {domain}")
             status,messages=mail.search(None,f'(FROM "{domain}")')
             count=len(messages[0].split()) if messages[0] else 0
-            print(f"   Domain search: {status}, found: {count} emails")
-
+            print(f"   Domain fallback: {count} emails")
         if status!="OK" or not messages[0]:
-            print(f"   ❌ No {label} emails found")
-            mail.logout()
+            print(f"   ❌ No {label} emails found"); mail.logout()
             return f"{label} not found today."
-
-        ids=messages[0].split()
-        print(f"   Total {label} emails: {len(ids)}")
-        latest_id=ids[-1]
-
-        # Show headers for debugging
-        status,hdr=mail.fetch(latest_id,"(BODY[HEADER.FIELDS (FROM SUBJECT DATE)])")
+        ids=messages[0].split(); latest=ids[-1]
+        # Show headers
+        _,hdr=mail.fetch(latest,"(BODY[HEADER.FIELDS (FROM SUBJECT DATE)])")
         if hdr and hdr[0] and hdr[0][1]:
-            hdr_text=hdr[0][1].decode("utf-8",errors="ignore") if isinstance(hdr[0][1],bytes) else str(hdr[0][1])
-            for line in hdr_text.strip().splitlines()[:4]:
-                if line.strip(): print(f"   Header: {line.strip()}")
-
-        # Fetch full email body
-        status,msg_data=mail.fetch(latest_id,"(RFC822)")
+            for line in hdr[0][1].decode("utf-8",errors="ignore").strip().splitlines()[:4]:
+                if line.strip(): print(f"   {line.strip()}")
+        # Fetch body
+        _,msg_data=mail.fetch(latest,"(RFC822)")
         msg=email.message_from_bytes(msg_data[0][1])
         body=""
         if msg.is_multipart():
@@ -420,44 +502,36 @@ def _fetch_email(sender, label, char_limit=2500, search_last_n=1):
                         body=BeautifulSoup(part.get_payload(decode=True).decode("utf-8",errors="ignore"),"html.parser").get_text("\n",strip=True); break
             else:
                 body=BeautifulSoup(msg.get_payload(decode=True).decode("utf-8",errors="ignore"),"html.parser").get_text("\n",strip=True)
-
         mail.logout()
         body=body[:char_limit].strip()
-        print(f"   ✅ {label}: {len(body)} chars captured")
+        print(f"   ✅ {label}: {len(body)} chars")
         return body
     except Exception as e:
         print(f"   ❌ {label} IMAP failed: {e}")
         return f"{label} unavailable today."
 
-
 def fetch_cnbc_email():
     return _fetch_email("morningsquawk@response.cnbc.com","CNBC Morning Squawk")
 
-
 def fetch_yahoo_morning_brief():
-    # Confirmed sender from screenshot: finance-morning-brief@newsletters.yahoo.net
-    # Subject format: "Morning Brief: [headline] · Plus: [subhead]"
+    # Confirmed: finance-morning-brief@newsletters.yahoo.net
     return _fetch_email("finance-morning-brief@newsletters.yahoo.net","Yahoo Morning Brief",char_limit=2000)
 
-
 def fetch_mcoscillator_email():
-    # Tom McClellan -- admin@mcoscillator.com
-    # Weekly newsletter, subject: "[Topic] - Chart In Focus"
-    # search_last_n=1 gets the latest; arrives weekly so may be days old
-    return _fetch_email("admin@mcoscillator.com","McClellan Oscillator",char_limit=1500,search_last_n=1)
+    # Tom McClellan weekly -- admin@mcoscillator.com
+    return _fetch_email("admin@mcoscillator.com","McClellan Oscillator",char_limit=1500)
 
 
 # ============================================================
-# STEP 8: GEMINI AI SYNTHESIS (150s timeout)
+# STEP 9: GEMINI AI SYNTHESIS + FUN FACT + AI LEARNING
 # ============================================================
 
 def _call_gemini(prompt):
     client=genai.Client(api_key=GEMINI_API_KEY)
     return client.interactions.create(model="gemini-3.6-flash",input=prompt).output_text
 
-
 def synthesize_with_gemini(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
-                            fred_data, fg_data, mkt_data):
+                            fred_data, fg_data, mkt_data, regime):
     print("\n🤖 Sending to Gemini (150s timeout)...")
     try:
         fred_summary="\n".join([
@@ -466,43 +540,35 @@ def synthesize_with_gemini(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         ])
         prompt=f"""You are a sharp financial analyst writing a morning briefing for a 
 deep-value mean reversion investor (Greenblatt/Munger/Pabrai style).
-Goal: help identify cyclically beaten-down quality stocks vs structural declines.
 
 STRICT RULES:
-- Output EXACTLY these 4 section headers (no numbers, no markdown, no emojis in headers):
-  MARKET AND KEY MOVES
-  MACRO AND NEWS
+- Output EXACTLY these 3 section headers (no numbers, no markdown):
+  MARKET AND MACRO
   EARNINGS AND EVENTS
   WHAT TO WATCH
-- Under each: 3-4 bullet points starting with dash (-)
-- Max 20 words per bullet, one specific fact per bullet
-- EARNINGS AND EVENTS: extract any specific earnings dates, economic data releases,
-  or upcoming events mentioned in ANY source. If Yahoo Morning Brief mentions an
-  earnings date or economic calendar item, include it with the specific date.
-- Do NOT repeat Fear & Greed score, VIX number, or S&P/Russell % -- shown in sentiment table
-- No paragraphs, no bold, no nested bullets
+- MARKET AND MACRO: 4-5 bullets covering market moves AND macro news together
+- EARNINGS AND EVENTS: 3-4 bullets -- extract ALL specific earnings dates and economic
+  data releases mentioned in any source. Include the date if mentioned.
+- WHAT TO WATCH: 3-4 bullets -- mean reversion lens, cyclical vs structural calls,
+  specific sector/stock opportunities for deep-value investors
+- Do NOT repeat VIX number, S&P/Russell % changes, Fear & Greed score -- shown in table
+- Max 20 words per bullet, starting with dash (-), no paragraphs, no bold
 
-After the 4 sections add:
+After the 3 sections add:
 AI FUN FACT
-- One fascinating AI or investing history fact. Max 25 words. Be genuinely surprising.
+- One genuinely surprising fact about AI, markets, or investing history. Max 25 words.
 
-MARKET CONTEXT (do not repeat these in bullets):
-{mkt_data['pulse']}
+AI LEARNING
+- One specific AI concept relevant to investing or finance. Explain it in plain English. Max 30 words.
+  Examples: "RAG", "embedding", "fine-tuning", "agent", "prompt engineering", "LLM inference"
 
-FRED MACRO INDICATORS:
-{fred_summary}
-
-EDWARD JONES RECAP:
-{ej_text[:1000]}
-
-CNBC MORNING SQUAWK:
-{cnbc_text[:800]}
-
-YAHOO MORNING BRIEF (extract ALL earnings dates and economic calendar events):
-{yahoo_text[:900]}
-
-McCLELLAN OSCILLATOR (market breadth & technical signal):
-{mcoscillator_text[:600]}
+MACRO REGIME: {regime['score']}/100 -- {regime['label']}
+MARKET: {mkt_data['pulse']}
+FRED: {fred_summary}
+EDWARD JONES: {ej_text[:900]}
+CNBC SQUAWK: {cnbc_text[:700]}
+YAHOO BRIEF: {yahoo_text[:700]}
+McCLELLAN (breadth): {mcoscillator_text[:500]}
 """
         with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
             fut=ex.submit(_call_gemini,prompt)
@@ -510,31 +576,31 @@ McCLELLAN OSCILLATOR (market breadth & technical signal):
         print(f"   ✅ Gemini: {len(briefing)} chars")
         return briefing
     except concurrent.futures.TimeoutError:
-        print("   ⚠️ Gemini timed out (>150s) -- using structured fallback")
+        print("   ⚠️ Gemini timed out (>150s)")
     except Exception as e:
         print(f"   ❌ Gemini failed: {e}")
-    return """MARKET AND KEY MOVES
-- AI synthesis unavailable -- see FRED indicators and sentiment table below
-
-MACRO AND NEWS
-- Check FRED macro table for current economic indicators
+    return """MARKET AND MACRO
+- AI synthesis unavailable -- see FRED indicators and regime score below
 
 EARNINGS AND EVENTS
-- AI synthesis unavailable -- see source emails for calendar data
+- Check Yahoo Morning Brief and CNBC sources for earnings calendar
 
 WHAT TO WATCH
-- Review sentiment table and FRED signals for macro context
+- Review regime score and FRED signals for macro context
 
 AI FUN FACT
-- Mohnish Pabrai paid $650,100 with Guy Spier to lunch with Buffett in 2007, his best investment ever."""
+- Mohnish Pabrai paid $650,100 with Guy Spier to lunch with Buffett in 2007 -- his best investment ever.
+
+AI LEARNING
+- RAG (Retrieval Augmented Generation): AI fetches relevant data before answering, making responses more accurate and current."""
 
 
 # ============================================================
-# STEP 9: PARSE SECTIONS
+# STEP 10: PARSE SECTIONS
 # ============================================================
 
 def parse_sections(text):
-    secs={"MARKET AND KEY MOVES":"","MACRO AND NEWS":"","EARNINGS AND EVENTS":"","WHAT TO WATCH":"","AI FUN FACT":""}
+    secs={"MARKET AND MACRO":"","EARNINGS AND EVENTS":"","WHAT TO WATCH":"","AI FUN FACT":"","AI LEARNING":""}
     current=None
     for line in text.splitlines():
         up=line.upper().strip()
@@ -542,14 +608,14 @@ def parse_sections(text):
         cln=re.sub(r"^#+\s*","",cln)
         cln=re.sub(r"^\*+\s*","",cln)
         cln=cln.encode("ascii","ignore").decode().strip()
-        if "MARKET AND KEY MOVES" in cln or ("MARKET" in cln and "KEY" in cln): current="MARKET AND KEY MOVES"; continue
-        if "KEY MOVES" in cln and "MARKET" not in cln: current="MARKET AND KEY MOVES"; continue
-        if "MARKET SUMMARY" in cln: current="MARKET AND KEY MOVES"; continue
-        if "MACRO AND NEWS" in cln or "MACRO & NEWS" in cln: current="MACRO AND NEWS"; continue
+        if "MARKET AND MACRO" in cln or ("MARKET AND KEY" in cln): current="MARKET AND MACRO"; continue
+        if "MARKET SUMMARY" in cln or "KEY MOVES" in cln:         current="MARKET AND MACRO"; continue
+        if "MACRO AND NEWS" in cln or "MACRO & NEWS" in cln:      current="MARKET AND MACRO"; continue
         if "EARNINGS AND EVENTS" in cln or "EARNINGS AND CALENDAR" in cln: current="EARNINGS AND EVENTS"; continue
-        if "EARNINGS HIGHLIGHT" in cln: current="EARNINGS AND EVENTS"; continue
-        if "WHAT TO WATCH" in cln or "PRE-MARKET" in cln or "MORNING OUTLOOK" in cln: current="WHAT TO WATCH"; continue
-        if "AI FUN FACT" in cln or "FUN FACT" in cln: current="AI FUN FACT"; continue
+        if "WHAT TO WATCH" in cln or "PRE-MARKET" in cln:         current="WHAT TO WATCH"; continue
+        if "AI FUN FACT" in cln:                                   current="AI FUN FACT"; continue
+        if "AI LEARNING" in cln or ("AI" in cln and "LEARN" in cln): current="AI LEARNING"; continue
+        if "FUN FACT" in cln and "AI" not in cln:                  current="AI FUN FACT"; continue
         if current and line.strip(): secs[current]+=line.strip()+"\n"
     for name,content in secs.items():
         print(f"   {'📋' if content.strip() else '⚠️'} {name}: {len(content)} chars" if content.strip() else f"   ⚠️ {name}: EMPTY")
@@ -557,19 +623,14 @@ def parse_sections(text):
 
 
 # ============================================================
-# STEP 10: BUILD HTML DASHBOARD
+# STEP 11: BUILD HTML DASHBOARD
 # ============================================================
 # Layout:
-#   ROW 0: AI Fun Fact (full width, blue gradient)
-#   ROW 1: [Sentiment TABLE] | [Market & Key Moves / Macro & News stacked]
-#   ROW 2: [Earnings & Events] | [What to Watch]
-#   ROW 3: FRED Macro Table (full width, numbered, alphabetical)
-#
-# Sentiment table: table format matching Chrome extension output style
-#   Indicator | Current | vs Prior | Signal (BULLISH/BEARISH/CAUTIOUS/NEUTRAL)
-#   | What it means
-# Signal vocabulary standardized to 4 words for consistency.
-# Chrome extension market-context div formatted as structured text.
+#   [AI Fun Fact + AI Learning] -- full width, blue gradient
+#   [Macro Regime Score card] -- full width, prominent
+#   [Market Performance table] | [Market Analysis stacked]
+#   [Earnings & Events] | [What to Watch]
+#   [FRED Macro Table - grouped by category]
 # ============================================================
 
 def fmt_bullets(raw):
@@ -581,32 +642,19 @@ def fmt_bullets(raw):
         if line: items+=f"        <li>{line}</li>\n"
     return items or "<li>No data available</li>"
 
-
-def _std_signal(raw_label, raw_color):
-    """Map any raw signal label to BULLISH / CAUTIOUS / NEUTRAL / BEARISH."""
-    mapping={
-        "RALLY":"BULLISH",   "UP":"BULLISH",
-        "CALM":"BULLISH",    "Greed":"BULLISH",   "Extreme Greed":"BULLISH",
-        "HIGH":"BULLISH",
-        "FLAT":"NEUTRAL",    "NORMAL":"NEUTRAL",  "Neutral":"NEUTRAL",  "MID":"NEUTRAL",
-        "DOWN":"CAUTIOUS",   "CAUTIOUS":"CAUTIOUS","Fear":"CAUTIOUS",
-        "SELLOFF":"BEARISH", "FEARFUL":"BEARISH", "PANIC":"BEARISH",
-        "Extreme Fear":"BEARISH","LOW":"BEARISH","CLOSED":"CLOSED",
-    }
-    colors={"BULLISH":"#057a55","NEUTRAL":"#6b7280","CAUTIOUS":"#b45309",
-            "BEARISH":"#c81e1e","CLOSED":"#9ca3af"}
-    std=mapping.get(raw_label,raw_label)
-    col=colors.get(std,raw_color)
-    return std,col
-
-
-def _badge(raw_label, raw_color):
-    std,col=_std_signal(raw_label,raw_color)
-    return f'<span style="background:{col};color:white;padding:2px 9px;border-radius:4px;font-size:.68rem;font-weight:700;white-space:nowrap;">{std}</span>'
-
+def _badge(raw_lbl, raw_col):
+    """Standardize to BULLISH / CAUTIOUS / NEUTRAL / BEARISH / CLOSED."""
+    m={"RALLY":"BULLISH","UP":"BULLISH","CALM":"BULLISH","Greed":"BULLISH","Extreme Greed":"BULLISH","HIGH":"BULLISH",
+       "FLAT":"NEUTRAL","NORMAL":"NEUTRAL","Neutral":"NEUTRAL","MID":"NEUTRAL",
+       "DOWN":"CAUTIOUS","CAUTIOUS":"CAUTIOUS","Fear":"CAUTIOUS",
+       "SELLOFF":"BEARISH","FEARFUL":"BEARISH","PANIC":"BEARISH","Extreme Fear":"BEARISH","LOW":"BEARISH",
+       "CLOSED":"CLOSED"}
+    c={"BULLISH":"#057a55","NEUTRAL":"#6b7280","CAUTIOUS":"#b45309","BEARISH":"#c81e1e","CLOSED":"#9ca3af"}
+    std=m.get(raw_lbl,raw_lbl); col=c.get(std,raw_col)
+    return f'<span style="background:{col};color:white;padding:2px 9px;border-radius:4px;font-size:.68rem;font-weight:700;">{std}</span>'
 
 def build_html(briefing, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
-               fred_data, fg_data, mkt_data):
+               fred_data, fg_data, mkt_data, regime):
     print("\n🎨 Building HTML dashboard...")
 
     secs=parse_sections(briefing)
@@ -614,90 +662,112 @@ def build_html(briefing, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
     today=now_mt.strftime("%A, %B %d, %Y")
     now=now_mt.strftime("%I:%M %p")
 
-    # Market data
-    vix_val =mkt_data["vix"]["value"]; vix_prev=mkt_data["vix"]["prev"]
-    vix_lbl =mkt_data["vix"]["label"]; vix_col =mkt_data["vix"]["color"]
-    vix_sig =mkt_data["vix"]["signal"]
-    spx_val =mkt_data["spx"]["value"]; spx_chg =mkt_data["spx"]["chg"]
-    spx_prev=mkt_data["spx"]["prev"];  spx_lbl =mkt_data["spx"]["label"]
-    spx_col =mkt_data["spx"]["color"]
-    rut_val =mkt_data["rut"]["value"]; rut_chg =mkt_data["rut"]["chg"]
-    rut_prev=mkt_data["rut"]["prev"];  rut_lbl =mkt_data["rut"]["label"]
-    rut_col =mkt_data["rut"]["color"]
-    pulse   =mkt_data["pulse"]
-    mkt_closed = mkt_data.get("market_state","UNKNOWN")=="CLOSED"
+    vix_val=mkt_data["vix"]["value"]; vix_prev=mkt_data["vix"]["prev"]
+    vix_lbl=mkt_data["vix"]["label"]; vix_col=mkt_data["vix"]["color"]
+    vix_sig=mkt_data["vix"]["signal"]
+    spx_val=mkt_data["spx"]["value"]; spx_chg=mkt_data["spx"]["chg"]
+    spx_lbl=mkt_data["spx"]["label"]; spx_col=mkt_data["spx"]["color"]
+    spx_prev=mkt_data["spx"]["prev"]
+    rut_val=mkt_data["rut"]["value"]; rut_chg=mkt_data["rut"]["chg"]
+    rut_lbl=mkt_data["rut"]["label"]; rut_col=mkt_data["rut"]["color"]
+    rut_prev=mkt_data["rut"]["prev"]
+    pulse=mkt_data["pulse"]
+    mkt_closed=mkt_data.get("market_state","UNKNOWN")=="CLOSED"
 
-    # Fear & Greed
     fg_score=fg_data.get("score",50); fg_lbl=fg_data.get("label","N/A")
-    fg_col  =fg_data.get("color","#6b7280"); fg_sig=fg_data.get("signal","")
+    fg_col=fg_data.get("color","#6b7280"); fg_sig=fg_data.get("signal","")
 
-    # U of Michigan from FRED
-    umich=next((r for r in fred_data if "Michigan" in r["label"]),None)
-    umich_val =umich["current"]  if umich else "N/A"
-    umich_mo3 =umich["mo3"]      if umich else "N/A"
-    umich_mo12=umich["mo12"]     if umich else "N/A"
-    umich_sig =umich.get("sig","") if umich else ""
+    # U of Michigan from FRED (in sentiment table alongside F&G)
+    umich=next((r for r in fred_data if "Consumer Sentiment" in r["label"]),None)
+    umich_val=umich["current"] if umich else "N/A"
+    umich_mo3=umich["mo3"] if umich else "N/A"
+    umich_mo12=umich["mo12"] if umich else "N/A"
+    umich_sig=umich.get("sig","") if umich else ""
     try: umich_num=float(str(umich_val))
     except: umich_num=55
-    if   umich_num>=75: ucol="#057a55"; umich_raw_lbl="HIGH"
-    elif umich_num< 60: ucol="#c81e1e"; umich_raw_lbl="LOW"
-    else:               ucol="#6b7280"; umich_raw_lbl="MID"
+    ucol="#c81e1e" if umich_num<60 else "#6b7280" if umich_num<75 else "#057a55"
+    umich_raw_lbl="LOW" if umich_num<60 else "MID" if umich_num<75 else "HIGH"
 
-    # ---- Sentiment table rows -----------------------------------
-    def sent_row(indicator, current, vs_prior, raw_lbl, raw_col, meaning, note=""):
-        badge=_badge(raw_lbl,raw_col)
-        note_html=f'<div style="font-size:.62rem;color:#9ca3af;margin-top:1px;">{note}</div>' if note else ""
+    # ---- Market Performance Table ----------------------------
+    def perf_row(name, val, chg, prev, raw_lbl, raw_col, note=""):
+        note_html=f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
         return f"""
     <tr style="border-bottom:1px solid #f3f4f6;">
-      <td style="padding:8px 10px;">
-        <div style="font-weight:600;font-size:.82rem;">{indicator}</div>
-        {note_html}
+      <td style="padding:7px 10px;">
+        <div style="font-weight:600;font-size:.82rem;">{name}</div>{note_html}
       </td>
-      <td style="padding:8px 10px;font-weight:700;font-size:.9rem;">{current}</td>
-      <td style="padding:8px 10px;font-size:.76rem;color:#6b7280;white-space:nowrap;">{vs_prior}</td>
-      <td style="padding:8px 10px;">{badge}</td>
-      <td style="padding:8px 10px;font-size:.72rem;color:#374151;">{meaning}</td>
+      <td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td>
+      <td style="padding:7px 10px;font-size:.78rem;color:#6b7280;">{chg}</td>
+      <td style="padding:7px 10px;font-size:.75rem;color:#9ca3af;">prev {prev}</td>
+      <td style="padding:7px 10px;">{_badge(raw_lbl,raw_col)}</td>
     </tr>"""
 
-    mkt_closed_note=" (last close)" if mkt_closed else ""
-    sentiment_rows=(
-        sent_row("S&P 500 (Large Cap)",
-                 f"{spx_val}{mkt_closed_note}", f"prev {spx_prev} · {spx_chg}",
-                 spx_lbl,spx_col,"Large-cap US equities · Yahoo Finance")
-        +sent_row("Russell 2000 (Small Cap)",
-                  f"{rut_val}{mkt_closed_note}", f"prev {rut_prev} · {rut_chg}",
-                  rut_lbl,rut_col,"Small-cap US equities · Yahoo Finance")
-        +sent_row("VIX (Volatility Index)",
-                  vix_val, f"prev {vix_prev}",
-                  vix_lbl,vix_col, vix_sig,
-                  note="CBOE · CALM<15 NORMAL<20 CAUTIOUS<25 FEARFUL<30 PANIC≥30")
-        +sent_row("Fear & Greed Index",
-                  f"{fg_score}/100",
-                  f"1wk:{fg_data.get('prev_week','N/A')} 1mo:{fg_data.get('prev_month','N/A')} 1yr:{fg_data.get('prev_year','N/A')}",
-                  fg_lbl,fg_col, fg_sig,
-                  note="CNN Business · updated daily")
-        +sent_row("Consumer Sentiment",
-                  f"{umich_val}/100",
-                  f"3mo:{umich_mo3} 12mo:{umich_mo12}",
-                  umich_raw_lbl,ucol, umich_sig,
-                  note="U of Michigan · avg ~75 · monthly")
+    # ---- Sentiment Table (Fear & Greed + Consumer Sentiment) ---
+    def sent_row(name, val, hist, raw_lbl, raw_col, signal, note=""):
+        note_html=f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
+        return f"""
+    <tr style="border-bottom:1px solid #f3f4f6;">
+      <td style="padding:7px 10px;">
+        <div style="font-weight:600;font-size:.82rem;">{name}</div>{note_html}
+      </td>
+      <td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td>
+      <td style="padding:7px 10px;font-size:.75rem;color:#6b7280;">{hist}</td>
+      <td style="padding:7px 10px;">{_badge(raw_lbl,raw_col)}</td>
+      <td style="padding:7px 10px;font-size:.72rem;color:#374151;">{signal}</td>
+    </tr>"""
+
+    perf_rows=(
+        perf_row("S&P 500 (Large Cap)",spx_val,spx_chg,spx_prev,spx_lbl,spx_col,"Yahoo Finance · large cap benchmark")
+        +perf_row("Russell 2000 (Small Cap)",rut_val,rut_chg,rut_prev,rut_lbl,rut_col,"Yahoo Finance · small cap / risk appetite")
+        +perf_row("VIX (Volatility)",vix_val,f"prev {vix_prev}","","CALM" if float(vix_val or 20)<15 else "NORMAL" if float(vix_val or 20)<20 else "CAUTIOUS" if float(vix_val or 20)<25 else "FEARFUL" if float(vix_val or 20)<30 else "PANIC",vix_col,"CBOE · CALM<15 NORMAL<20 CAUTIOUS<25 FEARFUL<30 PANIC≥30")
     )
 
-    # ---- FRED table rows (numbered, alpha, U of Mich excluded) ---
-    sorted_fred=sorted([r for r in fred_data if "Michigan" not in r["label"]],key=lambda x:x["label"])
+    sent_rows=(
+        sent_row("Fear & Greed",f"{fg_score}/100",
+                 f"1wk:{fg_data.get('prev_week','N/A')} 1mo:{fg_data.get('prev_month','N/A')} 1yr:{fg_data.get('prev_year','N/A')}",
+                 fg_lbl,fg_col,fg_sig,"CNN Business · daily composite")
+        +sent_row("Consumer Sentiment",f"{umich_val}/100",
+                  f"3mo:{umich_mo3} 12mo:{umich_mo12}",
+                  umich_raw_lbl,ucol,umich_sig,"U of Michigan · avg ~75 · monthly")
+    )
+
+    # ---- Regime Score display --------------------------------
+    regime_score=regime["score"]; regime_lbl=regime["label"]; regime_col=regime["color"]
+    regime_pct=min(100,max(0,regime_score))
+    regime_breakdown_html="".join([
+        f'<span style="font-size:.68rem;color:#6b7280;margin-right:12px;">{b}</span>'
+        for b in regime["breakdown"]
+    ])
+
+    # ---- FRED Table grouped by category ----------------------
+    group_order=["INFLATION","TREASURY","ECONOMIC","CREDIT"]
     fred_rows=""
-    for i,r in enumerate(sorted_fred,1):
-        # For inflation: DOWN = good (cooling) so color green
-        if any(x in r["label"] for x in ["CPI","PCE","Inflation"]):
-            tc="#057a55" if r["trend"]=="▼" else "#c81e1e" if r["trend"]=="▲" else "#6b7280"
-        else:
-            tc="#057a55" if r["trend"]=="▲" else "#c81e1e" if r["trend"]=="▼" else "#6b7280"
+    row_num=1
+    for group in group_order:
+        gmeta=GROUP_META[group]
+        group_items=[r for r in fred_data if r.get("group")==group]
+        if not group_items: continue
+        # Group header row
         fred_rows+=f"""
+    <tr style="background:#f9fafb;">
+      <td colspan="8" style="padding:6px 10px;font-size:.65rem;font-weight:700;
+          letter-spacing:1px;text-transform:uppercase;color:{gmeta['color']};
+          border-bottom:1px solid #e5e7eb;">
+        {gmeta['icon']} {gmeta['label']}
+      </td>
+    </tr>"""
+        for r in group_items:
+            # For inflation: DOWN = good
+            if r.get("group")=="INFLATION":
+                tc="#057a55" if r["trend"]=="▼" else "#c81e1e" if r["trend"]=="▲" else "#6b7280"
+            else:
+                tc="#057a55" if r["trend"]=="▲" else "#c81e1e" if r["trend"]=="▼" else "#6b7280"
+            fred_rows+=f"""
     <tr style="border-bottom:1px solid #f3f4f6;">
-      <td style="padding:7px 8px;text-align:center;font-size:.7rem;color:#9ca3af;font-weight:600;">{i}</td>
+      <td style="padding:7px 8px;text-align:center;font-size:.7rem;color:#9ca3af;">{row_num}</td>
       <td style="padding:7px 10px;">
         <div style="font-weight:600;font-size:.8rem;">{r['label']}</div>
-        <div style="font-size:.63rem;color:#9ca3af;margin-top:1px;">[{r['insight']}]</div>
+        <div style="font-size:.62rem;color:#9ca3af;">[{r['insight']}]</div>
       </td>
       <td style="padding:7px 10px;text-align:center;font-weight:700;font-size:.88rem;">{r['current']}</td>
       <td style="padding:7px 10px;text-align:center;font-size:.78rem;color:#6b7280;">{r['mo3']}</td>
@@ -706,41 +776,36 @@ def build_html(briefing, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
       <td style="padding:7px 8px;font-size:.67rem;color:#9ca3af;white-space:nowrap;">{r['date']}</td>
       <td style="padding:7px 10px;font-size:.72rem;color:#1e3a5f;">{r.get('sig','')}</td>
     </tr>"""
+            row_num+=1
 
-    # ---- AI Fun Fact ------------------------------------------
+    # ---- AI blocks -------------------------------------------
     fun_raw=secs.get("AI FUN FACT","").strip()
-    if fun_raw:
-        fun_raw=re.sub(r"^[-•*]\s*","",fun_raw.splitlines()[0].strip())
-    else:
-        fun_raw="Mohnish Pabrai paid $650,100 with Guy Spier to lunch with Buffett in 2007 -- his best investment ever, he says."
+    learn_raw=secs.get("AI LEARNING","").strip()
+    if fun_raw:  fun_raw=re.sub(r"^[-•*]\s*","",fun_raw.splitlines()[0].strip())
+    else:        fun_raw="Mohnish Pabrai paid $650,100 with Guy Spier to lunch with Buffett in 2007 -- his best investment ever."
+    if learn_raw: learn_raw=re.sub(r"^[-•*]\s*","",learn_raw.splitlines()[0].strip())
+    else:         learn_raw="RAG (Retrieval Augmented Generation): AI combines a knowledge base with language generation -- the same approach powering this dashboard."
 
     # ---- Hidden market-context div (Chrome extension) --------
-    # Formatted to match Chrome extension background.js output structure
-    fred_plain="\n".join([
-        f"  {r['label']}: {r['current']} (3mo:{r['mo3']} 12mo:{r['mo12']} trend:{r['trend']}) -- {r['insight']}"
-        for r in fred_data
-    ])
+    fred_plain="\n".join([f"  {r['label']}: {r['current']} (3mo:{r['mo3']} 12mo:{r['mo12']} trend:{r['trend']}) -- {r['insight']}" for r in fred_data])
     mctx=f"""MARKETPULSE AI MACRO CONTEXT - {today} {now} MT
-=== MARKET CONTEXT ===
-               1D change     Price        Signal
+=== MACRO REGIME SCORE: {regime_score}/100 -- {regime_lbl} ===
+
+=== MARKET PERFORMANCE ===
+               Change        Price        Signal
 S&P 500        {spx_chg:<14}{spx_val:<13}{spx_lbl}
 Russell 2000   {rut_chg:<14}{rut_val:<13}{rut_lbl}
-VIX            {'N/A':<14}{vix_val:<13}{vix_lbl}
+VIX            {'--':<14}{vix_val:<13}{vix_lbl}
 
-Fear & Greed: {fg_score}/100 ({fg_lbl})
-  Signal: {fg_sig}
-  1wk: {fg_data.get('prev_week','N/A')}  1mo: {fg_data.get('prev_month','N/A')}  1yr: {fg_data.get('prev_year','N/A')}
-
-Consumer Sentiment (U of Michigan): {umich_val}/100
-  Signal: {umich_sig}
-  3mo: {umich_mo3}  12mo: {umich_mo12}
+=== SENTIMENT ===
+Fear & Greed: {fg_score}/100 ({fg_lbl}) -- {fg_sig}
+  History: 1wk={fg_data.get('prev_week','N/A')} 1mo={fg_data.get('prev_month','N/A')} 1yr={fg_data.get('prev_year','N/A')}
+Consumer Sentiment: {umich_val}/100 -- {umich_sig}
+  History: 3mo={umich_mo3} 12mo={umich_mo12}
 
 === BRIEFING ===
-MARKET AND KEY MOVES:
-{secs.get('MARKET AND KEY MOVES','').strip()}
-
-MACRO AND NEWS:
-{secs.get('MACRO AND NEWS','').strip()}
+MARKET AND MACRO:
+{secs.get('MARKET AND MACRO','').strip()}
 
 EARNINGS AND EVENTS:
 {secs.get('EARNINGS AND EVENTS','').strip()}
@@ -776,128 +841,150 @@ WHAT TO WATCH:
   .card ul li{{padding:5px 0 5px 13px;border-bottom:1px solid #f3f4f6;font-size:.82rem;line-height:1.5;color:#374151;position:relative;}}
   .card ul li:before{{content:"▸";position:absolute;left:0;color:var(--blue);font-size:.72rem;}}
   .card ul li:last-child{{border-bottom:none;}}
-  .pulse-note{{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:7px 11px;margin-bottom:10px;font-size:.78rem;color:#78350f;line-height:1.4;}}
-  .sent-tbl{{width:100%;border-collapse:collapse;font-size:.8rem;}}
-  .sent-tbl th{{padding:6px 10px;text-align:left;font-size:.6rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);background:#f9fafb;}}
-  .footer{{text-align:center;color:var(--muted);font-size:.68rem;margin-top:22px;padding:0 14px;}}
+  .pulse-note{{background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;margin-bottom:9px;font-size:.76rem;color:#78350f;}}
+  .tbl{{width:100%;border-collapse:collapse;font-size:.8rem;}}
+  .tbl th{{padding:6px 10px;text-align:left;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);background:#f9fafb;}}
+  .footer{{text-align:center;color:var(--muted);font-size:.68rem;margin-top:22px;}}
   .footer a{{color:var(--blue);text-decoration:none;}}
   @media(max-width:680px){{.grid-2{{grid-template-columns:1fr;}}.hero h1{{font-size:1.2rem;}}}}
 </style>
 </head>
 <body>
-<!-- Chrome Extension: fetch this page, read #market-context innerText for macro context -->
 <div id="market-context" style="display:none;white-space:pre;">{mctx}</div>
 
 <div class="hero">
   <h1>📈 MARKETPULSE AI</h1>
   <div class="sub">Anil Abraham &nbsp;·&nbsp; {today}</div>
-  <div class="ts">Last updated {now} MT{'  ·  Markets Closed' if mkt_closed else ''}</div>
+  <div class="ts">Last updated {now} MT</div>
 </div>
 
 <div class="container">
 
-<!-- AI FUN FACT -->
-<div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;padding:11px 16px;margin-bottom:12px;display:flex;align-items:center;gap:12px;">
-  <div style="font-size:1.5rem;flex-shrink:0;">🤖</div>
-  <div>
-    <div style="font-size:.57rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;margin-bottom:2px;">AI Fun Fact of the Day</div>
-    <div style="font-size:.84rem;line-height:1.5;opacity:.92;">{fun_raw}</div>
+<!-- AI BLOCKS: Fun Fact + AI Learning -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+  <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:12px;">
+    <div style="font-size:1.4rem;flex-shrink:0;">🤖</div>
+    <div>
+      <div style="font-size:.56rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;margin-bottom:2px;">Fun Fact</div>
+      <div style="font-size:.82rem;line-height:1.5;opacity:.92;">{fun_raw}</div>
+    </div>
+  </div>
+  <div style="background:linear-gradient(135deg,#064e3b,#059669);color:white;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:12px;">
+    <div style="font-size:1.4rem;flex-shrink:0;">🧠</div>
+    <div>
+      <div style="font-size:.56rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;opacity:.6;margin-bottom:2px;">AI Learning</div>
+      <div style="font-size:.82rem;line-height:1.5;opacity:.92;">{learn_raw}</div>
+    </div>
   </div>
 </div>
 
-<!-- ROW 1: Sentiment Table (left) + Analysis (right, stacked) -->
+<!-- MACRO REGIME SCORE -->
+<div class="card" style="margin-bottom:12px;border-left:4px solid {regime_col};">
+  <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+    <div style="flex-shrink:0;">
+      <div style="font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px;">Macro Regime Score</div>
+      <div style="font-size:2rem;font-weight:800;color:{regime_col};line-height:1;">{regime_score}<span style="font-size:.9rem;color:var(--muted);">/100</span></div>
+    </div>
+    <div style="flex-shrink:0;">
+      <div style="font-size:.88rem;font-weight:700;color:{regime_col};">{regime_lbl}</div>
+      <div style="margin-top:6px;background:#e5e7eb;border-radius:99px;height:8px;width:200px;overflow:hidden;">
+        <div style="width:{regime_pct}%;background:{regime_col};height:100%;border-radius:99px;"></div>
+      </div>
+    </div>
+    <div style="font-size:.67rem;color:var(--muted);flex:1;min-width:200px;">
+      {regime_breakdown_html}
+    </div>
+  </div>
+  <div style="margin-top:8px;font-size:.68rem;color:#6b7280;background:#f9fafb;border-radius:5px;padding:5px 10px;">
+    💡 Interpreting mixed signals: Consumer Sentiment BEARISH + Fear&Greed CAUTIOUS + VIX BULLISH = 
+    classic mean reversion setup. People worried but not panic-selling = beaten-down value stocks 
+    exist without forced selling. Score synthesizes all signals into one number for quick context.
+  </div>
+</div>
+
+<!-- ROW 1: Market Performance | Sentiment + Analysis -->
 <div class="grid-2">
 
-  <!-- Sentiment Table -->
-  <div class="card ar">
-    <h2>🌡️ Market Sentiment
-      <span style="font-weight:400;color:var(--muted);font-size:.56rem;">
-        &nbsp; Yahoo Finance · CNN · U of Michigan · CBOE
-      </span>
-    </h2>
-    {'<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:5px;padding:5px 10px;margin-bottom:8px;font-size:.72rem;color:#92400e;">⏰ Markets closed -- showing last close values</div>' if mkt_closed else ''}
-    <table class="sent-tbl">
-      <thead>
-        <tr>
-          <th>Indicator</th>
-          <th>Current</th>
-          <th>vs Prior</th>
-          <th>Signal</th>
-          <th>What it means</th>
-        </tr>
-      </thead>
-      <tbody>
-        {sentiment_rows}
-      </tbody>
-    </table>
-  </div>
-
-  <!-- Right column: Market & Key Moves + Macro & News stacked -->
+  <!-- LEFT: Market Performance + Sentiment combined -->
   <div style="display:flex;flex-direction:column;gap:12px;">
 
-    <div class="card ab">
-      <h2>📊 Market & Key Moves</h2>
-      <div class="pulse-note">⚡ {pulse}</div>
-      <ul>{fmt_bullets(secs.get("MARKET AND KEY MOVES",""))}</ul>
+    <div class="card ar">
+      <h2>📈 Market Performance</h2>
+      {'<div style="background:#fef9c3;border-radius:5px;padding:4px 8px;margin-bottom:7px;font-size:.7rem;color:#92400e;">⏰ Markets closed · last close shown</div>' if mkt_closed else ''}
+      <table class="tbl">
+        <thead><tr>
+          <th>Index</th><th>Price</th><th>Change</th><th>Prev Close</th><th>Signal</th>
+        </tr></thead>
+        <tbody>{perf_rows}</tbody>
+      </table>
     </div>
 
     <div class="card aa">
-      <h2>🌐 Macro & News</h2>
-      <ul>{fmt_bullets(secs.get("MACRO AND NEWS",""))}</ul>
+      <h2>🌡️ Market Sentiment</h2>
+      <table class="tbl">
+        <thead><tr>
+          <th>Indicator</th><th>Current</th><th>History</th><th>Signal</th><th>What it means</th>
+        </tr></thead>
+        <tbody>{sent_rows}</tbody>
+      </table>
     </div>
 
   </div>
 
+  <!-- RIGHT: Analysis sections stacked -->
+  <div style="display:flex;flex-direction:column;gap:12px;">
+    <div class="card ab">
+      <h2>📊 Market & Macro</h2>
+      <div class="pulse-note">⚡ {pulse}</div>
+      <ul>{fmt_bullets(secs.get("MARKET AND MACRO",""))}</ul>
+    </div>
+    <div class="card ag">
+      <h2>💰 Earnings & Events</h2>
+      <ul>{fmt_bullets(secs.get("EARNINGS AND EVENTS",""))}</ul>
+    </div>
+    <div class="card ag">
+      <h2>🔭 What to Watch
+        <span style="font-weight:400;color:var(--muted);font-size:.55rem;">&nbsp;Mean reversion · Pabrai/Greenblatt/Munger</span>
+      </h2>
+      <ul>{fmt_bullets(secs.get("WHAT TO WATCH",""))}</ul>
+    </div>
+  </div>
+
 </div>
 
-<!-- ROW 2: Earnings & Events | What to Watch -->
-<div class="grid-2" style="margin-top:12px;">
-  <div class="card ag">
-    <h2>💰 Earnings & Events</h2>
-    <ul>{fmt_bullets(secs.get("EARNINGS AND EVENTS",""))}</ul>
-  </div>
-  <div class="card ag">
-    <h2>🔭 What to Watch
-      <span style="font-weight:400;color:var(--muted);font-size:.56rem;">&nbsp; Mean reversion lens · Pabrai/Greenblatt/Munger</span>
-    </h2>
-    <ul>{fmt_bullets(secs.get("WHAT TO WATCH",""))}</ul>
-  </div>
-</div>
-
-<!-- ROW 3: FRED Macro Indicators (full width) -->
+<!-- ROW 2: FRED Macro Indicators (grouped) -->
 <div style="margin-top:12px;">
   <div class="card">
     <h2>🏦 Macro Indicators
-      <span style="font-weight:400;color:var(--muted);font-size:.56rem;">
-        &nbsp; Federal Reserve FRED API · alphabetical · numbered · Today's Signal at right
+      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
+        &nbsp; FRED API · grouped by category · Today's Signal at right
       </span>
     </h2>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
         <thead>
           <tr style="background:#f9fafb;">
-            <th style="padding:6px 8px;text-align:center;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">#</th>
-            <th style="padding:6px 10px;text-align:left;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);min-width:170px;">Indicator</th>
-            <th style="padding:6px 10px;text-align:center;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Current</th>
-            <th style="padding:6px 10px;text-align:center;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">3 Mo Ago</th>
-            <th style="padding:6px 10px;text-align:center;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">12 Mo Ago</th>
-            <th style="padding:6px 10px;text-align:center;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Trend</th>
-            <th style="padding:6px 8px;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">As Of</th>
-            <th style="padding:6px 10px;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);min-width:200px;">Today's Signal</th>
+            <th style="padding:6px 8px;text-align:center;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">#</th>
+            <th style="padding:6px 10px;text-align:left;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);min-width:150px;">Indicator</th>
+            <th style="padding:6px 10px;text-align:center;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Current</th>
+            <th style="padding:6px 10px;text-align:center;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">3 Mo</th>
+            <th style="padding:6px 10px;text-align:center;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">12 Mo</th>
+            <th style="padding:6px 10px;text-align:center;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Trend</th>
+            <th style="padding:6px 8px;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">As Of</th>
+            <th style="padding:6px 10px;font-size:.57rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);min-width:180px;">Today's Signal</th>
           </tr>
         </thead>
         <tbody>{fred_rows}</tbody>
       </table>
     </div>
-    <div style="margin-top:8px;font-size:.63rem;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:8px;">
-      📊 Market Breadth (% S&P 500 above 200MA): not available via free API.
-      Check <a href="https://stockcharts.com/h-sc/ui?s=%24SPXA200R" target="_blank" style="color:#1a56db;">StockCharts $SPXA200R</a> manually.
-      Below 25% = deeply oversold (strong mean reversion entry signal). Above 75% = be selective.
+    <div style="margin-top:8px;font-size:.62rem;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:6px;">
+      📊 Market Breadth ($SPXA200R) not available via free API.
+      <a href="https://stockcharts.com/h-sc/ui?s=%24SPXA200R" target="_blank" style="color:#1a56db;">Check StockCharts manually</a> ·
+      Below 25% = deeply oversold (mean reversion buy signal) · Above 75% = be selective.
     </div>
   </div>
 </div>
 
-<!-- FOOTER -->
 <div class="footer" style="margin-top:20px;">
   Built by <strong>Anil Abraham</strong> &nbsp;·&nbsp;
   <a href="https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/daily-market-recap" target="_blank">Edward Jones</a> &nbsp;·&nbsp;
@@ -928,6 +1015,7 @@ if __name__ == "__main__":
     fred_data         = fetch_fred_data()
     fg_data           = fetch_fear_greed()
     mkt_data          = fetch_market_indicators()
+    regime            = compute_regime_score(fred_data, fg_data, mkt_data)
     ej_text           = scrape_edward_jones()
     cnbc_text         = fetch_cnbc_email()
     yahoo_text        = fetch_yahoo_morning_brief()
@@ -935,12 +1023,12 @@ if __name__ == "__main__":
 
     briefing = synthesize_with_gemini(
         ej_text, cnbc_text, yahoo_text, mcoscillator_text,
-        fred_data, fg_data, mkt_data
+        fred_data, fg_data, mkt_data, regime
     )
 
     build_html(
         briefing, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
-        fred_data, fg_data, mkt_data
+        fred_data, fg_data, mkt_data, regime
     )
 
     print("\n📧 Email disabled -- dashboard is primary output")
