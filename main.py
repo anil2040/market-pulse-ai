@@ -4,19 +4,19 @@
 # ============================================================
 # Pipeline:
 #   1.  FRED macro indicators (12 series, parallel, 20s)
-#   2.  AAII Weekly Sentiment Survey (direct scrape, Thursdays)
+#   2.  AAII Weekly Sentiment Survey (direct scrape)
 #   3.  CNN Fear & Greed (JSON)
 #   4.  VIX + S&P 500 + Russell 2000 (Yahoo Finance)
-#   5.  MRI -- Mean Reversion Insights (INVERTED 0-100 scale)
+#   5.  MRI -- Mean Reversion Insights (INVERTED 0-100)
 #       DEPLOY(0-33) | SELECTIVE(34-65) | OVERHEATED(66-100)
-#   6.  Dataroma superinvestor quarterly buys (scrape)
+#   6.  Dataroma superinvestor quarterly buys (scrape, fixed cols)
 #   7.  Magic Formula top 30 stocks (authenticated scrape)
 #   8.  Acquirer's Multiple large-cap list (authenticated scrape)
 #   9.  Edward Jones daily recap (web scrape)
 #  10.  CNBC Morning Squawk (Yahoo IMAP)
 #  11.  Yahoo Finance Morning Brief (Yahoo IMAP)
 #  12.  McClellan Oscillator newsletter (Yahoo IMAP, weekly)
-#  13.  Gemini AI synthesis (3.6-flash → 1.5-flash → fallback)
+#  13.  Gemini AI synthesis (3.6-flash -> 1.5-flash -> fallback)
 #  14.  Build HTML dashboard with run log (index.html)
 # ============================================================
 
@@ -43,15 +43,13 @@ AM_PASSWORD    = os.environ.get("AM_PASSWORD")
 # Boise MDT = UTC-6 (summer), change to -7 in November
 MT = timezone(timedelta(hours=-6))
 
-# Global run log collector
+# Global run log
 RUN_LOG = []
 RUN_START = time.time()
 
 def log(msg, status="✅"):
-    """Add to run log and print."""
     entry = f"{status} {msg}"
     RUN_LOG.append(entry)
-    print(f"   {entry}")
 
 print("✅ Configuration loaded")
 print(f"📧 Email: {YAHOO_EMAIL}")
@@ -59,6 +57,14 @@ print(f"📧 Email: {YAHOO_EMAIL}")
 
 # ============================================================
 # STEP 1: FRED MACRO INDICATORS
+# Grouped: INFLATION | TREASURY | ECONOMIC | CREDIT
+# COLOR LOGIC (fixed):
+#   INFLATION: UP=red(bad) DOWN=green(good)
+#   TREASURY:  UP=red(bad for stocks) DOWN=green -- EXCEPT Yield Curve
+#   Yield Curve: UP=green(steepening=good) DOWN=red(flattening)
+#   CREDIT/HY:  UP=red(widening=bad) DOWN=green(tightening=good)
+#   UNEMPLOYMENT: UP=red(bad) DOWN=green(good)
+#   OTHERS (Fed, WTI, Sentiment): UP=green DOWN=red (default)
 # ============================================================
 
 FRED_SERIES = [
@@ -85,7 +91,7 @@ FRED_SERIES = [
     {"label":"Consumer Sentiment",   "id":"UMCSENT",      "is_index":False, "group":"ECONOMIC",
      "no_pct":True, "insight":"U of Michigan 0-100 score -- avg ~75, below 60 = consumer stress"},
     {"label":"HY Credit Spread",     "id":"BAMLH0A0HYM2", "is_index":False, "group":"CREDIT",
-     "insight":"Extra yield junk bonds pay vs Treasuries -- TIGHT(<3%)=calm/NO FEAR, WIDE(>6%)=credit stress/FEAR"},
+     "insight":"Extra yield junk bonds pay vs Treasuries -- TIGHT(<3%)=calm/no fear, WIDE(>6%)=credit stress/fear"},
 ]
 
 GROUP_META = {
@@ -96,8 +102,33 @@ GROUP_META = {
 }
 
 
+def _trend_color(label, group, trend):
+    """Return correct color for trend arrow based on what direction is GOOD for equities."""
+    if group == "INFLATION":
+        # Inflation cooling (▼) = good = green
+        return "#057a55" if trend=="▼" else "#c81e1e" if trend=="▲" else "#6b7280"
+    elif group == "TREASURY":
+        if "Yield Curve" in label:
+            # Steepening (▲) = good = green
+            return "#057a55" if trend=="▲" else "#c81e1e" if trend=="▼" else "#6b7280"
+        else:
+            # Rising yields (▲) = BAD for stocks = red
+            return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
+    elif group == "CREDIT":
+        # Widening spread (▲) = bad = red
+        return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
+    elif group == "ECONOMIC":
+        if "Unemployment" in label:
+            # Rising unemployment (▲) = bad = red
+            return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
+        else:
+            # Default: up = good
+            return "#057a55" if trend=="▲" else "#c81e1e" if trend=="▼" else "#6b7280"
+    return "#6b7280"
+
+
 def _signal(label, cur_str, mo3_str, trend):
-    """Signal: trend checked FIRST to prevent contradictions."""
+    """Signal text: trend checked FIRST to prevent contradictions."""
     try:
         cur=float(re.sub(r"[%$]","",str(cur_str)))
         mo3=float(re.sub(r"[%$]","",str(mo3_str)))
@@ -127,11 +158,10 @@ def _signal(label, cur_str, mo3_str, trend):
         elif cur>=5.0: return "⚠️ Weakening -- recession risk elevated"
         else: return "✅ Stable"
     elif "HY Credit" in label:
-        # TIGHT spread = GOOD (no fear), WIDE = BAD (credit stress)
         if trend=="▲": return "⚠️ Widening -- credit stress rising, avoid leveraged companies"
         elif trend=="▼": return "📉 Tightening -- credit calm, risk appetite recovering"
         elif cur<=3.0: return "✅ Tight -- investors NOT fearful of defaults = calm credit"
-        elif cur>=6.0: return "⚠️ Wide -- fear of defaults = credit stress = avoid leveraged companies"
+        elif cur>=6.0: return "⚠️ Wide -- fear of defaults = credit stress"
         else: return "→ Stable"
     elif "Yield Curve" in label:
         if cur<0: return "⚠️ Inverted -- recession signal (12-18mo lead)"
@@ -139,11 +169,10 @@ def _signal(label, cur_str, mo3_str, trend):
         elif trend=="▲": return "✅ Steepening -- growth expectations improving"
         else: return "✅ Positive slope"
     elif "10Y" in label:
-        # RISING 10Y = BAD for stocks (higher discount rate compresses P/E)
         if trend=="▲" and cur>=5.0: return "⚠️ High & rising -- P/E compression intensifying"
         elif trend=="▲": return "⚠️ Rising -- discount rate up, headwind for all equities"
-        elif trend=="▼": return "✅ Falling -- lower discount rate, supports valuations"
-        elif cur>=5.0: return "⚠️ High -- expensive borrowing, P/E compression"
+        elif trend=="▼": return "✅ Falling -- lower discount rate supports valuations"
+        elif cur>=5.0: return "⚠️ High -- P/E compression risk"
         elif cur<=3.5: return "✅ Low -- supports higher valuations"
         else: return "→ Stable"
     elif "2Y" in label:
@@ -222,13 +251,9 @@ def fetch_fred_data():
 # ============================================================
 # STEP 2: AAII WEEKLY SENTIMENT SURVEY
 # ============================================================
-# American Association of Individual Investors -- weekly since 1987.
-# 160,000 retail investor members vote: Bullish / Neutral / Bearish
-# Published every Thursday. Contrarian indicator:
-#   Bears > 50%: historically strong BUY signal (bottoms)
-#   Bulls > 50%: historically signals market tops
-# Bull-Bear Spread = Bullish% - Bearish% (key number for MRI)
-# Below -20% spread = extreme fear = mean reversion opportunity
+# Published every Thursday at aaii.com/sentimentsurvey.
+# Contrarian indicator: bears > 50% = historically strong buy.
+# Bull-Bear spread below -20% = extreme fear = opportunity.
 # ============================================================
 
 def fetch_aaii_sentiment():
@@ -239,41 +264,67 @@ def fetch_aaii_sentiment():
               "Accept":"text/html,application/xhtml+xml"}
         resp=requests.get(url,headers=hdrs,timeout=15)
         soup=BeautifulSoup(resp.text,"html.parser")
-
-        # AAII publishes % bullish, neutral, bearish in a table or specific divs
-        # Look for percentage numbers near keywords
         text=soup.get_text()
+
+        # Debug: show snippet to understand page structure
+        lines=[l.strip() for l in text.splitlines() if l.strip()]
+        snippet=" | ".join(lines[:30])
+        print(f"   Page snippet: {snippet[:300]}")
+
         bullish=bearish=neutral=None
 
-        # Pattern: look for "Bullish\n\n38.5%" style patterns
-        patterns=[
-            (r"[Bb]ullish[^\d]*(\d+\.?\d*)\s*%",  "bullish"),
-            (r"[Bb]earish[^\d]*(\d+\.?\d*)\s*%",  "bearish"),
-            (r"[Nn]eutral[^\d]*(\d+\.?\d*)\s*%",  "neutral"),
+        # Try multiple regex patterns -- AAII changes their layout occasionally
+        pattern_sets=[
+            # Pattern A: "Bullish 38.5%"
+            (r"[Bb]ullish[\s:]*(\d+\.?\d*)\s*%", r"[Bb]earish[\s:]*(\d+\.?\d*)\s*%", r"[Nn]eutral[\s:]*(\d+\.?\d*)\s*%"),
+            # Pattern B: "38.5% Bullish"
+            (r"(\d+\.?\d*)\s*%\s*[Bb]ullish", r"(\d+\.?\d*)\s*%\s*[Bb]earish", r"(\d+\.?\d*)\s*%\s*[Nn]eutral"),
+            # Pattern C: look in table cells for % values near sentiment words
+            (r"[Bb]ull[^\d]{0,20}(\d+\.?\d*)\s*%", r"[Bb]ear[^\d]{0,20}(\d+\.?\d*)\s*%", r"[Nn]eut[^\d]{0,20}(\d+\.?\d*)\s*%"),
         ]
-        for pattern,name in patterns:
-            m=re.search(pattern,text)
-            if m:
-                val=float(m.group(1))
-                if name=="bullish": bullish=val
-                elif name=="bearish": bearish=val
-                elif name=="neutral": neutral=val
+
+        for pb,pbe,pn in pattern_sets:
+            if bullish is None:
+                m=re.search(pb,text)
+                if m: bullish=float(m.group(1))
+            if bearish is None:
+                m=re.search(pbe,text)
+                if m: bearish=float(m.group(1))
+            if neutral is None:
+                m=re.search(pn,text)
+                if m: neutral=float(m.group(1))
+            if all(v is not None for v in [bullish,bearish,neutral]):
+                break
+
+        # Also try parsing from table cells directly
+        if bullish is None:
+            for cell in soup.find_all(["td","span","div","p"]):
+                txt=cell.get_text(strip=True)
+                if "%" in txt:
+                    num_m=re.search(r"(\d+\.?\d*)\s*%",txt)
+                    if num_m:
+                        val=float(num_m.group(1))
+                        parent_text=cell.parent.get_text().lower() if cell.parent else ""
+                        if "bull" in txt.lower() or "bull" in parent_text:
+                            if bullish is None and 5<=val<=95: bullish=val
+                        elif "bear" in txt.lower() or "bear" in parent_text:
+                            if bearish is None and 5<=val<=95: bearish=val
+                        elif "neut" in txt.lower() or "neut" in parent_text:
+                            if neutral is None and 5<=val<=95: neutral=val
 
         if bullish is not None and bearish is not None:
             spread=round(bullish-bearish,1)
             if   spread<=-20: sig="⚠️ Extreme bearishness -- historically strong contrarian buy signal"; col="#c81e1e"
-            elif spread<=-10: sig="⚠️ Bearish -- market pessimism elevated, watch for entries"; col="#e97316"
+            elif spread<=-10: sig="⚠️ Bearish -- pessimism elevated, watch for entries"; col="#e97316"
             elif spread<=10:  sig="→ Neutral -- no extreme sentiment reading"; col="#6b7280"
             elif spread<=20:  sig="🟡 Bullish -- mild optimism, be selective"; col="#059669"
             else:             sig="⚠️ Extreme bullishness -- contrarian caution warranted"; col="#1a56db"
-
             print(f"   ✅ AAII: Bull {bullish}% / Bear {bearish}% / Neutral {neutral}% | Spread: {spread:+.1f}%")
             log(f"AAII: Bull {bullish}% Bear {bearish}% (spread {spread:+.1f}%)")
-            return {"bullish":bullish,"bearish":bearish,"neutral":neutral,
-                    "spread":spread,"signal":sig,"color":col}
+            return {"bullish":bullish,"bearish":bearish,"neutral":neutral,"spread":spread,"signal":sig,"color":col}
         else:
-            print(f"   ⚠️ AAII: Could not parse percentages from page")
-            log("AAII: Parse failed -- site structure may have changed","⚠️")
+            print(f"   ⚠️ AAII: Could not parse percentages (bull={bullish} bear={bearish})")
+            log("AAII: Parse failed -- site may require login or structure changed","⚠️")
             return None
     except Exception as e:
         print(f"   ❌ AAII failed: {e}")
@@ -317,9 +368,8 @@ def fetch_fear_greed():
 #   VIX: CALM(<15) NORMAL(<20) CAUTIOUS(<25) FEARFUL(<30) PANIC(>=30)
 #   Index: SELLOFF(≤-1%) DOWN(-1 to -0.1%) FLAT(-0.1 to 0.1%)
 #          UP(0.1 to 1%) RALLY(>1%)
-# VIX is a SENTIMENT indicator -- shown in Sentiment table.
-# S&P 500 and Russell are PERFORMANCE indicators -- Market table.
-# Market state: OPEN / PRE / POST / CLOSED detected correctly.
+# VIX moved to Sentiment section -- it measures fear, not performance.
+# Pre-market (PRE), after-hours (POST), closed (CLOSED) all labeled correctly.
 # ============================================================
 
 def _classify_vix(v):
@@ -341,7 +391,7 @@ def _vix_sig(v):
     if v>=25: return "⚠️ Cautious -- elevated fear, watch for entry points"
     if v>=20: return "→ Slightly elevated -- no broad panic signal"
     if v>=15: return "→ Normal -- market calm, no stress signal"
-    return "✅ Calm -- low fear (NOTE: complacency = less opportunity)"
+    return "✅ Calm -- low fear (note: complacency = less opportunity for value investors)"
 
 def _yq(ticker):
     url=f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=2d"
@@ -365,20 +415,21 @@ def fetch_market_indicators():
             sp,spr,sc,ss =fs.result(timeout=15)
             rp,rpr,rc,rs =fr.result(timeout=15)
 
-        # Market state detection using Yahoo's marketState field
-        # REGULAR = open, PRE = pre-market, POST = after hours, CLOSED = fully closed
+        # Proper market state detection using Yahoo's marketState field
         state_map={"REGULAR":"OPEN","PRE":"PRE","POST":"POST","CLOSED":"CLOSED"}
-        mkt_state=state_map.get(ss,"OPEN" if abs(sc)>0.001 else "CLOSED")
+        mkt_state=state_map.get(ss,"OPEN" if abs(sc)>0.005 else "CLOSED")
         status_labels={"OPEN":"","PRE":"Pre-Market","POST":"After-Hours","CLOSED":"Last Close"}
         status_label=status_labels.get(mkt_state,"")
 
         res["market_state"]=mkt_state; res["market_status_label"]=status_label
         vl,vc=_classify_vix(vp); sl,sc2=_classify_idx(sc); rl,rc2=_classify_idx(rc)
 
-        if mkt_state!="OPEN":
-            scs=status_label or "Last Close"; rcs=scs
-            sl="PRE-MKT" if mkt_state=="PRE" else "CLOSED"; sc2="#6366f1" if mkt_state=="PRE" else "#9ca3af"
-            rl=sl; rc2=sc2
+        if mkt_state=="PRE":
+            scs="Pre-Market"; rcs="Pre-Market"
+            sl="PRE-MKT"; sc2="#6366f1"; rl="PRE-MKT"; rc2="#6366f1"
+        elif mkt_state in("POST","CLOSED"):
+            scs="Last Close"; rcs="Last Close"
+            sl="CLOSED"; sc2="#9ca3af"; rl="CLOSED"; rc2="#9ca3af"
         else:
             scs=f"{sc:+.2f}%"; rcs=f"{rc:+.2f}%"
 
@@ -393,7 +444,7 @@ def fetch_market_indicators():
             else: tone="mixed -- stay selective"
             res["pulse"]=f"S&P {scs} ({sl}) · Russell {rcs} ({rl}) · VIX {vp:.1f} ({vl}) -- {tone}"
         elif mkt_state=="PRE":
-            res["pulse"]=f"Pre-Market · S&P last close {sp:,.0f} · Russell {rp:,.0f} · VIX {vp:.1f} ({vl}) · Opens 9:30 AM ET"
+            res["pulse"]=f"Pre-Market · S&P last close {sp:,.0f} · Russell {rp:,.0f} · VIX {vp:.1f} ({vl}) · Opens 9:30 AM ET (7:30 AM MT)"
         else:
             res["pulse"]=f"Last close · S&P {sp:,.0f} · Russell {rp:,.0f} · VIX {vp:.1f} ({vl})"
 
@@ -411,33 +462,18 @@ def fetch_market_indicators():
 # ============================================================
 # STEP 5: MRI -- MEAN REVERSION INSIGHTS (INVERTED SCALE)
 # ============================================================
-# INVERTED 0-100 scale -- LOWER = better buying opportunity:
-#   0-33:  🟢 DEPLOY -- Panic, dislocation, forced selling
-#   34-65: 🟠 SELECTIVE -- Patient. Some opportunity emerging.
-#   66-100: ⛔ OVERHEATED -- Expensive, complacent, crowded.
+# INVERTED 0-100: LOWER = better mean reversion opportunity.
+# Fear, panic, dislocation LOWERS the score (toward DEPLOY).
+# Complacency, greed, expensive conditions RAISES the score (toward OVERHEATED).
 #
-# Connects directly to your stock verdicts:
-#   DEPLOY    → macro confirms STRONG BUY stock signals
-#   SELECTIVE → even strong setups need Left Leg <4 AND MoS >25%
-#   OVERHEATED→ build cash, trim winners, avoid new positions
-#
-# Scoring logic (inverted):
-#   High inflation = adds points (worse environment) ▲
-#   Extreme fear   = removes points (better opportunity) ▼
-#   Wide HY spread = removes points (dislocation opportunity) ▼
+# Bands aligned to your verdict system:
+#   0-33:   🟢 DEPLOY     -- Panic. Dislocation. Macro confirms STRONG BUY signals.
+#   34-65:  🟠 SELECTIVE  -- Some opportunity. Best setups only. Left Leg <4, MoS >25%.
+#   66-100: ⛔ OVERHEATED -- Expensive & complacent. Build cash. Trim winners.
 # ============================================================
 
 def compute_mri(fred_data, fg_data, mkt_data, aaii_data):
-    """
-    MRI score: LOWER = better mean reversion opportunity.
-    Scoring: starts at 50 (neutral), adjusts up/down.
-    Then normalized to 0-100.
-    """
-    # We build a "stress/opportunity" score where:
-    # Positive adjustments = things that CREATE opportunity (fear, dislocation)
-    # We then INVERT at the end so low score = best opportunity
-
-    raw=50  # Start at neutral
+    raw=50  # Start neutral, adjustments move it up (overheated) or down (deploy)
     breakdown=[]
 
     def get(lbl):
@@ -446,93 +482,89 @@ def compute_mri(fred_data, fg_data, mkt_data, aaii_data):
         try: return float(re.sub(r"[%$]","",r["current"])),r["trend"]
         except: return None,None
 
-    # ---- INFLATION (adds to raw = makes environment more overheated) ----
+    # INFLATION -- rising inflation raises score (overheated signal)
     cp,cpt=get("Core PCE")
     if cp is not None:
-        if cp>3.5:   adj=+20; note="Core PCE well above target -- very overheated"
-        elif cp>3.0: adj=+15; note="Core PCE above target -- rates staying high"
-        elif cp>2.5: adj=+8;  note="Core PCE mildly elevated"
-        elif cp>2.0: adj=+3;  note="Core PCE near target"
-        else:        adj=-5;  note="Core PCE at/below target -- supportive"
-        if cpt=="▲":   adj+=5;  note+=" & rising"
-        elif cpt=="▼": adj-=5;  note+=" & cooling"
+        if cp>3.5:   adj=+15; note="Core PCE well above target"
+        elif cp>3.0: adj=+10; note="Core PCE above target"
+        elif cp>2.5: adj=+5;  note="Core PCE mildly elevated"
+        elif cp>2.0: adj=+2;  note="Core PCE near target"
+        else:        adj=-5;  note="Core PCE at/below target"
+        if cpt=="▲": adj+=5;  note+=" & rising"
+        elif cpt=="▼": adj-=5; note+=" & cooling"
         raw+=adj; breakdown.append(f"Inflation {adj:+d} ({note})")
 
-    # ---- VIX (high VIX = REDUCES raw = better opportunity) ----
+    # VIX -- high VIX lowers score (panic = opportunity)
     try:
         vix=float(mkt_data["vix"]["value"])
-        if vix>=40:   adj=-25; note=f"VIX {vix:.1f} panic -- maximum dislocation"
-        elif vix>=30: adj=-20; note=f"VIX {vix:.1f} fear -- strong dislocation"
-        elif vix>=25: adj=-10; note=f"VIX {vix:.1f} cautious -- some opportunity"
-        elif vix>=20: adj=-5;  note=f"VIX {vix:.1f} elevated -- mild opportunity"
-        elif vix>=15: adj=+5;  note=f"VIX {vix:.1f} normal -- no panic"
-        else:         adj=+15; note=f"VIX {vix:.1f} complacent -- expensive market"
+        if vix>=40:   adj=-20; note=f"VIX {vix:.1f} panic"
+        elif vix>=30: adj=-15; note=f"VIX {vix:.1f} fear"
+        elif vix>=25: adj=-8;  note=f"VIX {vix:.1f} cautious"
+        elif vix>=20: adj=-3;  note=f"VIX {vix:.1f} elevated"
+        elif vix>=15: adj=+5;  note=f"VIX {vix:.1f} normal/calm"
+        else:         adj=+10; note=f"VIX {vix:.1f} complacent"
         raw+=adj; breakdown.append(f"VIX {adj:+d} ({note})")
     except: pass
 
-    # ---- FEAR & GREED (low score = reduces raw = better opportunity) ----
+    # FEAR & GREED -- low score lowers MRI (fear = opportunity)
     try:
         fg=int(fg_data.get("score",50))
-        if fg<=20:   adj=-25; note=f"F&G {fg} extreme fear -- prime entry"
-        elif fg<=35: adj=-15; note=f"F&G {fg} fear -- good setup"
-        elif fg<=50: adj=-5;  note=f"F&G {fg} mild fear"
-        elif fg<=65: adj=+5;  note=f"F&G {fg} neutral/mild greed"
-        elif fg<=80: adj=+15; note=f"F&G {fg} greed -- caution"
-        else:        adj=+25; note=f"F&G {fg} extreme greed -- very overheated"
+        if fg<=20:   adj=-20; note=f"F&G {fg} extreme fear"
+        elif fg<=35: adj=-12; note=f"F&G {fg} fear"
+        elif fg<=50: adj=-4;  note=f"F&G {fg} mild fear"
+        elif fg<=65: adj=+4;  note=f"F&G {fg} neutral/mild greed"
+        elif fg<=80: adj=+12; note=f"F&G {fg} greed"
+        else:        adj=+20; note=f"F&G {fg} extreme greed"
         raw+=adj; breakdown.append(f"Fear&Greed {adj:+d} ({note})")
     except: pass
 
-    # ---- AAII SENTIMENT (bearish = reduces raw = opportunity) ----
+    # AAII -- bearish reading lowers MRI (contrarian signal)
     if aaii_data:
         spread=aaii_data.get("spread",0)
-        if spread<=-25:  adj=-15; note=f"AAII spread {spread:+.1f}% extreme bearish"
-        elif spread<=-15:adj=-10; note=f"AAII spread {spread:+.1f}% bearish"
-        elif spread<=-5: adj=-5;  note=f"AAII spread {spread:+.1f}% mildly bearish"
+        if spread<=-25:  adj=-12; note=f"AAII spread {spread:+.1f}% extreme bearish"
+        elif spread<=-15:adj=-8;  note=f"AAII spread {spread:+.1f}% bearish"
+        elif spread<=-5: adj=-3;  note=f"AAII spread {spread:+.1f}% mildly bearish"
         elif spread<=10: adj=0;   note=f"AAII spread {spread:+.1f}% neutral"
-        elif spread<=20: adj=+8;  note=f"AAII spread {spread:+.1f}% bullish"
-        else:            adj=+15; note=f"AAII spread {spread:+.1f}% extreme bullish"
+        elif spread<=20: adj=+6;  note=f"AAII spread {spread:+.1f}% bullish"
+        else:            adj=+12; note=f"AAII spread {spread:+.1f}% extreme bullish"
         raw+=adj; breakdown.append(f"AAII {adj:+d} ({note})")
 
-    # ---- HY CREDIT SPREAD (wide = reduces raw = dislocation opportunity) ----
+    # HY CREDIT SPREAD -- wide spread lowers MRI (dislocation)
     hy,_=get("HY Credit Spread")
     if hy is not None:
-        if hy>=8.0:   adj=-20; note=f"HY {hy:.2f}% very wide -- credit crisis"
-        elif hy>=6.0: adj=-12; note=f"HY {hy:.2f}% wide -- credit stress"
-        elif hy>=4.5: adj=-5;  note=f"HY {hy:.2f}% elevated"
-        elif hy<=2.5: adj=+15; note=f"HY {hy:.2f}% very tight -- maximum complacency"
-        elif hy<=3.5: adj=+8;  note=f"HY {hy:.2f}% tight -- calm credit"
-        else:         adj=+3;  note=f"HY {hy:.2f}% normal"
+        if hy>=8.0:   adj=-15; note=f"HY {hy:.2f}% very wide"
+        elif hy>=6.0: adj=-10; note=f"HY {hy:.2f}% wide"
+        elif hy>=4.5: adj=-4;  note=f"HY {hy:.2f}% elevated"
+        elif hy<=2.5: adj=+12; note=f"HY {hy:.2f}% very tight"
+        elif hy<=3.5: adj=+6;  note=f"HY {hy:.2f}% tight"
+        else:         adj=+2;  note=f"HY {hy:.2f}% normal"
         raw+=adj; breakdown.append(f"Credit {adj:+d} ({note})")
 
-    # ---- YIELD CURVE (inverted = reduces raw = recession risk = opportunity later) ----
+    # YIELD CURVE
     cv,_=get("Yield Curve (10Y-2Y)")
     if cv is not None:
-        if cv<-0.5:  adj=-10; note="Deeply inverted -- recession incoming"
-        elif cv<0:   adj=-5;  note="Inverted -- recession signal"
-        elif cv<0.3: adj=+2;  note="Nearly flat"
-        elif cv>=0.5:adj=+5;  note="Steep -- growth expected"
-        else:        adj=+3;  note="Positive slope"
+        if cv<-0.5:  adj=-8; note="Deeply inverted"
+        elif cv<0:   adj=-4; note="Inverted"
+        elif cv<0.3: adj=+2; note="Nearly flat"
+        elif cv>=0.5:adj=+4; note="Steep"
+        else:        adj=+2; note="Positive"
         raw+=adj; breakdown.append(f"Yield Curve {adj:+d} ({note})")
 
-    # ---- FED POSTURE (cutting = reduces raw = supportive) ----
+    # FED POSTURE
     fed,fedt=get("Fed Funds Rate")
     if fed is not None:
-        if fedt=="▼":   adj=-8;  note="Fed cutting -- supportive"
-        elif fedt=="▲": adj=+10; note="Fed hiking -- headwind"
-        elif fed>=5.0:  adj=+8;  note="Fed restrictive"
-        elif fed<=3.0:  adj=-5;  note="Fed accommodative"
-        else:           adj=+3;  note="Fed on hold"
+        if fedt=="▼":    adj=-6; note="Fed cutting"
+        elif fedt=="▲":  adj=+8; note="Fed hiking"
+        elif fed>=5.0:   adj=+6; note="Fed restrictive"
+        elif fed<=3.0:   adj=-4; note="Fed accommodative"
+        else:            adj=+2; note="Fed on hold"
         raw+=adj; breakdown.append(f"Fed {adj:+d} ({note})")
 
-    # Clamp to 0-100
-    score=max(0,min(100,raw))
+    score=max(0,min(100,round(raw)))
 
-    # INVERT is already built in -- LOW raw = LOW score = DEPLOY
-    # (fear/panic lowers raw toward 0 = DEPLOY)
-
-    if   score<=33: lbl="🟢 DEPLOY";      col="#057a55"; action="Aggressive deployment. Macro confirms STRONG BUY signals. Full position pace."
-    elif score<=65: lbl="🟠 SELECTIVE";   col="#b45309"; action="Best setups only. Left Leg <4, MoS >25%. Measured pace."
-    else:           lbl="⛔ OVERHEATED";  col="#c81e1e"; action="Build cash. Trim winners. Avoid new positions unless extraordinary setup."
+    if   score<=33: lbl="🟢 DEPLOY";     col="#057a55"; action="Aggressive deployment. Macro confirms STRONG BUY signals. Full position pace."
+    elif score<=65: lbl="🟠 SELECTIVE";  col="#b45309"; action="Best setups only. Left Leg <4, MoS >25%. Measured pace. Keep 25% cash."
+    else:           lbl="⛔ OVERHEATED"; col="#c81e1e"; action="Build cash. Trim winners. Avoid new positions unless extraordinary setup."
 
     print(f"\n📊 MRI: {score}/100 ({lbl})")
     for b in breakdown: print(f"   {b}")
@@ -542,6 +574,8 @@ def compute_mri(fred_data, fg_data, mkt_data, aaii_data):
 
 # ============================================================
 # STEP 6: DATAROMA SUPERINVESTOR QUARTERLY BUYS
+# Confirmed columns from live run: Symbol, Stock, %▼, Buys, Hold Price*, CurrentPrice
+# "Buys" column = number of superinvestors who bought this quarter
 # ============================================================
 
 def fetch_superinvestor_buys():
@@ -564,25 +598,31 @@ def fetch_superinvestor_buys():
 
         if table:
             rows=table.find_all("tr")
-            if rows:
-                headers=[th.get_text(strip=True) for th in rows[0].find_all(["th","td"])]
-                print(f"   Columns: {headers[:6]}")
-            for row in rows[1:51]:
+            headers=[th.get_text(strip=True) for th in rows[0].find_all(["th","td"])]
+            print(f"   Columns: {headers}")
+
+            # Find correct column indices by header name
+            sym_idx=next((i for i,h in enumerate(headers)
+                          if any(k in h for k in ["Symbol","Ticker","symbol","ticker"])),0)
+            buy_idx=next((i for i,h in enumerate(headers)
+                          if any(k in h for k in ["Buy","buy","Count","count"])),3)
+            print(f"   Using: Symbol col={sym_idx}, Buys col={buy_idx}")
+
+            for row in rows[1:]:
                 cells=row.find_all("td")
-                if len(cells)>=2:
-                    ticker=re.sub(r"[^A-Z.]","",cells[0].get_text(strip=True).upper())[:6]
+                if len(cells)>max(sym_idx,buy_idx):
+                    ticker=re.sub(r"[^A-Z.]","",cells[sym_idx].get_text(strip=True).upper())[:6]
                     if not ticker or len(ticker)<1: continue
-                    # Find integer count (number of superinvestors 1-83)
-                    count=0
-                    for ci in range(1,min(6,len(cells))):
-                        txt=cells[ci].get_text(strip=True).replace(",","")
-                        try:
-                            n=int(float(txt))
-                            if 1<=n<=83: count=n; break
-                        except: pass
+                    try:
+                        count=int(cells[buy_idx].get_text(strip=True).replace(",",""))
+                    except:
+                        count=1
                     if ticker: buys[ticker]=count
 
         print(f"   ✅ Dataroma: {len(buys)} stocks")
+        if buys:
+            top3=sorted(buys.items(),key=lambda x:-x[1])[:3]
+            print(f"   Top: {top3}")
         log(f"Dataroma 13F: {len(buys)} stocks")
         return buys
     except Exception as e:
@@ -594,56 +634,49 @@ def fetch_superinvestor_buys():
 # ============================================================
 # STEP 7: MAGIC FORMULA INVESTING -- AUTHENTICATED SCRAPE
 # ============================================================
-# Magic Formula = Greenblatt's two-metric value system:
-#   Earnings Yield (EBIT / Enterprise Value) -- cheapness
-#   Return on Capital -- quality
-# Top-ranked stocks combine HIGH earnings yield + HIGH ROC.
-# Site: magicformulainvesting.com (ASP.NET)
+# Greenblatt Magic Formula: ranks stocks by:
+#   Earnings Yield (EBIT/Enterprise Value) = cheapness
+#   Return on Capital = quality/efficiency
+# Top stocks combine high earnings yield + high ROC.
 #
-# Login flow (ASP.NET anti-forgery token):
-# ASP.NET generates a hidden random token for each form.
-# You MUST include it in your POST or the server rejects it.
-# This prevents "cross-site request forgery" attacks.
-# Step 1: GET login page → scrape __RequestVerificationToken
-# Step 2: POST credentials + token → get session cookie
-# Step 3: GET screener page → scrape new token
-# Step 4: POST screener form + new token → get results HTML
-# The requests.Session() carries cookies between all steps.
+# ASP.NET login flow (anti-forgery token required):
+# 1. GET login page -> extract __RequestVerificationToken
+# 2. POST credentials + token -> session established
+# 3. GET screener page -> extract NEW token
+# 4. POST screener form + token -> results HTML
+# requests.Session() carries cookies automatically between steps.
 # ============================================================
 
 def fetch_magic_formula():
     print("\n🔮 Fetching Magic Formula top 30 stocks...")
     try:
         sess=requests.Session()
-        sess.headers.update({"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"})
+        sess.headers.update({
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        })
 
-        # Step 1: GET login page and extract anti-forgery token
+        # Step 1: GET login page, extract anti-forgery token
         login_url="https://www.magicformulainvesting.com/Account/LogOn"
         resp=sess.get(login_url,timeout=15)
         soup=BeautifulSoup(resp.text,"html.parser")
         token_input=soup.find("input",{"name":"__RequestVerificationToken"})
         if not token_input:
-            raise Exception("Login token not found -- site structure may have changed")
+            raise Exception("Login token not found")
         token=token_input.get("value","")
         print(f"   Got anti-forgery token: {token[:20]}...")
 
-        # Step 2: POST login credentials + token
-        login_data={
-            "Email": MFI_EMAIL,
-            "Password": MFI_PASSWORD,
-            "__RequestVerificationToken": token,
-        }
+        # Step 2: POST login
+        login_data={"Email":MFI_EMAIL,"Password":MFI_PASSWORD,"__RequestVerificationToken":token}
         resp=sess.post(login_url,data=login_data,timeout=15)
-        # Check if logged in by looking for "Welcome" or absence of login form
-        if "Welcome" in resp.text or "LogOff" in resp.text or "Log Off" in resp.text:
-            print(f"   ✅ Logged into Magic Formula as {MFI_EMAIL}")
+        if "Welcome" in resp.text or "LogOff" in resp.text or "Log Off" in resp.text or "Screening" in resp.url:
+            print(f"   ✅ Logged into Magic Formula")
+        elif "invalid" in resp.text.lower() or "incorrect" in resp.text.lower():
+            raise Exception("Login failed -- check MFI_EMAIL and MFI_PASSWORD")
         else:
-            # May have redirected -- check for error messages
-            if "invalid" in resp.text.lower() or "incorrect" in resp.text.lower():
-                raise Exception("Login failed -- check MFI_EMAIL and MFI_PASSWORD secrets")
-            print(f"   ✅ Login submitted (status {resp.status_code})")
+            print(f"   Login submitted (status {resp.status_code})")
 
-        # Step 3: GET screener page to extract its anti-forgery token
+        # Step 3: GET screener page, extract its anti-forgery token
         screener_url="https://www.magicformulainvesting.com/Screening/StockScreening"
         resp=sess.get(screener_url,timeout=15)
         soup=BeautifulSoup(resp.text,"html.parser")
@@ -652,42 +685,59 @@ def fetch_magic_formula():
             raise Exception("Screener token not found")
         screen_token=screen_token_input.get("value","")
 
-        # Step 4: POST screener form with MinMarketCap=2000, 30 stocks
+        # Step 4: POST screener form (MinMarketCap=2000, 30 stocks)
         screen_data={
-            "MinimumMarketCap": "2000",
-            "NumberOfStocks": "30",
-            "__RequestVerificationToken": screen_token,
+            "MinimumMarketCap":"2000",
+            "NumberOfStocks":"30",
+            "__RequestVerificationToken":screen_token,
         }
         resp=sess.post(screener_url,data=screen_data,timeout=20)
         soup=BeautifulSoup(resp.text,"html.parser")
 
-        # Parse the results table
-        # Columns: Company Name | Ticker | Market Cap | Price From | Most Recent Quarter Data
-        tickers=[]
-        table=soup.find("table")
-        if not table:
-            # Try finding any table with ticker-like data
-            for t in soup.find_all("table"):
-                if t.find("td"): table=t; break
+        # Debug: show what tables exist on the results page
+        tables=soup.find_all("table")
+        print(f"   Tables found: {len(tables)}")
 
-        if table:
-            rows=table.find_all("tr")[1:]  # Skip header
-            for row in rows:
-                cells=row.find_all("td")
-                if len(cells)>=2:
-                    # Ticker is in column index 1 (Company Name is col 0)
-                    for ci in range(len(cells)):
-                        txt=cells[ci].get_text(strip=True).upper()
+        tickers=[]
+        ticker_col=None
+
+        # Find the results table
+        for t in tables:
+            rows=t.find_all("tr")
+            if len(rows)<3: continue
+            # Check headers
+            hdrs=[th.get_text(strip=True) for th in rows[0].find_all(["th","td"])]
+            print(f"   Table headers: {hdrs}")
+            # Look for ticker column
+            for ci,h in enumerate(hdrs):
+                if any(k in h.lower() for k in ["ticker","symbol"]):
+                    ticker_col=ci
+                    print(f"   Ticker column at index {ci}: '{h}'")
+                    break
+            if ticker_col is None:
+                # Auto-detect: check first data row for short uppercase value
+                if len(rows)>1:
+                    sample=rows[1].find_all("td")
+                    for ci,cell in enumerate(sample):
+                        txt=cell.get_text(strip=True).upper()
+                        if re.match(r"^[A-Z]{1,5}$",txt):
+                            ticker_col=ci
+                            print(f"   Ticker auto-detected at col {ci}: '{txt}'")
+                            break
+            # Extract tickers from this table
+            if ticker_col is not None:
+                for row in rows[1:]:
+                    cells=row.find_all("td")
+                    if ticker_col<len(cells):
+                        txt=cells[ticker_col].get_text(strip=True).upper()
                         clean=re.sub(r"[^A-Z.]","",txt)
-                        if clean and 1<=len(clean)<=6 and clean.isalpha():
-                            # Verify it looks like a ticker (not a full company name)
-                            if len(clean)<=5 and clean==txt.strip().upper()[:len(clean)]:
-                                tickers.append(clean)
-                                break
+                        if re.match(r"^[A-Z]{1,5}$",clean) and clean:
+                            tickers.append(clean)
+                break  # Found the right table
 
         tickers=list(dict.fromkeys(tickers))  # Deduplicate, preserve order
-        print(f"   ✅ Magic Formula: {len(tickers)} tickers found")
-        if tickers: print(f"   Sample: {tickers[:5]}")
+        print(f"   ✅ Magic Formula: {len(tickers)} tickers")
+        if tickers: print(f"   Sample: {tickers[:8]}")
         log(f"Magic Formula: {len(tickers)} stocks")
         return set(tickers)
     except Exception as e:
@@ -699,16 +749,16 @@ def fetch_magic_formula():
 # ============================================================
 # STEP 8: ACQUIRER'S MULTIPLE -- AUTHENTICATED SCRAPE
 # ============================================================
-# Acquirer's Multiple = EV / Operating Earnings (Tobias Carlisle)
-# Lower multiple = cheaper on earnings relative to enterprise value.
-# Academic research shows it outperforms Magic Formula long-term.
-# Site: acquirersmultiple.com (WordPress membership)
+# Carlisle Acquirer's Multiple = EV / Operating Earnings.
+# Lower = cheaper on earnings vs enterprise value.
+# Sorted ascending = cheapest stocks first.
 #
 # WordPress login flow (simpler than ASP.NET):
-# WordPress uses a standard login endpoint at /wp-login.php.
-# POST credentials directly -- no anti-forgery token needed.
-# Session cookie is returned and carried by requests.Session().
-# testcookie=1 tells WordPress the browser accepts cookies.
+# 1. GET login page (sets initial cookies)
+# 2. POST to /wp-login.php with credentials
+#    'log' = username/email (WordPress field name)
+#    'testcookie' = 1 (confirms cookies work)
+# 3. GET screener -- session cookie carried automatically
 # ============================================================
 
 def fetch_acquirers_multiple():
@@ -720,66 +770,87 @@ def fetch_acquirers_multiple():
             "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
         })
 
-        # Step 1: GET login page first (sets initial cookies incl. wordpress_test_cookie)
+        # Step 1: GET login page (establishes initial cookies)
         login_page_url="https://acquirersmultiple.com/login/"
-        sess.get(login_page_url,timeout=15)
-        print(f"   Got initial cookies")
+        resp=sess.get(login_page_url,timeout=15)
+        print(f"   Got initial cookies: {len(sess.cookies)} cookies")
 
         # Step 2: POST to WordPress login endpoint
-        # WordPress uses 'log' for username (not 'email' or 'username')
         wp_login_url="https://acquirersmultiple.com/wp-login.php"
         login_data={
-            "log":        AM_EMAIL,       # WordPress 'log' field = username/email
+            "log":        AM_EMAIL,
             "pwd":        AM_PASSWORD,
             "wp-submit":  "Log In",
-            "testcookie": "1",            # Confirms browser accepts cookies
+            "testcookie": "1",
             "redirect_to":"https://acquirersmultiple.com/screener/large-cap/",
         }
-        resp=sess.post(wp_login_url,data=login_data,timeout=15,
-                       allow_redirects=True)
+        resp=sess.post(wp_login_url,data=login_data,timeout=15,allow_redirects=True)
+        print(f"   Login status: {resp.status_code}, URL: {resp.url}")
 
-        # Check if logged in (WordPress redirects to dashboard or target page on success)
-        if "Logout" in resp.text or "logout" in resp.text or "log-out" in resp.text:
+        if "logout" in resp.text.lower() or "log-out" in resp.text.lower() or "log out" in resp.text.lower():
             print(f"   ✅ Logged into Acquirer's Multiple")
         else:
-            print(f"   Login submitted (status {resp.status_code}, checking access...)")
+            print(f"   Login submitted -- checking screener access...")
 
-        # Step 3: GET the large-cap screener page
+        # Step 3: GET the large-cap screener
         screener_url="https://acquirersmultiple.com/screener/large-cap/"
-        resp=sess.get(screener_url,timeout=15)
+        resp=sess.get(screener_url,timeout=20)
         print(f"   Screener status: {resp.status_code}")
 
         soup=BeautifulSoup(resp.text,"html.parser")
-
-        # Parse tickers from the table
-        # Columns: Ticker | Name | Price | Change% | Industry | Acquirer's Multiple
         tickers=[]
-        # Find the data table (WordPress sites often use standard HTML tables)
         tables=soup.find_all("table")
+        print(f"   Tables found: {len(tables)}")
+
+        for i,t in enumerate(tables[:6]):
+            rows=t.find_all("tr")
+            if not rows: continue
+            hdrs=[c.get_text(strip=True)[:20] for c in rows[0].find_all(["th","td"])]
+            if rows and len(rows)>3:
+                print(f"   Table {i}: {len(rows)} rows, headers: {hdrs[:5]}")
+
+        # Find table where first data column contains ticker-like values
         target_table=None
         for t in tables:
             rows=t.find_all("tr")
-            if len(rows)>5:
-                # Check if first data row has a ticker-like value
-                first_cells=rows[1].find_all("td") if len(rows)>1 else []
-                if first_cells:
-                    candidate=first_cells[0].get_text(strip=True).upper()
-                    if re.match(r"^[A-Z]{1,5}$",candidate):
-                        target_table=t; break
+            if len(rows)<5: continue
+            if len(rows)>1:
+                first_row_cells=rows[1].find_all("td")
+                if first_row_cells:
+                    candidate=first_row_cells[0].get_text(strip=True).upper()
+                    candidate=re.sub(r"[^A-Z.]","",candidate)
+                    if re.match(r"^[A-Z]{1,5}$",candidate) and len(candidate)>=1:
+                        target_table=t
+                        print(f"   Found target table (first ticker: {candidate})")
+                        break
 
         if target_table:
-            rows=target_table.find_all("tr")[1:]
-            for row in rows:
+            rows=target_table.find_all("tr")
+            hdrs=[c.get_text(strip=True) for c in rows[0].find_all(["th","td"])]
+            print(f"   AM columns: {hdrs[:6]}")
+            for row in rows[1:]:
                 cells=row.find_all("td")
                 if cells:
                     ticker=cells[0].get_text(strip=True).upper()
                     ticker=re.sub(r"[^A-Z.]","",ticker)
-                    if ticker and 1<=len(ticker)<=6:
+                    if ticker and re.match(r"^[A-Z]{1,5}$",ticker):
                         tickers.append(ticker)
+        else:
+            # Fallback: scan all text for ticker-like patterns near prices
+            print("   Target table not found -- trying text scan fallback...")
+            all_text=soup.get_text()
+            # Look for lines that start with a ticker pattern
+            for line in all_text.splitlines():
+                line=line.strip()
+                if re.match(r"^[A-Z]{1,5}\s",line):
+                    ticker=line.split()[0]
+                    if re.match(r"^[A-Z]{1,5}$",ticker):
+                        tickers.append(ticker)
+                        if len(tickers)>=50: break
 
         tickers=list(dict.fromkeys(tickers))
-        print(f"   ✅ Acquirer's Multiple: {len(tickers)} tickers found")
-        if tickers: print(f"   Sample: {tickers[:5]}")
+        print(f"   ✅ Acquirer's Multiple: {len(tickers)} tickers")
+        if tickers: print(f"   Sample: {tickers[:8]}")
         log(f"Acquirer's Multiple: {len(tickers)} stocks")
         return set(tickers)
     except Exception as e:
@@ -865,15 +936,18 @@ def fetch_cnbc_email():
     return _fetch_email("morningsquawk@response.cnbc.com","CNBC Morning Squawk")
 
 def fetch_yahoo_morning_brief():
+    # Confirmed sender: finance-morning-brief@newsletters.yahoo.net
     return _fetch_email("finance-morning-brief@newsletters.yahoo.net","Yahoo Morning Brief",char_limit=2000)
 
 def fetch_mcoscillator_email():
+    # Tom McClellan weekly newsletter
     return _fetch_email("admin@mcoscillator.com","McClellan Oscillator",char_limit=1500)
 
 
 # ============================================================
 # STEP 13: GEMINI AI SYNTHESIS
-# Fallback chain: gemini-3.6-flash → gemini-1.5-flash → text
+# Fallback chain: gemini-3.6-flash -> gemini-1.5-flash -> text
+# Single attempt per model -- fail fast, no wasted quota.
 # ============================================================
 
 def _call_gemini(prompt, model):
@@ -890,36 +964,33 @@ def synthesize_with_gemini(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         for r in fred_data if r["current"]!="N/A"
     ])
 
-    # Build compact ticker overlap summary for Gemini context
-    # Only include multi-list stocks (highest conviction)
+    # High-conviction tickers: appear in 2+ screens
     overlap=[]
-    all_tickers=set(si_tickers.keys()) | mf_tickers | am_tickers
-    for t in sorted(all_tickers):
+    all_tickers=sorted(set(si_tickers.keys())|mf_tickers|am_tickers)
+    for t in all_tickers:
         tags=[]
-        if t in si_tickers and si_tickers[t]>0: tags.append(f"{si_tickers[t]}SI")
+        if si_tickers.get(t,0)>0: tags.append(f"{si_tickers[t]}SI")
         if t in mf_tickers: tags.append("MF")
         if t in am_tickers: tags.append("AM")
-        if len(tags)>=2:  # Only include stocks in 2+ lists
-            overlap.append(f"{t}({','.join(tags)})")
+        if len(tags)>=2: overlap.append(f"{t}({','.join(tags)})")
 
     aaii_str=""
     if aaii_data:
         aaii_str=f"AAII Survey: Bull {aaii_data['bullish']}% Bear {aaii_data['bearish']}% Spread {aaii_data['spread']:+.1f}%"
 
     prompt=f"""You are a sharp financial analyst writing a morning briefing for a 
-deep-value mean reversion investor. Stock universe: mid/large cap quality companies
-at cyclical troughs. Style: Greenblatt magic formula, Tobias Carlisle acquirer's multiple,
-Howard Marks cycles, Terry Smith quality, Michael Burry contrarian.
+deep-value mean reversion investor. Style: Greenblatt magic formula, Tobias Carlisle 
+acquirer's multiple, Howard Marks cycles, Terry Smith quality, Michael Burry contrarian.
 
 STRICT RULES:
 - Output EXACTLY these 3 section headers (no numbers, no markdown):
   MARKET AND MACRO
   EARNINGS AND EVENTS
   WHAT TO WATCH
-- MARKET AND MACRO: 4-5 bullets -- market moves + macro news
-- EARNINGS AND EVENTS: 3-4 bullets -- specific dates/releases mentioned in sources
-- WHAT TO WATCH: 3-4 bullets -- cyclical vs structural calls, mean reversion opportunities,
-  reference high-conviction tickers (in multiple screens) where relevant
+- MARKET AND MACRO: 4-5 bullets -- key market moves + macro news
+- EARNINGS AND EVENTS: 3-4 bullets -- specific dates/releases from any source
+- WHAT TO WATCH: 3-4 bullets -- cyclical vs structural calls, mean reversion setups,
+  mention high-conviction tickers (in 2+ screens) where relevant
 - Do NOT mention F&G score, VIX number, S&P/Russell % -- shown in tables
 - Max 20 words per bullet, dash (-) prefix, no paragraphs, no bold
 
@@ -927,15 +998,14 @@ After the 3 sections add:
 AI FUN FACT
 - One genuinely surprising fact about AI, markets, or investing history. Max 25 words.
 
-AI LEARNING  
+AI LEARNING
 - One AI concept relevant to finance/investing. Plain English. Max 30 words.
 
-MRI: {mri['score']}/100 -- {mri['label']}
-MRI Action: {mri['action']}
+MRI: {mri['score']}/100 -- {mri['label']} | Action: {mri['action']}
 MARKET: {mkt_data['pulse']}
 {aaii_str}
 FRED: {fred_summary}
-HIGH CONVICTION TICKERS (2+ screens): {', '.join(overlap[:15]) if overlap else 'None today'}
+HIGH CONVICTION (2+ screens): {', '.join(overlap[:15]) if overlap else 'None today'}
 EDWARD JONES: {ej_text[:800]}
 CNBC SQUAWK: {cnbc_text[:600]}
 YAHOO BRIEF: {yahoo_text[:600]}
@@ -954,9 +1024,8 @@ McCLELLAN (breadth): {mcoscillator_text[:400]}
             print(f"   ⚠️ {model} timed out (>90s)")
             log(f"Gemini {model}: timeout","⚠️")
         except Exception as e:
-            err=str(e)
-            print(f"   ⚠️ {model} failed: {err[:80]}")
-            log(f"Gemini {model}: {err[:60]}","⚠️")
+            print(f"   ⚠️ {model} failed: {str(e)[:100]}")
+            log(f"Gemini {model}: {str(e)[:60]}","⚠️")
 
     print("   ❌ All Gemini models failed -- using structured fallback")
     log("Gemini: all models failed -- using fallback","❌")
@@ -967,13 +1036,13 @@ EARNINGS AND EVENTS
 - Check Yahoo Morning Brief and CNBC for earnings calendar details
 
 WHAT TO WATCH
-- Review MRI score and FRED signals -- data is complete without AI narrative
+- Review MRI score and FRED signals -- data complete even without AI narrative
 
 AI FUN FACT
 - Joel Greenblatt tested his Magic Formula from 1988-2004 and found it returned 23.8% annually vs 12.3% for the S&P 500.
 
 AI LEARNING
-- Transformer architecture: the neural network design behind all modern LLMs including GPT and Claude -- uses 'attention' to weigh word relationships."""
+- Transformer architecture: the neural network design behind all modern LLMs -- uses attention to weigh relationships between all words simultaneously."""
     return fallback, True
 
 
@@ -1026,6 +1095,15 @@ def _badge(raw_lbl, raw_col):
     std=m.get(raw_lbl,raw_lbl); col=c.get(std,raw_col)
     return f'<span style="background:{col};color:white;padding:2px 9px;border-radius:4px;font-size:.68rem;font-weight:700;">{std}</span>'
 
+def _ticker_tag(t, si_tickers, mf_tickers, am_tickers):
+    """Build compact ticker label. Returns None if not in any list."""
+    tags=[]
+    if si_tickers.get(t,0)>0: tags.append(f"{si_tickers[t]}SI")
+    if t in mf_tickers: tags.append("MF")
+    if t in am_tickers: tags.append("AM")
+    if not tags: return None
+    return f"{t}({','.join(tags)})"
+
 
 def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
                fred_data, fg_data, mkt_data, mri,
@@ -1037,7 +1115,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     today=now_mt.strftime("%A, %B %d, %Y")
     now=now_mt.strftime("%I:%M %p")
 
-    # Market data
     vix_val=mkt_data["vix"]["value"]; vix_prev=mkt_data["vix"]["prev"]
     vix_lbl=mkt_data["vix"]["label"]; vix_col=mkt_data["vix"]["color"]; vix_sig=mkt_data["vix"]["signal"]
     spx_val=mkt_data["spx"]["value"]; spx_chg=mkt_data["spx"]["chg"]
@@ -1046,7 +1123,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     rut_lbl=mkt_data["rut"]["label"]; rut_col=mkt_data["rut"]["color"]; rut_prev=mkt_data["rut"]["prev"]
     pulse=mkt_data["pulse"]
     mkt_state=mkt_data.get("market_state","UNKNOWN")
-    status_label=mkt_data.get("market_status_label","")
 
     fg_score=fg_data.get("score",50); fg_lbl=fg_data.get("label","N/A")
     fg_col=fg_data.get("color","#6b7280"); fg_sig=fg_data.get("signal","")
@@ -1071,7 +1147,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     elif mkt_state=="POST":
         mkt_banner='<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:5px;padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#6d28d9;">🌙 After-Hours</div>'
     elif mkt_state=="CLOSED":
-        mkt_banner='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#6b7280;">🔒 Last Close</div>'
+        mkt_banner='<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#6b7280;">🔒 Markets closed · last close shown</div>'
 
     # ---- AI failure alert ------------------------------------
     ai_alert=""
@@ -1083,7 +1159,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
             <div style="font-weight:700;font-size:.82rem;color:#c81e1e;">AI Synthesis Unavailable</div>
             <div style="font-size:.73rem;color:#6b7280;margin-top:2px;">
               Gemini API quota exceeded or temporary outage. All data sections are complete.
-              Quota resets at midnight UTC. Upgrade to Gemini paid API for higher limits.
+              Quota resets at midnight UTC. Run manually after midnight to retry.
             </div>
           </div>
         </div>"""
@@ -1094,30 +1170,30 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         return f'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 10px;"><div style="font-weight:600;font-size:.82rem;">{name}</div>{nh}</td><td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td><td style="padding:7px 10px;font-size:.78rem;color:#6b7280;">{chg}</td><td style="padding:7px 10px;font-size:.75rem;color:#9ca3af;">prev {prev}</td><td style="padding:7px 10px;">{_badge(rl,rc)}</td></tr>'
 
     perf_rows=(
-        pr("S&P 500",spx_val,spx_chg,spx_prev,spx_lbl,spx_col,"Yahoo Finance · large cap")
-        +pr("Russell 2000",rut_val,rut_chg,rut_prev,rut_lbl,rut_col,"Yahoo Finance · small cap / risk proxy")
+        pr("S&P 500 (Large Cap)",spx_val,spx_chg,spx_prev,spx_lbl,spx_col,"Yahoo Finance · large cap benchmark")
+        +pr("Russell 2000 (Small Cap)",rut_val,rut_chg,rut_prev,rut_lbl,rut_col,"Yahoo Finance · small cap / risk appetite proxy")
     )
 
-    # ---- Sentiment rows (VIX now here, plus F&G, UMICH, AAII) ----
+    # ---- Sentiment rows (VIX here now, not in Market table) --
     try: vix_num=float(vix_val)
     except: vix_num=20
-    vix_badge="CALM" if vix_num<15 else "NORMAL" if vix_num<20 else "CAUTIOUS" if vix_num<25 else "FEARFUL" if vix_num<30 else "PANIC"
+    vix_badge_lbl="CALM" if vix_num<15 else "NORMAL" if vix_num<20 else "CAUTIOUS" if vix_num<25 else "FEARFUL" if vix_num<30 else "PANIC"
 
     def sr(name,val,hist,rl,rc,sig,note=""):
         nh=f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
         return f'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 10px;"><div style="font-weight:600;font-size:.82rem;">{name}</div>{nh}</td><td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td><td style="padding:7px 10px;font-size:.75rem;color:#6b7280;">{hist}</td><td style="padding:7px 10px;">{_badge(rl,rc)}</td><td style="padding:7px 10px;font-size:.72rem;color:#374151;">{sig}</td></tr>'
 
     sent_rows=(
-        sr("VIX (Volatility)",vix_val,f"prev {vix_prev}",vix_badge,vix_col,vix_sig,
+        sr("VIX (Volatility Index)",vix_val,f"prev {vix_prev}",vix_badge_lbl,vix_col,vix_sig,
            "CBOE · CALM<15 NORMAL<20 CAUTIOUS<25 FEARFUL<30 PANIC≥30")
-        +sr("Fear & Greed",f"{fg_score}/100",
+        +sr("Fear & Greed Index",f"{fg_score}/100",
             f"1wk:{fg_data.get('prev_week','N/A')} 1mo:{fg_data.get('prev_month','N/A')} 1yr:{fg_data.get('prev_year','N/A')}",
-            fg_lbl,fg_col,fg_sig,"CNN Business · daily composite")
+            fg_lbl,fg_col,fg_sig,"CNN Business · daily composite sentiment")
         +sr("Consumer Sentiment",f"{umich_val}/100",f"3mo:{umich_mo3} 12mo:{umich_mo12}",
             umich_raw_lbl,ucol,umich_sig,"U of Michigan · avg ~75 · monthly")
     )
 
-    # AAII row (if available)
+    # AAII row if available
     if aaii_data:
         spread=aaii_data.get("spread",0)
         aaii_sig=aaii_data.get("signal","")
@@ -1129,7 +1205,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                       aaii_lbl,aaii_col,aaii_sig,
                       "AAII · 160K retail investors · weekly Thursday · contrarian indicator")
 
-    # ---- FRED table (grouped, fixed colors) ------------------
+    # ---- FRED table (grouped, correct colors) ----------------
     group_order=["INFLATION","TREASURY","ECONOMIC","CREDIT"]
     fred_rows=""; rn=1
     for g in group_order:
@@ -1137,91 +1213,77 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         if not items: continue
         fred_rows+=f'<tr style="background:#f9fafb;"><td colspan="8" style="padding:6px 10px;font-size:.64rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:{gm["color"]};border-bottom:1px solid #e5e7eb;">{gm["icon"]} {gm["label"]}</td></tr>'
         for r in items:
-            # FIXED: Rising treasury yields are BAD (red), not good
-            if g=="INFLATION":
-                # Inflation: DOWN = good (green), UP = bad (red)
-                tc="#057a55" if r["trend"]=="▼" else "#c81e1e" if r["trend"]=="▲" else "#6b7280"
-            elif g=="TREASURY":
-                # Treasuries: UP = BAD for stocks (red), DOWN = good (green)
-                tc="#c81e1e" if r["trend"]=="▲" else "#057a55" if r["trend"]=="▼" else "#6b7280"
-                # Exception: Yield Curve -- UP (steepening) = good
-                if "Yield Curve" in r["label"]:
-                    tc="#057a55" if r["trend"]=="▲" else "#c81e1e" if r["trend"]=="▼" else "#6b7280"
-            elif g=="CREDIT":
-                # HY Spread: UP (widening) = bad (red), DOWN (tightening) = good
-                tc="#c81e1e" if r["trend"]=="▲" else "#057a55" if r["trend"]=="▼" else "#6b7280"
-            else:
-                # Economic: UP = good (unemployment DOWN = good is handled by signal text)
-                tc="#057a55" if r["trend"]=="▲" else "#c81e1e" if r["trend"]=="▼" else "#6b7280"
-                if r["label"]=="Unemployment":
-                    tc="#c81e1e" if r["trend"]=="▲" else "#057a55" if r["trend"]=="▼" else "#6b7280"
+            tc=_trend_color(r["label"],g,r["trend"])
+            fred_rows+=f'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 8px;text-align:center;font-size:.7rem;color:#9ca3af;">{rn}</td><td style="padding:7px 10px;"><div style="font-weight:600;font-size:.8rem;">{r["label"]}</div><div style="font-size:.62rem;color:#9ca3af;">[{r["insight"]}]</div></td><td style="padding:7px 10px;text-align:center;font-weight:700;font-size:.88rem;">{r["current"]}</td><td style="padding:7px 10px;text-align:center;font-size:.78rem;color:#6b7280;">{r["mo3"]}</td><td style="padding:7px 10px;text-align:center;font-size:.78rem;color:#6b7280;">{r["mo12"]}</td><td style="padding:7px 10px;text-align:center;font-size:1rem;color:{tc};">{r["trend"]}</td><td style="padding:7px 8px;font-size:.67rem;color:#9ca3af;white-space:nowrap;">{r["date"]}</td><td style="padding:7px 10px;font-size:.72rem;color:#1e3a5f;">{r.get("sig","")}</td></tr>'
+            rn+=1
 
-            fred_rows+=f'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 8px;text-align:center;font-size:.7rem;color:#9ca3af;">{rn}</td><td style="padding:7px 10px;"><div style="font-weight:600;font-size:.8rem;">{r["label"]}</div><div style="font-size:.62rem;color:#9ca3af;">[{r["insight"]}]</div></td><td style="padding:7px 10px;text-align:center;font-weight:700;font-size:.88rem;">{r["current"]}</td><td style="padding:7px 10px;text-align:center;font-size:.78rem;color:#6b7280;">{r["mo3"]}</td><td style="padding:7px 10px;text-align:center;font-size:.78rem;color:#6b7280;">{r["mo12"]}</td><td style="padding:7px 10px;text-align:center;font-size:1rem;color:{tc};">{r["trend"]}</td><td style="padding:7px 8px;font-size:.67rem;color:#9ca3af;white-space:nowrap;">{r["date"]}</td><td style="padding:7px 10px;font-size:.72rem;color:#1e3a5f;">{r.get("sig","")}</td></tr>'; rn+=1
-
-    # ---- Ticker section (13F + MF + AM combined, alphabetical) ----
-    all_tickers=sorted(set(si_tickers.keys()) | mf_tickers | am_tickers)
+    # ---- Value Screens ticker section (alphabetical, color coded) ----
+    all_tickers_set=sorted(set(si_tickers.keys())|mf_tickers|am_tickers)
     ticker_cards=""
-    for t in all_tickers:
+    for t in all_tickers_set:
         tags=[]
         count=si_tickers.get(t,0)
         if count>0: tags.append(f"{count}SI")
         if t in mf_tickers: tags.append("MF")
         if t in am_tickers: tags.append("AM")
+        if not tags: continue
         tag_str=", ".join(tags)
-
-        # Color by number of lists the stock appears in
         lists_count=(1 if count>0 else 0)+(1 if t in mf_tickers else 0)+(1 if t in am_tickers else 0)
-        if lists_count>=3:  card_col="#eff6ff"; border_col="#1a56db"   # Blue -- highest conviction
-        elif lists_count==2: card_col="#f0fdf4"; border_col="#057a55"  # Green -- strong signal
-        else:                card_col="#f9fafb"; border_col="#e5e7eb"  # Gray -- single list
-
-        ticker_cards+=f'<div style="background:{card_col};border:1px solid {border_col};border-radius:6px;padding:5px 8px;font-size:.75rem;white-space:nowrap;"><span style="font-weight:800;color:#111928;">{t}</span><span style="color:#6b7280;margin-left:3px;">({tag_str})</span></div>'
+        if lists_count>=3:  card_col="#eff6ff"; border_col="#1a56db"; txt_col="#0c4a6e"
+        elif lists_count==2: card_col="#f0fdf4"; border_col="#057a55"; txt_col="#064e3b"
+        else:                card_col="#f9fafb"; border_col="#e5e7eb"; txt_col="#374151"
+        ticker_cards+=f'<div style="background:{card_col};border:1px solid {border_col};border-radius:6px;padding:5px 8px;white-space:nowrap;"><span style="font-weight:800;font-size:.82rem;color:{txt_col};">{t}</span><span style="color:#6b7280;font-size:.68rem;margin-left:3px;">({tag_str})</span></div>'
 
     # ---- AI blocks -------------------------------------------
     fun_raw=secs.get("AI FUN FACT","").strip(); learn_raw=secs.get("AI LEARNING","").strip()
     if fun_raw:  fun_raw=re.sub(r"^[-•*]\s*","",fun_raw.splitlines()[0].strip())
-    else:        fun_raw="Joel Greenblatt tested his Magic Formula from 1988-2004 and found it returned 23.8% annually vs 12.3% for the S&P 500."
+    else:        fun_raw="Joel Greenblatt tested his Magic Formula from 1988-2004: 23.8% annually vs 12.3% for the S&P 500."
     if learn_raw: learn_raw=re.sub(r"^[-•*]\s*","",learn_raw.splitlines()[0].strip())
-    else:         learn_raw="Transformer architecture: the neural network design behind all modern LLMs -- uses 'attention' to weigh relationships between words in context."
+    else:         learn_raw="Transformer architecture: the neural network design behind all modern LLMs -- uses attention to weigh relationships between all words simultaneously."
 
     # ---- Hidden market-context div (ultra-compact for Chrome extension) ----
-    # Designed to minimize token usage when fed into mean reversion analysis
+    # Designed for minimum token usage when fed into mean reversion LLM analysis
     fred_compact="\n".join([f"{r['label']}: {r['current']} ({r['trend']})" for r in fred_data if r["current"]!="N/A"])
-    # Ticker list: alphabetical, compact, only what's needed for cross-reference
-    ticker_compact=" | ".join([
-        f"{t}({','.join([str(si_tickers[t])+'SI' if si_tickers.get(t,0)>0 else None, 'MF' if t in mf_tickers else None, 'AM' if t in am_tickers else None])})".replace("None,","").replace(",None","").replace("(,","(")
-        for t in sorted(set(si_tickers.keys())|mf_tickers|am_tickers)
-        if (si_tickers.get(t,0)>0 or t in mf_tickers or t in am_tickers)
-    ])
-
     aaii_compact=""
     if aaii_data: aaii_compact=f"\nAAII: Bull {aaii_data['bullish']}% Bear {aaii_data['bearish']}% Spread {aaii_data['spread']:+.1f}%"
+
+    # Ticker compact: alphabetical, all tags, pipe-separated
+    ticker_compact=" | ".join([
+        tag for t in all_tickers_set
+        if (tag:=_ticker_tag(t,si_tickers,mf_tickers,am_tickers)) is not None
+    ])
 
     mctx=f"""MARKETPULSE AI - {today} {now} MT
 MRI: {mri_score}/100 {mri_lbl} | {mri_action}
 SPX: {spx_chg} ({spx_lbl}) | RUT: {rut_chg} ({rut_lbl}) | VIX: {vix_val} ({vix_lbl}) | {mkt_state}
 F&G: {fg_score}/100 ({fg_lbl}) | Consumer: {umich_val}/100{aaii_compact}
-MACRO: {fred_compact}
+MACRO:
+{fred_compact}
 BRIEFING:
 {secs.get('MARKET AND MACRO','').strip()}
+WHAT TO WATCH:
 {secs.get('WHAT TO WATCH','').strip()}
-SCREENS: {ticker_compact}"""
+SCREENS (13F+MF+AM):
+{ticker_compact}"""
 
-    # ---- Run log HTML ----------------------------------------
+    # ---- Run log HTML (collapsed by default) -----------------
     elapsed=round(time.time()-RUN_START)
-    run_log_items="".join([f'<div style="font-size:.72rem;padding:2px 0;border-bottom:1px solid #f3f4f6;">{entry}</div>' for entry in RUN_LOG])
+    run_log_items="".join([
+        f'<div style="font-size:.72rem;padding:2px 0;border-bottom:1px solid #f3f4f6;font-family:monospace;">{entry}</div>'
+        for entry in RUN_LOG
+    ])
     run_log_html=f"""
 <div style="margin-top:12px;">
-  <button onclick="this.nextElementSibling.style.display=this.nextElementSibling.style.display==='none'?'block':'none'"
+  <button onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';"
           style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:6px 14px;
                  font-size:.72rem;color:#6b7280;cursor:pointer;width:100%;text-align:left;">
-    📋 View Run Log &nbsp;·&nbsp; Total time: {elapsed}s &nbsp;·&nbsp; {len(RUN_LOG)} steps
+    📋 View Run Log &nbsp;·&nbsp; Total time: {elapsed}s &nbsp;·&nbsp; {len(RUN_LOG)} steps completed
   </button>
-  <div style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-radius:0 0 6px 6px;
-              padding:10px 14px;margin-top:-1px;font-family:monospace;">
+  <div style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 6px 6px;
+              padding:10px 14px;max-height:400px;overflow-y:auto;">
     {run_log_items}
     <div style="font-size:.7rem;color:#9ca3af;margin-top:4px;padding-top:4px;border-top:1px solid #e5e7eb;">
-      Total runtime: {elapsed} seconds
+      Total runtime: {elapsed} seconds · {today} {now} MT
     </div>
   </div>
 </div>"""
@@ -1260,6 +1322,7 @@ SCREENS: {ticker_compact}"""
 </style>
 </head>
 <body>
+<!-- Chrome Extension: fetch this page, read #market-context innerText for macro context -->
 <div id="market-context" style="display:none;white-space:pre;">{mctx}</div>
 
 <div class="hero">
@@ -1272,7 +1335,7 @@ SCREENS: {ticker_compact}"""
 
 {ai_alert}
 
-<!-- AI BLOCKS -->
+<!-- AI BLOCKS: Fun Fact + AI Learning -->
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
   <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:12px;">
     <div style="font-size:1.3rem;flex-shrink:0;">🤖</div>
@@ -1290,7 +1353,7 @@ SCREENS: {ticker_compact}"""
   </div>
 </div>
 
-<!-- MRI: MEAN REVERSION INSIGHTS -->
+<!-- MRI: MEAN REVERSION INSIGHTS SCORE -->
 <div class="card" style="margin-bottom:12px;border-left:4px solid {mri_col};">
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
     <div style="flex-shrink:0;">
@@ -1309,11 +1372,11 @@ SCREENS: {ticker_compact}"""
     </div>
   </div>
   <div style="margin-top:8px;font-size:.67rem;color:#374151;background:#f9fafb;border-radius:5px;padding:6px 10px;line-height:1.6;">
-    <strong>Scale guide (LOWER = better opportunity):</strong>
+    <strong>Scale (LOWER = better opportunity):</strong>
     🟢 DEPLOY (0-33): Panic, dislocation -- aggressive deployment, macro confirms STRONG BUY ·
     🟠 SELECTIVE (34-65): Some opportunity -- best setups only, Left Leg &lt;4 &amp; MoS &gt;25% ·
     ⛔ OVERHEATED (66-100): Expensive, complacent -- build cash, trim winners.
-    <br>Current: {mri_lbl} -- connects to your verdict system as a macro overlay.
+    Connects directly to your verdict system as a macro overlay on individual stock decisions.
   </div>
 </div>
 
@@ -1321,7 +1384,6 @@ SCREENS: {ticker_compact}"""
 <div class="grid-2">
 
   <div style="display:flex;flex-direction:column;gap:12px;">
-
     <div class="card ar">
       <h2>📈 Market Performance</h2>
       {mkt_banner}
@@ -1330,7 +1392,6 @@ SCREENS: {ticker_compact}"""
         <tbody>{perf_rows}</tbody>
       </table>
     </div>
-
     <div class="card aa">
       <h2>🌡️ Market Sentiment</h2>
       <table class="tbl">
@@ -1338,7 +1399,6 @@ SCREENS: {ticker_compact}"""
         <tbody>{sent_rows}</tbody>
       </table>
     </div>
-
   </div>
 
   <div style="display:flex;flex-direction:column;gap:12px;">
@@ -1359,7 +1419,7 @@ SCREENS: {ticker_compact}"""
 
 </div>
 
-<!-- TICKER SECTION: 13F + Magic Formula + Acquirer's Multiple -->
+<!-- VALUE SCREENS: 13F + Magic Formula + Acquirer's Multiple -->
 <div style="margin-top:12px;">
   <div class="card ab">
     <h2>📋 Value Screens
@@ -1370,23 +1430,20 @@ SCREENS: {ticker_compact}"""
         SI=Superinvestors(13F) · MF=Magic Formula · AM=Acquirer's Multiple
       </span>
     </h2>
-    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
-      {ticker_cards}
-    </div>
+    {'<div style="color:#9ca3af;font-size:.8rem;padding:8px 0;">No screen data available today -- check run log for details.</div>' if not ticker_cards else f'<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">{ticker_cards}</div>'}
     <div style="font-size:.67rem;color:#6b7280;background:#f0f9ff;border-radius:5px;padding:6px 10px;line-height:1.5;">
-      <strong>How to read:</strong> MSFT (18SI, MF, AM) = 18 superinvestors bought it (13F) + Magic Formula ranked it + Acquirer's Multiple ranked it.
-      Blue cards appear in all 3 screens = highest conviction. Green = 2 screens. Gray = 1 screen.
-      <strong>Cross-reference:</strong> if a ticker appears here AND in your Finviz screener AND Left Leg Score &lt;4 = extremely strong alignment signal.
-      <em>13F: ~45 day lag. MF & AM: updated daily.</em>
+      <strong>How to read:</strong> MSFT (18SI, MF, AM) = 18 superinvestors bought it this quarter (13F SEC filing) + Greenblatt Magic Formula top 30 + Carlisle Acquirer's Multiple large-cap list.
+      Blue = highest conviction (all 3). Green = 2 screens. Use these as starting candidates for your mean reversion framework -- if a ticker also appears in your Finviz screener AND Left Leg Score &lt;4, that's strong convergence.
+      <em>13F data: ~45 day lag. MF &amp; AM: daily.</em>
     </div>
   </div>
 </div>
 
-<!-- FRED Macro Indicators -->
+<!-- FRED MACRO INDICATORS -->
 <div style="margin-top:12px;">
   <div class="card">
     <h2>🏦 Macro Indicators
-      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">&nbsp; FRED API · grouped · Today's Signal at right · ▲▼ color: green=good, red=bad for equities</span>
+      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">&nbsp; FRED API · grouped · ▲▼ colors: green=good for equities, red=bad · Today's Signal at right</span>
     </h2>
     <div style="overflow-x:auto;">
       <table style="width:100%;border-collapse:collapse;font-size:.78rem;">
@@ -1435,7 +1492,7 @@ SCREENS: {ticker_compact}"""
     with open("index.html","w",encoding="utf-8") as f: f.write(html)
     elapsed=round(time.time()-RUN_START)
     print(f"   ✅ index.html written | Total runtime: {elapsed}s")
-    log(f"Dashboard written | Total: {elapsed}s")
+    log(f"Dashboard written | Total runtime: {elapsed}s")
 
 
 # ============================================================
