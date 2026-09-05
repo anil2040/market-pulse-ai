@@ -4,14 +4,14 @@
 # ============================================================
 # Pipeline:
 #   1.  FRED macro indicators (12 series, parallel, 20s)
-#   2.  AAII Weekly Sentiment Survey (direct scrape)
+#   2.  AAII Weekly Sentiment Survey (scrape attempt, N/A on block)
 #   3.  CNN Fear & Greed (JSON)
 #   4.  VIX + S&P 500 + Russell 2000 (Yahoo Finance)
 #   5.  MRI -- Mean Reversion Insights (INVERTED 0-100)
 #       DEPLOY(0-33) | SELECTIVE(34-65) | OVERHEATED(66-100)
 #   6.  Dataroma superinvestor quarterly buys (scrape, fixed cols)
 #   7.  Magic Formula top 30 stocks (authenticated scrape)
-#   8.  Acquirer's Multiple large-cap list (authenticated scrape)
+#   8.  Acquirer's Multiple large-cap list (RCP login + HTML table scrape)
 #   9.  Edward Jones daily recap (web scrape)
 #  10.  CNBC Morning Squawk (Yahoo IMAP)
 #  11.  Yahoo Finance Morning Brief (Yahoo IMAP)
@@ -257,59 +257,73 @@ def fetch_fred_data():
 # ============================================================
 
 def fetch_aaii_sentiment():
+    # AAII blocks GitHub Actions IPs via Incapsula CDN bot protection.
+    # The scrape is attempted anyway -- on weeks where it works it will parse.
+    # When blocked (Incapsula response), returns None gracefully.
+    # Dashboard shows N/A row with a direct link to aaii.com.
+    # AAII "Investor Update" email does NOT contain the Bull/Bear/Neutral %
+    # numbers -- only the website does. No email fallback available.
     print("\n📊 Fetching AAII Weekly Sentiment Survey...")
     try:
         url="https://www.aaii.com/sentimentsurvey"
-        hdrs={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-              "Accept":"text/html,application/xhtml+xml"}
+        hdrs={
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language":"en-US,en;q=0.9",
+            "Accept-Encoding":"gzip, deflate, br",
+            "DNT":"1",
+            "Connection":"keep-alive",
+            "Upgrade-Insecure-Requests":"1",
+        }
         resp=requests.get(url,headers=hdrs,timeout=15)
-        soup=BeautifulSoup(resp.text,"html.parser")
-        text=soup.get_text()
+        text=resp.text
 
-        # Debug: show snippet to understand page structure
-        lines=[l.strip() for l in text.splitlines() if l.strip()]
-        snippet=" | ".join(lines[:30])
-        print(f"   Page snippet: {snippet[:300]}")
+        # Detect Incapsula block
+        if "Incapsula incident" in text or "Request unsuccessful" in text or "_Incapsula_Resource" in text:
+            print("   ⚠️ AAII: Blocked by Incapsula CDN (GitHub Actions IP flagged)")
+            log("AAII: Blocked by Incapsula -- check aaii.com manually","⚠️")
+            return None
+
+        soup=BeautifulSoup(text,"html.parser")
+        plain=soup.get_text()
+
+        # Debug snippet
+        lines=[l.strip() for l in plain.splitlines() if l.strip()]
+        print(f"   Page snippet: {' | '.join(lines[:15])[:200]}")
 
         bullish=bearish=neutral=None
 
-        # Try multiple regex patterns -- AAII changes their layout occasionally
         pattern_sets=[
-            # Pattern A: "Bullish 38.5%"
             (r"[Bb]ullish[\s:]*(\d+\.?\d*)\s*%", r"[Bb]earish[\s:]*(\d+\.?\d*)\s*%", r"[Nn]eutral[\s:]*(\d+\.?\d*)\s*%"),
-            # Pattern B: "38.5% Bullish"
-            (r"(\d+\.?\d*)\s*%\s*[Bb]ullish", r"(\d+\.?\d*)\s*%\s*[Bb]earish", r"(\d+\.?\d*)\s*%\s*[Nn]eutral"),
-            # Pattern C: look in table cells for % values near sentiment words
-            (r"[Bb]ull[^\d]{0,20}(\d+\.?\d*)\s*%", r"[Bb]ear[^\d]{0,20}(\d+\.?\d*)\s*%", r"[Nn]eut[^\d]{0,20}(\d+\.?\d*)\s*%"),
+            (r"(\d+\.?\d*)\s*%\s*[Bb]ullish",    r"(\d+\.?\d*)\s*%\s*[Bb]earish",    r"(\d+\.?\d*)\s*%\s*[Nn]eutral"),
+            (r"[Bb]ull[^\d]{0,20}(\d+\.?\d*)\s*%",r"[Bb]ear[^\d]{0,20}(\d+\.?\d*)\s*%",r"[Nn]eut[^\d]{0,20}(\d+\.?\d*)\s*%"),
         ]
-
         for pb,pbe,pn in pattern_sets:
             if bullish is None:
-                m=re.search(pb,text)
+                m=re.search(pb,plain)
                 if m: bullish=float(m.group(1))
             if bearish is None:
-                m=re.search(pbe,text)
+                m=re.search(pbe,plain)
                 if m: bearish=float(m.group(1))
             if neutral is None:
-                m=re.search(pn,text)
+                m=re.search(pn,plain)
                 if m: neutral=float(m.group(1))
-            if all(v is not None for v in [bullish,bearish,neutral]):
-                break
+            if all(v is not None for v in [bullish,bearish,neutral]): break
 
-        # Also try parsing from table cells directly
+        # Cell-level fallback
         if bullish is None:
             for cell in soup.find_all(["td","span","div","p"]):
                 txt=cell.get_text(strip=True)
                 if "%" in txt:
-                    num_m=re.search(r"(\d+\.?\d*)\s*%",txt)
-                    if num_m:
-                        val=float(num_m.group(1))
-                        parent_text=cell.parent.get_text().lower() if cell.parent else ""
-                        if "bull" in txt.lower() or "bull" in parent_text:
+                    nm=re.search(r"(\d+\.?\d*)\s*%",txt)
+                    if nm:
+                        val=float(nm.group(1))
+                        pt=(cell.parent.get_text().lower() if cell.parent else "")
+                        if "bull" in txt.lower() or "bull" in pt:
                             if bullish is None and 5<=val<=95: bullish=val
-                        elif "bear" in txt.lower() or "bear" in parent_text:
+                        elif "bear" in txt.lower() or "bear" in pt:
                             if bearish is None and 5<=val<=95: bearish=val
-                        elif "neut" in txt.lower() or "neut" in parent_text:
+                        elif "neut" in txt.lower() or "neut" in pt:
                             if neutral is None and 5<=val<=95: neutral=val
 
         if bullish is not None and bearish is not None:
@@ -319,12 +333,12 @@ def fetch_aaii_sentiment():
             elif spread<=10:  sig="→ Neutral -- no extreme sentiment reading"; col="#6b7280"
             elif spread<=20:  sig="🟡 Bullish -- mild optimism, be selective"; col="#059669"
             else:             sig="⚠️ Extreme bullishness -- contrarian caution warranted"; col="#1a56db"
-            print(f"   ✅ AAII: Bull {bullish}% / Bear {bearish}% / Neutral {neutral}% | Spread: {spread:+.1f}%")
+            print(f"   ✅ AAII: Bull {bullish}% / Bear {bearish}% | Spread: {spread:+.1f}%")
             log(f"AAII: Bull {bullish}% Bear {bearish}% (spread {spread:+.1f}%)")
             return {"bullish":bullish,"bearish":bearish,"neutral":neutral,"spread":spread,"signal":sig,"color":col}
         else:
-            print(f"   ⚠️ AAII: Could not parse percentages (bull={bullish} bear={bearish})")
-            log("AAII: Parse failed -- site may require login or structure changed","⚠️")
+            print(f"   ⚠️ AAII: Page loaded but could not parse percentages")
+            log("AAII: Page loaded but parse failed -- structure may have changed","⚠️")
             return None
     except Exception as e:
         print(f"   ❌ AAII failed: {e}")
@@ -747,18 +761,19 @@ def fetch_magic_formula():
 
 
 # ============================================================
-# STEP 8: ACQUIRER'S MULTIPLE -- AUTHENTICATED SCRAPE
 # ============================================================
-# Carlisle Acquirer's Multiple = EV / Operating Earnings.
-# Lower = cheaper on earnings vs enterprise value.
-# Sorted ascending = cheapest stocks first.
-#
-# WordPress login flow (simpler than ASP.NET):
-# 1. GET login page (sets initial cookies)
-# 2. POST to /wp-login.php with credentials
-#    'log' = username/email (WordPress field name)
-#    'testcookie' = 1 (confirms cookies work)
-# 3. GET screener -- session cookie carried automatically
+# STEP 8: ACQUIRER'S MULTIPLE -- RCP LOGIN + HTML TABLE SCRAPE
+# ============================================================
+# Login uses Restrict Content Pro (RCP) plugin -- NOT wp-login.php.
+# Confirmed from DevTools Elements inspection:
+#   form action="https://acquirersmultiple.com/login/"
+#   name="rcp_user_login"   (email field)
+#   name="rcp_user_pass"    (password field)
+#   name="rcp_action"       value="login"
+#   name="rcp_redirect"     value="https://acquirersmultiple.com/login/"
+#   name="rcp_login_nonce"  (fresh token each page load -- must extract)
+# Table data is server-side HTML (confirmed: no XHR data calls in Network tab).
+# DataTables renders existing HTML -- BeautifulSoup can read it directly.
 # ============================================================
 
 def fetch_acquirers_multiple():
@@ -766,87 +781,59 @@ def fetch_acquirers_multiple():
     try:
         sess=requests.Session()
         sess.headers.update({
-            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
             "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language":"en-US,en;q=0.9",
         })
 
-        # Step 1: GET login page (establishes initial cookies)
-        login_page_url="https://acquirersmultiple.com/login/"
-        resp=sess.get(login_page_url,timeout=15)
-        print(f"   Got initial cookies: {len(sess.cookies)} cookies")
+        # Step 1: GET login page, extract nonce
+        r0=sess.get("https://acquirersmultiple.com/login/",timeout=15)
+        print(f"   Login page: {r0.status_code} | Cookies: {len(sess.cookies)}")
+        soup0=BeautifulSoup(r0.text,"html.parser")
+        nonce_tag=soup0.find("input",{"name":"rcp_login_nonce"})
+        nonce=nonce_tag["value"] if nonce_tag else ""
+        print(f"   Nonce: {nonce[:12]}..." if nonce else "   ⚠️ No nonce found")
 
-        # Step 2: POST to WordPress login endpoint
-        wp_login_url="https://acquirersmultiple.com/wp-login.php"
-        login_data={
-            "log":        AM_EMAIL,
-            "pwd":        AM_PASSWORD,
-            "wp-submit":  "Log In",
-            "testcookie": "1",
-            "redirect_to":"https://acquirersmultiple.com/screener/large-cap/",
-        }
-        resp=sess.post(wp_login_url,data=login_data,timeout=15,allow_redirects=True)
-        print(f"   Login status: {resp.status_code}, URL: {resp.url}")
+        # Step 2: POST login -- RCP form fields confirmed from DevTools
+        r1=sess.post("https://acquirersmultiple.com/login/",data={
+            "rcp_user_login":  AM_EMAIL,
+            "rcp_user_pass":   AM_PASSWORD,
+            "rcp_action":      "login",
+            "rcp_redirect":    "https://acquirersmultiple.com/login/",
+            "rcp_login_nonce": nonce,
+        },timeout=15,allow_redirects=True)
+        print(f"   Login POST: {r1.status_code} | URL: {r1.url}")
 
-        if "logout" in resp.text.lower() or "log-out" in resp.text.lower() or "log out" in resp.text.lower():
-            print(f"   ✅ Logged into Acquirer's Multiple")
-        else:
-            print(f"   Login submitted -- checking screener access...")
+        logged_in="logout" in r1.text.lower() or "log-out" in r1.text.lower()
+        print(f"   Logged in: {logged_in}")
+        if not logged_in:
+            soup_err=BeautifulSoup(r1.text,"html.parser")
+            err=soup_err.find(class_=re.compile(r"rcp.error|rcp.notice|error"))
+            if err: print(f"   Error msg: {err.get_text(strip=True)[:120]}")
 
-        # Step 3: GET the large-cap screener
-        screener_url="https://acquirersmultiple.com/screener/large-cap/"
-        resp=sess.get(screener_url,timeout=20)
-        print(f"   Screener status: {resp.status_code}")
+        # Step 3: GET screener -- table is server-side HTML, no JS needed
+        r2=sess.get("https://acquirersmultiple.com/screener/large-cap/",timeout=20)
+        print(f"   Screener: {r2.status_code} | URL: {r2.url}")
+        soup2=BeautifulSoup(r2.text,"html.parser")
 
-        soup=BeautifulSoup(resp.text,"html.parser")
+        title=soup2.find("title")
+        print(f"   Title: {title.get_text(strip=True)[:60] if title else 'none'}")
+
+        # Find table with 'Ticker' header
         tickers=[]
-        tables=soup.find_all("table")
-        print(f"   Tables found: {len(tables)}")
-
-        for i,t in enumerate(tables[:6]):
+        for t in soup2.find_all("table"):
             rows=t.find_all("tr")
-            if not rows: continue
-            hdrs=[c.get_text(strip=True)[:20] for c in rows[0].find_all(["th","td"])]
-            if rows and len(rows)>3:
-                print(f"   Table {i}: {len(rows)} rows, headers: {hdrs[:5]}")
-
-        # Find table where first data column contains ticker-like values
-        target_table=None
-        for t in tables:
-            rows=t.find_all("tr")
-            if len(rows)<5: continue
-            if len(rows)>1:
-                first_row_cells=rows[1].find_all("td")
-                if first_row_cells:
-                    candidate=first_row_cells[0].get_text(strip=True).upper()
-                    candidate=re.sub(r"[^A-Z.]","",candidate)
-                    if re.match(r"^[A-Z]{1,5}$",candidate) and len(candidate)>=1:
-                        target_table=t
-                        print(f"   Found target table (first ticker: {candidate})")
-                        break
-
-        if target_table:
-            rows=target_table.find_all("tr")
+            if len(rows)<3: continue
             hdrs=[c.get_text(strip=True) for c in rows[0].find_all(["th","td"])]
-            print(f"   AM columns: {hdrs[:6]}")
-            for row in rows[1:]:
-                cells=row.find_all("td")
-                if cells:
-                    ticker=cells[0].get_text(strip=True).upper()
-                    ticker=re.sub(r"[^A-Z.]","",ticker)
-                    if ticker and re.match(r"^[A-Z]{1,5}$",ticker):
-                        tickers.append(ticker)
-        else:
-            # Fallback: scan all text for ticker-like patterns near prices
-            print("   Target table not found -- trying text scan fallback...")
-            all_text=soup.get_text()
-            # Look for lines that start with a ticker pattern
-            for line in all_text.splitlines():
-                line=line.strip()
-                if re.match(r"^[A-Z]{1,5}\s",line):
-                    ticker=line.split()[0]
-                    if re.match(r"^[A-Z]{1,5}$",ticker):
-                        tickers.append(ticker)
-                        if len(tickers)>=50: break
+            print(f"   Table: {len(rows)} rows | headers: {hdrs[:4]}")
+            if hdrs and hdrs[0].strip().lower()=="ticker":
+                for row in rows[1:]:
+                    cells=row.find_all("td")
+                    if cells:
+                        ticker=re.sub(r"[^A-Z.]","",cells[0].get_text(strip=True).upper())
+                        if re.match(r"^[A-Z]{1,5}$",ticker):
+                            tickers.append(ticker)
+                break
 
         tickers=list(dict.fromkeys(tickers))
         print(f"   ✅ Acquirer's Multiple: {len(tickers)} tickers")
@@ -1193,7 +1180,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
             umich_raw_lbl,ucol,umich_sig,"U of Michigan · avg ~75 · monthly")
     )
 
-    # AAII row if available
+    # AAII row -- show data if available, otherwise show N/A with link
     if aaii_data:
         spread=aaii_data.get("spread",0)
         aaii_sig=aaii_data.get("signal","")
@@ -1204,6 +1191,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                       f"Spread: {spread:+.1f}%",
                       aaii_lbl,aaii_col,aaii_sig,
                       "AAII · 160K retail investors · weekly Thursday · contrarian indicator")
+    else:
+        # Blocked by Incapsula -- show N/A row with manual link
+        sent_rows+=f'<tr style="border-bottom:1px solid #f3f4f6;"><td style="padding:7px 10px;"><div style="font-weight:600;font-size:.82rem;">AAII Sentiment</div><div style="font-size:.6rem;color:#9ca3af;">AAII · 160K retail investors · weekly Thursday · contrarian indicator</div></td><td style="padding:7px 10px;font-size:.82rem;color:#9ca3af;">N/A</td><td style="padding:7px 10px;font-size:.75rem;color:#9ca3af;">Blocked by CDN</td><td style="padding:7px 10px;"><span style="background:#9ca3af;color:white;padding:2px 9px;border-radius:4px;font-size:.68rem;font-weight:700;">N/A</span></td><td style="padding:7px 10px;font-size:.72rem;color:#6b7280;"><a href="https://www.aaii.com/sentimentsurvey" target="_blank" style="color:#1a56db;">Check aaii.com manually</a> &nbsp;·&nbsp; Bears &gt;50% = strong contrarian buy historically</td></tr>'
 
     # ---- FRED table (grouped, correct colors) ----------------
     group_order=["INFLATION","TREASURY","ECONOMIC","CREDIT"]
