@@ -30,6 +30,10 @@ jobs:
           YAHOO_EMAIL:         ${{ secrets.YAHOO_EMAIL }}
           YAHOO_APP_PASSWORD:  ${{ secrets.YAHOO_APP_PASSWORD }}
           FRED_API_KEY:        ${{ secrets.FRED_API_KEY }}
+          MFI_EMAIL:           ${{ secrets.MFI_EMAIL }}
+          MFI_PASSWORD:        ${{ secrets.MFI_PASSWORD }}
+          AM_EMAIL:            ${{ secrets.AM_EMAIL }}
+          AM_PASSWORD:         ${{ secrets.AM_PASSWORD }}
         run: python main.py
 
       - name: Commit and push dashboard
