@@ -121,8 +121,14 @@ def _trend_color(label, group, trend):
         if "Unemployment" in label:
             # Rising unemployment (▲) = bad = red
             return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
+        elif "WTI" in label or "Crude" in label:
+            # Rising oil (▲) = bad -- raises inflation, input costs, recession risk
+            return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
+        elif "Fed Funds" in label:
+            # Rising Fed Funds (▲) = tightening = bad for stocks
+            return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
         else:
-            # Default: up = good
+            # Consumer Sentiment: up = good = green
             return "#057a55" if trend=="▲" else "#c81e1e" if trend=="▼" else "#6b7280"
     return "#6b7280"
 
@@ -593,7 +599,38 @@ def compute_mri(fred_data, fg_data, mkt_data, aaii_data):
 # ============================================================
 
 def fetch_superinvestor_buys():
+    # Dataroma rate-limits aggressively (HTTP 409 on repeat runs).
+    # Cache strategy: fetch_cache.py runs first in daily.yml and writes
+    # dataroma_cache.json to the repo. main.py reads that file.
+    # Cache TTL: 20 hours -- safe for data that updates quarterly.
+    # Fallback: if cache missing or stale, attempt live fetch here.
+    import json as _json
+    CACHE_FILE="dataroma_cache.json"
+    CACHE_TTL_HOURS=20
+
     print("\n👑 Fetching Dataroma superinvestor quarterly buys...")
+
+    # Try reading cache first
+    try:
+        with open(CACHE_FILE,"r") as f:
+            cached=_json.load(f)
+        fetched_at=datetime.fromisoformat(cached.get("fetched_at","2000-01-01T00:00:00"))
+        age_hours=(datetime.now()-fetched_at).total_seconds()/3600
+        if age_hours<CACHE_TTL_HOURS and cached.get("buys"):
+            buys=cached["buys"]
+            print(f"   ✅ Dataroma (cache {age_hours:.1f}h old): {len(buys)} stocks")
+            top3=sorted(buys.items(),key=lambda x:-x[1])[:3]
+            print(f"   Top: {top3}")
+            log(f"Dataroma 13F: {len(buys)} stocks (from cache {age_hours:.1f}h old)")
+            return buys
+        else:
+            print(f"   Cache stale ({age_hours:.1f}h) -- fetching live")
+    except FileNotFoundError:
+        print("   No cache file -- fetching live")
+    except Exception as e:
+        print(f"   Cache read error: {e} -- fetching live")
+
+    # Live fetch
     try:
         url="https://www.dataroma.com/m/g/portfolio_b.php?q=q"
         hdrs={"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
@@ -603,7 +640,7 @@ def fetch_superinvestor_buys():
         if resp.status_code!=200: raise Exception(f"HTTP {resp.status_code}")
 
         soup=BeautifulSoup(resp.text,"html.parser")
-        buys={}  # ticker -> count
+        buys={}
 
         table=soup.find("table",{"id":"grid"})
         if not table:
@@ -614,30 +651,25 @@ def fetch_superinvestor_buys():
             rows=table.find_all("tr")
             headers=[th.get_text(strip=True) for th in rows[0].find_all(["th","td"])]
             print(f"   Columns: {headers}")
-
-            # Find correct column indices by header name
             sym_idx=next((i for i,h in enumerate(headers)
                           if any(k in h for k in ["Symbol","Ticker","symbol","ticker"])),0)
             buy_idx=next((i for i,h in enumerate(headers)
                           if any(k in h for k in ["Buy","buy","Count","count"])),3)
             print(f"   Using: Symbol col={sym_idx}, Buys col={buy_idx}")
-
             for row in rows[1:]:
                 cells=row.find_all("td")
                 if len(cells)>max(sym_idx,buy_idx):
                     ticker=re.sub(r"[^A-Z.]","",cells[sym_idx].get_text(strip=True).upper())[:6]
-                    if not ticker or len(ticker)<1: continue
-                    try:
-                        count=int(cells[buy_idx].get_text(strip=True).replace(",",""))
-                    except:
-                        count=1
+                    if not ticker: continue
+                    try: count=int(cells[buy_idx].get_text(strip=True).replace(",",""))
+                    except: count=1
                     if ticker: buys[ticker]=count
 
-        print(f"   ✅ Dataroma: {len(buys)} stocks")
+        print(f"   ✅ Dataroma: {len(buys)} stocks (live fetch)")
         if buys:
             top3=sorted(buys.items(),key=lambda x:-x[1])[:3]
             print(f"   Top: {top3}")
-        log(f"Dataroma 13F: {len(buys)} stocks")
+        log(f"Dataroma 13F: {len(buys)} stocks (live fetch)")
         return buys
     except Exception as e:
         print(f"   ❌ Dataroma failed: {e}")
@@ -1125,7 +1157,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 
     mri_score=mri["score"]; mri_lbl=mri["label"]; mri_col=mri["color"]
     mri_action=mri["action"]
-    mri_breakdown="".join([f'<span style="font-size:.63rem;color:#6b7280;margin-right:10px;">{b}</span>' for b in mri["breakdown"]])
+    mri_breakdown='<span style="font-size:.63rem;color:#6b7280;margin-right:10px;">Base +50</span>'+"".join([f'<span style="font-size:.63rem;color:#6b7280;margin-right:10px;">{b}</span>' for b in mri["breakdown"]])
 
     # ---- Market status banner --------------------------------
     mkt_banner=""
@@ -1231,30 +1263,64 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     if learn_raw: learn_raw=re.sub(r"^[-•*]\s*","",learn_raw.splitlines()[0].strip())
     else:         learn_raw="Transformer architecture: the neural network design behind all modern LLMs -- uses attention to weigh relationships between all words simultaneously."
 
-    # ---- Hidden market-context div (ultra-compact for Chrome extension) ----
-    # Designed for minimum token usage when fed into mean reversion LLM analysis
-    fred_compact="\n".join([f"{r['label']}: {r['current']} ({r['trend']})" for r in fred_data if r["current"]!="N/A"])
-    aaii_compact=""
-    if aaii_data: aaii_compact=f"\nAAII: Bull {aaii_data['bullish']}% Bear {aaii_data['bearish']}% Spread {aaii_data['spread']:+.1f}%"
+    # ---- Hidden market-context div (Chrome extension reads this) ----
+    # Format goals:
+    #   - No SPX/RUT/VIX -- extension fetches those live from Yahoo Finance
+    #   - No date -- wastes tokens, extension knows when it runs
+    #   - All 12 FRED indicators with 3mo reference so trend arrows have meaning
+    #   - MRI explained inline so extension prompt doesn't need a separate glossary
+    #   - Screens: alphabetical pipe-separated, source tags only (no counts)
 
-    # Ticker compact: alphabetical, all tags, pipe-separated
-    ticker_compact=" | ".join([
-        tag for t in all_tickers_set
-        if (tag:=_ticker_tag(t,si_tickers,mf_tickers,am_tickers)) is not None
+    # Build FRED compact: all 12, grouped, with 3mo anchor
+    def _fred_val(lbl):
+        r=next((x for x in fred_data if x["label"]==lbl),None)
+        if not r or r["current"]=="N/A": return None,None,None
+        return r["current"],r["mo3"],r["trend"]
+
+    def _fred_line(lbl,short):
+        cur,mo3,trend=_fred_val(lbl)
+        if cur is None: return f"{short}=N/A"
+        arrow="↑" if trend=="▲" else "↓" if trend=="▼" else "→"
+        return f"{short}={cur}(vs3mo:{mo3}){arrow}"
+
+    inflation_line="|".join([
+        _fred_line("CPI Inflation","CPI"),
+        _fred_line("Core CPI","CoreCPI"),
+        _fred_line("PCE Inflation","PCE"),
+        _fred_line("Core PCE","CorePCE"),
+    ])
+    treasury_line="|".join([
+        _fred_line("10Y Treasury","10Y"),
+        _fred_line("2Y Treasury","2Y"),
+        _fred_line("Yield Curve (10Y-2Y)","YieldCurve"),
+    ])
+    credit_line=_fred_line("HY Credit Spread","HYSpread")+"(Tight<3%=calm,Wide>6%=stress)"
+    economic_line="|".join([
+        _fred_line("Fed Funds Rate","FedFunds"),
+        _fred_line("Unemployment","Unemp"),
+        _fred_line("WTI Crude Oil","WTI"),
+        _fred_line("Consumer Sentiment","ConsSent")+"(avg~75,<60=stress)",
     ])
 
-    mctx=f"""MARKETPULSE AI - {today} {now} MT
-MRI: {mri_score}/100 {mri_lbl} | {mri_action}
-SPX: {spx_chg} ({spx_lbl}) | RUT: {rut_chg} ({rut_lbl}) | VIX: {vix_val} ({vix_lbl}) | {mkt_state}
-F&G: {fg_score}/100 ({fg_lbl}) | Consumer: {umich_val}/100{aaii_compact}
-MACRO:
-{fred_compact}
-BRIEFING:
-{secs.get('MARKET AND MACRO','').strip()}
-WHAT TO WATCH:
-{secs.get('WHAT TO WATCH','').strip()}
-SCREENS (13F+MF+AM):
-{ticker_compact}"""
+    aaii_compact=""
+    if aaii_data:
+        aaii_compact=f"|AAII=Bull{aaii_data['bullish']}%Bear{aaii_data['bearish']}%Spread{aaii_data['spread']:+.1f}%"
+
+    # Ticker compact: pipe-separated, SI count stripped (just source tags)
+    ticker_compact="|".join([
+        f"{t}({','.join([s for s in [('SI' if si_tickers.get(t,0)>0 else ''),('MF' if t in mf_tickers else ''),('AM' if t in am_tickers else '')] if s])})"
+        for t in all_tickers_set
+        if si_tickers.get(t,0)>0 or t in mf_tickers or t in am_tickers
+    ])
+
+    mctx=f"""MACRO_HEAT={mri_score}/100({mri_lbl.replace('🟢 ','').replace('🟠 ','').replace('⛔ ','')})|Scale:0=max_fear/deploy,100=max_greed/overheated
+POSTURE={mri_action}
+INFLATION:{inflation_line}
+TREASURY:{treasury_line}
+CREDIT:{credit_line}
+ECONOMIC:{economic_line}
+SENTIMENT:FG={fg_score}/100({fg_lbl}){aaii_compact}
+SCREENS(SI=13F_superinvestors|MF=Greenblatt_MagicFormula|AM=Carlisle_AcquirersMultiple):{ticker_compact}"""
 
     # ---- Run log HTML (collapsed by default) -----------------
     elapsed=round(time.time()-RUN_START)
@@ -1283,7 +1349,7 @@ SCREENS (13F+MF+AM):
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>MarketPulse AI · {today}</title>
+<title>Mean Reversion Macro Insights · {today}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <style>
   :root{{--blue:#1a56db;--green:#057a55;--red:#c81e1e;--amber:#b45309;--ink:#111928;--muted:#6b7280;--border:#e5e7eb;--bg:#f3f4f6;--card:#fff;}}
@@ -1316,7 +1382,7 @@ SCREENS (13F+MF+AM):
 <div id="market-context" style="display:none;white-space:pre;">{mctx}</div>
 
 <div class="hero">
-  <h1>📈 MARKETPULSE AI</h1>
+  <h1>📈 MEAN REVERSION MACRO INSIGHTS</h1>
   <div class="sub">Anil Abraham &nbsp;·&nbsp; {today}</div>
   <div class="ts">Last updated {now} MT</div>
 </div>
