@@ -22,7 +22,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install requests beautifulsoup4 google-genai
+          pip install requests beautifulsoup4 google-genai anthropic
 
       - name: Fetch and cache slow data sources
         # Runs fetch_cache.py BEFORE main.py.
@@ -46,6 +46,7 @@ jobs:
       - name: Run MarketPulse AI
         env:
           GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }} 
           YAHOO_EMAIL:         ${{ secrets.YAHOO_EMAIL }}
           YAHOO_APP_PASSWORD:  ${{ secrets.YAHOO_APP_PASSWORD }}
           FRED_API_KEY:        ${{ secrets.FRED_API_KEY }}

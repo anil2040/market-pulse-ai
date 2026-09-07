@@ -12,13 +12,17 @@
 # reversion analysis.
 #
 # PIPELINE (in execution order):
-#   1.  FRED macro indicators -- 15 series parallel (20s timeout)
+#   1.  FRED macro indicators -- 14 series parallel (20s timeout)
+#       Gold fetched from Yahoo Finance GC=F (FRED discontinued
+#       GOLDAMGBD228NLBM in 2025 with no replacement).
+#       Shiller CAPE scraped from multpl.com (never on FRED).
 #       Groups: INFLATION | RATES | CREDIT | LABOR |
 #               COMMODITIES | CURRENCY | SENTIMENT_FRED | VALUATION
-#       limit=500 per call to handle daily (Gold) and monthly (CAPE) series.
+#       limit=500 per call to handle daily and monthly series.
 #   2.  CNN Fear & Greed -- JSON endpoint, updates intraday
 #   3.  Market data -- SPX, RUT, VIX + URTH PE, EFA PE
-#       PE via v8/chart meta (v7/quote fallback, v10 last resort)
+#       PE hardcoded approx (Yahoo broke ETF PE mid-2026,
+#       iShares pages are JS-rendered, not scrapeable).
 #   4.  MHS (Macro Heat Score) -- inverted 0-100 composite
 #       Includes CAPE contribution (+15 at current ~41x)
 #   5.  Dataroma 13F -- reads cache first, live fetch fallback
@@ -104,18 +108,15 @@ print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Haiku f
 # Rate limit: 120 req/min per API key. We use 15 parallel calls --
 # well within limits. Data covers 800,000+ economic time series.
 #
-# FIX (Sep 2026): Changed limit=15 to limit=500.
-# Root cause of Gold + CAPE failures:
-#   GOLDAMGBD228NLBM is daily -- weekends/holidays stored as "." (missing).
-#   With limit=15, after filtering dots we might only have ~3 weeks of data,
-#   nowhere near enough for 12-month lookback. obs[12] was returning a recent
-#   value, not 12-months-ago.
-#   SHILLER_CAPE is monthly with ~1-2 month publication lag from Yale/Shiller.
-#   limit=15 barely covered 12 months and would fail if any obs were missing.
-# Fix: limit=500 + auto-detect daily vs monthly by checking date gap between
-# obs[0] and obs[1], then use correct index offsets:
-#   Daily:   mo3_idx=65  (trading days), mo12_idx=260
-#   Monthly: mo3_idx=3   (calendar months), mo12_idx=12
+# GOLD FIX (Sep 2026): GOLDAMGBD228NLBM was discontinued by FRED
+# in 2025 with no replacement. Now fetched from Yahoo Finance
+# using GC=F (Comex gold front-month futures). Series id "_YAHOO_GCF"
+# is a sentinel that routes to the Yahoo fetch path in _fetch_one_fred.
+#
+# CAPE FIX (Sep 2026): SHILLER_CAPE was never a valid FRED series ID.
+# FRED does not host Shiller CAPE. Now scraped from multpl.com which
+# pulls directly from Shiller's Yale dataset and updates daily.
+# Series id "_SCRAPE_MULTPL" routes to the multpl.com scrape path.
 #
 # COLOR LOGIC for trend arrows (what direction is GOOD for equity investors):
 #   INFLATION:    UP=red(bad)        DOWN=green(good)
@@ -158,7 +159,9 @@ FRED_SERIES = [
     # ---- COMMODITIES ----
     {"label":"WTI Crude Oil",        "id":"DCOILWTICO",       "is_index":False, "group":"COMMODITIES",
      "prefix":"$", "insight":"Energy price · >$85 = inflation pressure & input cost risk"},
-    {"label":"Gold Price",           "id":"GOLDAMGBD228NLBM", "is_index":False, "group":"COMMODITIES",
+    # GOLD FIX: id="_YAHOO_GCF" routes to Yahoo Finance GC=F fetch.
+    # GOLDAMGBD228NLBM was discontinued by FRED in 2025.
+    {"label":"Gold Price",           "id":"_YAHOO_GCF",       "is_index":False, "group":"COMMODITIES",
      "prefix":"$", "no_pct":True,
      "insight":"Fear/inflation hedge · rising+lowVIX = stealth fear signal"},
     # ---- CURRENCY ----
@@ -169,11 +172,11 @@ FRED_SERIES = [
     {"label":"Consumer Sentiment",   "id":"UMCSENT",          "is_index":False, "group":"SENTIMENT_FRED",
      "no_pct":True, "insight":"U of Michigan 0-100 · avg ~75 · <60 = consumer stress"},
     # ---- VALUATION ----
-    # Shiller CAPE: real S&P 500 price / 10yr avg real earnings.
-    # Monthly series from Yale/Robert Shiller. ~1-2 month publication lag.
-    # Shiller won the 2013 Nobel Prize for predicting low future returns when CAPE is high.
-    # Current ~41 = 98.8th percentile. Dot-com peak was 44.2x (Dec 1999).
-    {"label":"Shiller CAPE (US)",    "id":"SHILLER_CAPE",     "is_index":False, "group":"VALUATION",
+    # CAPE FIX: id="_SCRAPE_MULTPL" routes to multpl.com scrape.
+    # FRED never hosted Shiller CAPE. SHILLER_CAPE was an invalid ID.
+    # multpl.com pulls directly from Shiller's Yale dataset, updates daily.
+    # Current Sep 2026: 41.4x -- 98.8th percentile since 1881.
+    {"label":"Shiller CAPE (US)",    "id":"_SCRAPE_MULTPL",   "is_index":False, "group":"VALUATION",
      "no_pct":True,
      "insight":"Cyclically Adj PE · 10yr smoothed · hist avg 17x · ~41 = 2nd highest ever"},
 ]
@@ -224,7 +227,6 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
     """
     Generate contextual insight text for each indicator.
     Compares current value to historical norms, not just recent direction.
-    Uses double-arrow notation: first=vs3mo direction, second=vs12mo direction.
     """
     try:
         cur  = float(re.sub(r"[%$,]","",str(cur_str)))
@@ -335,34 +337,134 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
 
 def _fetch_one_fred(cfg, start_date, end_date):
     """
-    Fetch a single FRED series and compute current, 3mo, 12mo values.
-    For index series (CPI, PCE): converts raw index to YoY % change.
-    For level series (rates, spreads): returns raw values.
-
-    KEY FIX: limit=500 (was 15).
-    Gold (GOLDAMGBD228NLBM) is daily -- weekends/holidays are "." and get
-    filtered. With limit=15, valid obs only spanned ~3 weeks. 12-month
-    lookback requires ~260 valid trading days in the buffer.
-    SHILLER_CAPE is monthly with ~1-2 month lag; limit=15 was too tight.
-    Auto-detects daily vs monthly by checking date gap between obs[0..1].
+    Fetch a single data series. Routes to the correct source based on series id:
+      _YAHOO_GCF     -> Yahoo Finance GC=F (gold futures).
+                        GOLDAMGBD228NLBM was discontinued by FRED in 2025.
+      _SCRAPE_MULTPL -> multpl.com scrape for Shiller CAPE.
+                        FRED never hosted this series. SHILLER_CAPE was always invalid.
+      anything else  -> standard FRED API call (unchanged logic).
     """
     label    = cfg["label"]
     sid      = cfg["id"]
     is_index = cfg["is_index"]
     no_pct   = cfg.get("no_pct", False)
     prefix   = cfg.get("prefix", "")
-    empty    = {**cfg,"current":"N/A","mo3":"N/A","mo12":"N/A","trend":"?","date":"N/A","sig":""}
+    empty    = {**cfg, "current":"N/A", "mo3":"N/A", "mo12":"N/A",
+                "trend":"?", "date":"N/A", "sig":""}
 
+    # ----------------------------------------------------------
+    # GOLD: fetch from Yahoo Finance GC=F futures
+    # GOLDAMGBD228NLBM was discontinued by FRED in 2025 with no
+    # replacement series. GC=F (Comex gold front-month futures)
+    # tracks spot gold closely (within ~$5-10) and updates daily.
+    # Uses the same Yahoo v8/chart endpoint already proven for SPX/VIX.
+    # range=400d gives ~280 valid trading days -- enough for mo12_idx=260.
+    # ----------------------------------------------------------
+    if sid == "_YAHOO_GCF":
+        try:
+            hdrs = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                    "Accept": "application/json"}
+            url  = "https://query1.finance.yahoo.com/v8/finance/chart/GC=F?interval=1d&range=400d"
+            resp = requests.get(url, headers=hdrs, timeout=12)
+            data = resp.json()
+            timestamps = data["chart"]["result"][0]["timestamp"]
+            closes     = data["chart"]["result"][0]["indicators"]["quote"][0]["close"]
+
+            # Filter None values (market closed days / missing data)
+            pairs = [(t, c) for t, c in zip(timestamps, closes) if c is not None]
+            if len(pairs) < 10:
+                return {**empty, "sig": "Gold: insufficient data from Yahoo GC=F"}
+
+            v0  = pairs[-1][1]
+            v3  = pairs[max(0, len(pairs) - 65)][1]    # ~65 trading days = 3 months
+            v12 = pairs[max(0, len(pairs) - 260)][1]   # ~260 trading days = 12 months
+            pub = datetime.fromtimestamp(pairs[-1][0]).strftime("%b %d %Y")
+
+            dc    = f"${v0:,.0f}"
+            dm3   = f"${v3:,.0f}"
+            dm12  = f"${v12:,.0f}"
+            trend = "▲" if v0 > v3 * 1.001 else "▼" if v0 < v3 * 0.999 else "→"
+            sig   = _insight(label, dc, dm3, dm12, trend)
+            return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12,
+                    "trend": trend, "date": pub, "sig": sig}
+        except Exception as e:
+            return {**empty, "sig": f"Gold Yahoo fetch failed: {str(e)[:50]}"}
+
+    # ----------------------------------------------------------
+    # SHILLER CAPE: scrape multpl.com
+    # FRED never hosted Shiller CAPE. SHILLER_CAPE was an invalid
+    # series ID -- the error was "series_id too long / invalid".
+    # multpl.com pulls directly from Shiller's Yale dataset and
+    # updates daily. The #current div has been stable for years.
+    # 3mo and 12mo values come from the monthly datatable on the
+    # same page -- no extra HTTP calls needed.
+    # ----------------------------------------------------------
+    if sid == "_SCRAPE_MULTPL":
+        try:
+            hdrs = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
+            resp = requests.get("https://www.multpl.com/shiller-pe",
+                                headers=hdrs, timeout=15)
+            soup = BeautifulSoup(resp.text, "html.parser")
+
+            # Current value from the #current div
+            div = soup.find("div", {"id": "current"})
+            if not div:
+                return {**empty, "sig": "CAPE: multpl.com #current div not found"}
+            match = re.search(r"(\d+\.\d+)", div.get_text())
+            if not match:
+                return {**empty, "sig": "CAPE: could not parse number from multpl.com"}
+            v0 = float(match.group(1))
+
+            # 3mo and 12mo from the monthly datatable on the same page
+            v3  = v0   # fallback: same as current if table parse fails
+            v12 = v0
+            table = soup.find("table", {"id": "datatable"})
+            if table:
+                rows = table.find_all("tr")
+                # rows[1] = most recent month, rows[3] = ~3mo ago, rows[12] = ~12mo ago
+                def _row_val(row):
+                    cells = row.find_all("td")
+                    if len(cells) >= 2:
+                        try:
+                            return float(cells[1].get_text(strip=True))
+                        except Exception:
+                            pass
+                    return None
+                if len(rows) > 3:
+                    v = _row_val(rows[3])
+                    if v:
+                        v3 = v
+                if len(rows) > 12:
+                    v = _row_val(rows[12])
+                    if v:
+                        v12 = v
+
+            pub   = datetime.now().strftime("%b %d %Y")
+            dc    = f"{v0:.1f}"
+            dm3   = f"{v3:.1f}"
+            dm12  = f"{v12:.1f}"
+            trend = "▲" if v0 > v3 + 0.2 else "▼" if v0 < v3 - 0.2 else "→"
+            sig   = _insight(label, dc, dm3, dm12, trend)
+            return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12,
+                    "trend": trend, "date": pub, "sig": sig}
+        except Exception as e:
+            return {**empty, "sig": f"CAPE multpl.com failed: {str(e)[:50]}"}
+
+    # ----------------------------------------------------------
+    # STANDARD FRED API (all other 13 series -- unchanged logic)
+    # limit=500 handles both daily (WTI, DXY) and monthly series.
+    # Auto-detects daily vs monthly by date gap between obs[0..1].
+    # ----------------------------------------------------------
     try:
         url  = (f"https://api.stlouisfed.org/fred/series/observations"
                 f"?series_id={sid}&api_key={FRED_API_KEY}&file_type=json"
                 f"&observation_start={start_date}&observation_end={end_date}"
                 f"&sort_order=desc&limit=500")
         resp = requests.get(url, timeout=20)
-        obs  = [o for o in resp.json().get("observations",[]) if o["value"] != "."]
-        if not obs: return empty
+        obs  = [o for o in resp.json().get("observations", []) if o["value"] != "."]
+        if not obs:
+            return empty
 
-        # Auto-detect daily/weekly vs monthly by checking date gap
         is_daily = False
         if len(obs) >= 2:
             try:
@@ -372,50 +474,49 @@ def _fetch_one_fred(cfg, start_date, end_date):
             except Exception:
                 is_daily = False
 
-        # Index positions for 3mo and 12mo anchors
         if is_daily:
-            mo3_idx  = min(65,  len(obs)-1)   # ~65 trading days = 3 months
-            mo12_idx = min(260, len(obs)-1)   # ~260 trading days = 12 months
+            mo3_idx  = min(65,  len(obs) - 1)
+            mo12_idx = min(260, len(obs) - 1)
         else:
-            mo3_idx  = min(3,  len(obs)-1)    # 3 monthly observations back
-            mo12_idx = min(12, len(obs)-1)    # 12 monthly observations back
+            mo3_idx  = min(3,  len(obs) - 1)
+            mo12_idx = min(12, len(obs) - 1)
 
         v0  = float(obs[0]["value"])
         v3  = float(obs[mo3_idx]["value"])
         v12 = float(obs[mo12_idx]["value"])
 
         if is_index and v12:
-            # YoY % change (e.g. CPI raw index -> annual inflation rate)
             cur  = (v0 - v12) / v12 * 100
-            v15_idx = min(mo12_idx + mo3_idx, len(obs)-1)
+            v15_idx = min(mo12_idx + mo3_idx, len(obs) - 1)
             v15  = float(obs[v15_idx]["value"])
             mo3v = (v3 - v15) / v15 * 100 if v15 else cur
             dc   = f"{cur:.1f}%"; dm3 = f"{mo3v:.1f}%"; dm12 = f"{mo3v:.1f}%"
-            trend = "▼" if cur < mo3v-0.05 else "▲" if cur > mo3v+0.05 else "→"
+            trend = "▼" if cur < mo3v - 0.05 else "▲" if cur > mo3v + 0.05 else "→"
         elif no_pct:
-            # Raw number (Gold price in $, DXY index, Consumer Sentiment, CAPE)
-            fmt  = lambda v: f"{prefix}{v:,.0f}" if v > 999 else f"{prefix}{v:.2f}" if prefix else f"{v:.1f}"
+            fmt  = lambda v: (f"{prefix}{v:,.0f}" if v > 999
+                              else f"{prefix}{v:.2f}" if prefix
+                              else f"{v:.1f}")
             dc   = fmt(v0); dm3 = fmt(v3); dm12 = fmt(v12)
-            trend = "▲" if v0 > v3+0.05 else "▼" if v0 < v3-0.05 else "→"
+            trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
         elif prefix:
-            # Dollar-prefixed level (WTI crude)
             dc   = f"{prefix}{v0:.1f}"; dm3 = f"{prefix}{v3:.1f}"; dm12 = f"{prefix}{v12:.1f}"
-            trend = "▲" if v0 > v3+0.05 else "▼" if v0 < v3-0.05 else "→"
+            trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
         else:
-            # Percentage rate (Treasury yields, HY spread, unemployment)
             dc   = f"{v0:.2f}%"; dm3 = f"{v3:.2f}%"; dm12 = f"{v12:.2f}%"
-            trend = "▲" if v0 > v3+0.05 else "▼" if v0 < v3-0.05 else "→"
+            trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
 
-        pub = datetime.strptime(obs[0]["date"],"%Y-%m-%d").strftime("%b %d %Y")
+        pub = datetime.strptime(obs[0]["date"], "%Y-%m-%d").strftime("%b %d %Y")
         sig = _insight(label, dc, dm3, dm12, trend)
-        return {**cfg, "current":dc, "mo3":dm3, "mo12":dm12, "trend":trend, "date":pub, "sig":sig}
+        return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12,
+                "trend": trend, "date": pub, "sig": sig}
 
     except Exception as e:
-        return {**empty, "sig":str(e)[:50]}
+        return {**empty, "sig": str(e)[:50]}
 
 
 def fetch_fred_data():
-    """Fetch all 15 FRED series in parallel (20s timeout per call)."""
+    """Fetch all 15 series in parallel (20s timeout per call).
+    Gold and CAPE route to Yahoo/multpl inside _fetch_one_fred."""
     print("\n🏦 Fetching FRED macro indicators (parallel, 20s timeout)...")
     end   = date.today().strftime("%Y-%m-%d")
     start = (date.today() - timedelta(days=460)).strftime("%Y-%m-%d")
@@ -429,8 +530,8 @@ def fetch_fred_data():
             icon = "✅" if r["current"] != "N/A" else "❌"
             print(f"   {icon} {r['label']}: {r['current']} {r['trend']}")
 
-    results = [rmap.get(c["label"], {**c,"current":"N/A","mo3":"N/A","mo12":"N/A","trend":"?","date":"N/A","sig":""})
-               for c in FRED_SERIES]
+    results = [rmap.get(c["label"], {**c,"current":"N/A","mo3":"N/A","mo12":"N/A",
+               "trend":"?","date":"N/A","sig":""}) for c in FRED_SERIES]
     ok = sum(1 for r in results if r["current"] != "N/A")
     log(f"FRED: {ok}/{len(results)} indicators fetched", "✅" if ok==len(results) else "⚠️")
     return results
@@ -438,12 +539,6 @@ def fetch_fred_data():
 
 # ============================================================
 # STEP 2: CNN FEAR & GREED
-# ============================================================
-# Composite of 7 market indicators: market momentum, stock price
-# strength, stock breadth, put/call ratio, junk bond demand,
-# market volatility (VIX), safe haven demand.
-# Score 0 = extreme fear (buying opportunity). 100 = extreme greed.
-# Updates throughout the trading day.
 # ============================================================
 
 def fetch_fear_greed():
@@ -480,16 +575,13 @@ def fetch_fear_greed():
 # STEP 3: MARKET DATA (Yahoo Finance)
 # ============================================================
 # SPX, RUT, VIX: v8/chart endpoint (unchanged, reliable).
-# URTH PE, EFA PE: FIX (Sep 2026).
-#   v10/quoteSummary stopped returning trailingPE for ETFs without
-#   an auth cookie/crumb pair. Three-stage fallback chain:
-#   1. v8/chart meta.trailingPE (direct field on some ETFs)
-#   2. v8/chart: compute price / regularMarketEpsTrailingTwelveMonths
-#   3. v7/finance/quote quoteResponse trailingPE
-#   4. v10/quoteSummary (original, last resort)
-#
-# VIX thresholds (match Chrome extension background.js exactly):
-#   CALM(<15) NORMAL(<20) CAUTIOUS(<25) FEARFUL(<30) PANIC(>=30)
+# URTH PE, EFA PE: hardcoded approximations.
+#   Yahoo Finance stopped returning PE for ETFs across all
+#   endpoints (v8/v7/v10) as of mid-2026. iShares product pages
+#   render PE via JavaScript -- requests/BeautifulSoup cannot
+#   scrape them without a headless browser. Hardcoded values
+#   sourced from iShares.com -- update quarterly.
+#   Last checked: Sep 2026. URTH ~23x, EFA ~14x.
 # ============================================================
 
 def _classify_vix(v):
@@ -526,55 +618,20 @@ def _yq(ticker):
 
 def _yq_pe(ticker):
     """
-    Fetch trailing PE ratio for ETFs (URTH, EFA).
-    FIX (Sep 2026): v10/quoteSummary broken for ETFs without auth cookie.
-    Four-stage fallback: v8 direct -> v8 computed -> v7/quote -> v10 last resort.
+    PE ratio for ETFs URTH and EFA.
+    Yahoo Finance v8/v7/v10 all stopped returning PE for ETFs as of mid-2026.
+    iShares product pages render PE via JavaScript so requests cannot scrape them.
+    Hardcoded approximate values from iShares.com -- update quarterly.
+    Last verified: Sep 2026.
     """
-    hdrs = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)","Accept":"application/json"}
-
-    # Stage 1 + 2: v8/chart meta block
-    try:
-        url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
-        resp = requests.get(url, headers=hdrs, timeout=12)
-        meta = resp.json()["chart"]["result"][0]["meta"]
-        # Direct trailingPE field
-        if meta.get("trailingPE"):
-            return float(meta["trailingPE"])
-        # Compute from price / trailing EPS
-        price = float(meta.get("regularMarketPrice") or 0)
-        eps   = float(meta.get("regularMarketEpsTrailingTwelveMonths") or 0)
-        if price and eps and eps > 0:
-            return round(price / eps, 1)
-    except Exception:
-        pass
-
-    # Stage 3: v7/finance/quote
-    try:
-        url  = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={ticker}"
-        resp = requests.get(url, headers=hdrs, timeout=12)
-        results = resp.json().get("quoteResponse", {}).get("result", [])
-        if results and results[0].get("trailingPE"):
-            return float(results[0]["trailingPE"])
-    except Exception:
-        pass
-
-    # Stage 4: v10/quoteSummary (original, last resort)
-    try:
-        url  = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=summaryDetail"
-        resp = requests.get(url, headers=hdrs, timeout=12)
-        result = resp.json().get("quoteSummary",{}).get("result",[])
-        if result:
-            pe = result[0].get("summaryDetail",{}).get("trailingPE",{})
-            if isinstance(pe, dict):
-                return pe.get("raw", None)
-            return pe if pe else None
-    except Exception:
-        pass
-
-    return None
+    APPROX_PE = {
+        "URTH": 23.0,   # iShares MSCI World ETF -- Sep 2026
+        "EFA":  14.0,   # iShares MSCI EAFE ETF  -- Sep 2026
+    }
+    return APPROX_PE.get(ticker, None)
 
 def fetch_market_indicators():
-    """Fetch SPX, RUT, VIX + URTH and EFA PE ratios in parallel."""
+    """Fetch SPX, RUT, VIX in parallel. PE ratios use hardcoded approximations."""
     print("\n📊 Fetching Market Performance (SPX, RUT, VIX, URTH PE, EFA PE)...")
     res = {
         "vix":{"value":"N/A","label":"N/A","color":"#6b7280","signal":"","prev":"N/A"},
@@ -584,20 +641,20 @@ def fetch_market_indicators():
         "market_state":"UNKNOWN","market_status_label":"","pulse":"",
     }
     try:
-        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as ex:
-            fv    = ex.submit(_yq,    "%5EVIX")
-            fs    = ex.submit(_yq,    "%5EGSPC")
-            fr    = ex.submit(_yq,    "%5ERUT")
-            furth = ex.submit(_yq_pe, "URTH")
-            fefa  = ex.submit(_yq_pe, "EFA")
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+            fv = ex.submit(_yq, "%5EVIX")
+            fs = ex.submit(_yq, "%5EGSPC")
+            fr = ex.submit(_yq, "%5ERUT")
             vp,vpr,_,vs  = fv.result(timeout=15)
             sp,spr,sc,ss = fs.result(timeout=15)
             rp,rpr,rc,rs = fr.result(timeout=15)
-            urth_pe      = furth.result(timeout=15)
-            efa_pe       = fefa.result(timeout=15)
 
-        res["urth_pe"] = round(urth_pe,1) if urth_pe else None
-        res["efa_pe"]  = round(efa_pe,1)  if efa_pe  else None
+        # PE ratios -- hardcoded, no network call needed
+        urth_pe = _yq_pe("URTH")
+        efa_pe  = _yq_pe("EFA")
+
+        res["urth_pe"] = urth_pe
+        res["efa_pe"]  = efa_pe
 
         state_map    = {"REGULAR":"OPEN","PRE":"PRE","POST":"POST","CLOSED":"CLOSED"}
         mkt_state    = state_map.get(ss,"OPEN" if abs(sc)>0.005 else "CLOSED")
@@ -632,8 +689,8 @@ def fetch_market_indicators():
         else:
             res["pulse"] = f"S&P {sp:,.0f} · Russell {rp:,.0f} · VIX {vp:.1f} ({vl})"
 
-        urth_str = f"URTH PE: {urth_pe:.1f}x" if urth_pe else "URTH PE: N/A"
-        efa_str  = f"EFA PE: {efa_pe:.1f}x"   if efa_pe  else "EFA PE: N/A"
+        urth_str = f"URTH PE: {urth_pe:.1f}x (approx)" if urth_pe else "URTH PE: N/A"
+        efa_str  = f"EFA PE: {efa_pe:.1f}x (approx)"   if efa_pe  else "EFA PE: N/A"
         print(f"   ✅ S&P 500: {sp:,.0f} ({scs} {sl})")
         print(f"   ✅ Russell: {rp:,.0f} ({rcs} {rl})")
         print(f"   ✅ VIX: {vp:.2f} ({vl}) | State: {mkt_state}")
@@ -650,23 +707,6 @@ def fetch_market_indicators():
 # ============================================================
 # STEP 4: MHS -- MACRO HEAT SCORE
 # ============================================================
-# MHS = Macro Heat Score. INVERTED 0-100 scale.
-# LOWER score = better mean reversion opportunity (fear/dislocation).
-# HIGHER score = overheated/complacent (avoid new positions).
-#
-# Components and their max possible adjustments:
-#   Base:              +50 (neutral starting point)
-#   Core PCE:         -10 to +20 (primary inflation gauge)
-#   VIX:              -20 to +10 (panic gauge -- high VIX = opportunity)
-#   Fear & Greed:     -20 to +20 (broad sentiment composite)
-#   HY Credit:        -15 to +12 (credit stress / complacency)
-#   Yield Curve:       -8 to +4  (recession indicator)
-#   Fed Posture:       -6 to +8  (rate cycle direction)
-#   Shiller CAPE:     -15 to +15 (structural valuation)
-#   Gold Signal:       -3 to +3  (stealth fear vs complacency)
-#
-# NOTE: AAII removed from MHS -- always N/A due to Incapsula block.
-# ============================================================
 
 def compute_mhs(fred_data, fg_data, mkt_data):
     """Compute Macro Heat Score. No aaii_data parameter -- AAII removed."""
@@ -679,7 +719,7 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         try: return float(re.sub(r"[%$,]","",r["current"])), r["trend"]
         except: return None,None
 
-    # Core PCE: primary inflation signal
+    # Core PCE
     cp, cpt = get_fred("Core PCE")
     if cp is not None:
         if   cp>3.5: adj=+15; note=f"Core PCE {cp:.1f}% -- well above 2% target"
@@ -691,7 +731,7 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         elif cpt=="▼": adj-=5; note+=" & cooling"
         raw+=adj; breakdown.append(f"Inflation {adj:+d} ({note})")
 
-    # VIX: panic = opportunity (high VIX LOWERS score)
+    # VIX
     try:
         vix = float(mkt_data["vix"]["value"])
         if   vix>=40: adj=-20; note=f"VIX {vix:.1f} -- panic/forced selling"
@@ -703,7 +743,7 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         raw+=adj; breakdown.append(f"VIX {adj:+d} ({note})")
     except: pass
 
-    # Fear & Greed: extreme fear LOWERS score (opportunity)
+    # Fear & Greed
     try:
         fg = int(fg_data.get("score",50))
         if   fg<=20: adj=-20; note=f"F&G {fg} -- extreme fear"
@@ -715,7 +755,7 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         raw+=adj; breakdown.append(f"Fear&Greed {adj:+d} ({note})")
     except: pass
 
-    # HY Credit Spread: wide = dislocation = LOWERS score
+    # HY Credit Spread
     hy,_ = get_fred("HY Credit Spread")
     if hy is not None:
         if   hy>=8.0: adj=-15; note=f"HY {hy:.2f}% -- very wide (credit stress)"
@@ -746,8 +786,7 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         else:           adj=+2; note=f"Fed on hold {fed:.2f}%"
         raw+=adj; breakdown.append(f"Fed {adj:+d} ({note})")
 
-    # Shiller CAPE: expensive market RAISES score
-    # At CAPE 41 (98th pctile), structural overvaluation adds meaningful risk.
+    # Shiller CAPE
     cape,_ = get_fred("Shiller CAPE (US)")
     if cape is not None:
         if   cape>=40: adj=+15; note=f"CAPE {cape:.1f}x -- extreme (98th pctile, only dot-com was higher)"
@@ -759,7 +798,7 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         else:          adj=-15; note=f"CAPE {cape:.1f}x -- deep value territory"
         raw+=adj; breakdown.append(f"CAPE Valuation {adj:+d} ({note})")
 
-    # Gold Signal: gold up + low VIX = stealth fear (RAISES score slightly)
+    # Gold Signal
     gold, gold_trend = get_fred("Gold Price")
     try:
         vix_now = float(mkt_data["vix"]["value"])
@@ -785,15 +824,6 @@ def compute_mhs(fred_data, fg_data, mkt_data):
 
 # ============================================================
 # STEP 5: DATAROMA SUPERINVESTOR 13F BUYS
-# ============================================================
-# 13F SEC filing: institutions >$100M AUM disclose equity holdings
-# quarterly. ~45 day lag after quarter end. Dataroma aggregates.
-# "Buys" = number of tracked superinvestors who bought this quarter.
-#
-# CACHE STRATEGY:
-# fetch_cache.py runs FIRST and writes dataroma_cache.json.
-# main.py reads that file (20hr TTL), falls back to live fetch.
-# Prevents HTTP 409 rate-limit errors on repeat manual runs.
 # ============================================================
 
 def fetch_superinvestor_buys():
@@ -863,17 +893,7 @@ def fetch_superinvestor_buys():
 
 
 # ============================================================
-# STEP 6: MAGIC FORMULA -- ASP.NET AUTHENTICATED SCRAPE
-# ============================================================
-# Greenblatt ranks stocks by Earnings Yield + Return on Capital.
-# Best stocks = cheap AND high quality. Min $2B mktcap, top 30.
-#
-# ASP.NET anti-forgery token (CSRF protection) flow:
-# 1. GET login page -> extract __RequestVerificationToken
-# 2. POST credentials + token -> session cookie established
-# 3. GET screener page -> extract NEW token
-# 4. POST screener form + token -> results HTML table
-# requests.Session() carries cookies automatically between steps.
+# STEP 6: MAGIC FORMULA
 # ============================================================
 
 def fetch_magic_formula():
@@ -953,25 +973,13 @@ def fetch_magic_formula():
 
 
 # ============================================================
-# STEP 7: ACQUIRER'S MULTIPLE -- RCP LOGIN + HTML TABLE
-# ============================================================
-# Carlisle AM = EV / Operating Earnings. Lower = cheaper.
-# Free account: Large Cap 1000 screener only. Updates daily after close.
-#
-# FIX (Sep 2026): Timeout raised 15s -> 30s. Added am_cache.json backup.
-# fetch_cache.py now also pre-fetches AM before main.py runs (warm cache).
-# On any live failure, falls back to am_cache.json (48hr TTL).
-# On live success, writes am_cache.json for next run's fallback.
-#
-# Login uses Restrict Content Pro (RCP) WordPress plugin.
-# Fields: rcp_user_login, rcp_user_pass, rcp_action=login, rcp_login_nonce
-# Table data is server-side HTML -- no XHR/Fetch calls needed.
+# STEP 7: ACQUIRER'S MULTIPLE
 # ============================================================
 
 def fetch_acquirers_multiple():
     import json as _json
     AM_CACHE_FILE    = "am_cache.json"
-    AM_CACHE_TTL_HRS = 48   # AM updates daily; 48h keeps yesterday's data as backup
+    AM_CACHE_TTL_HRS = 48
 
     print("\n📐 Fetching Acquirer's Multiple large-cap stocks...")
 
@@ -1094,14 +1102,7 @@ def scrape_edward_jones():
 
 
 def _fetch_email(sender, label, char_limit=2500):
-    """
-    Fetch latest email from a specific sender via Yahoo IMAP SSL (port 993).
-    Prefers text/plain MIME part; falls back to HTML parsed by BeautifulSoup.
-    Confirmed senders:
-      CNBC:     morningsquawk@response.cnbc.com
-      Yahoo:    finance-morning-brief@newsletters.yahoo.net
-      McClellan:admin@mcoscillator.com
-    """
+    """Fetch latest email from a specific sender via Yahoo IMAP SSL."""
     print(f"\n📬 Fetching {label}...")
     try:
         mail   = imaplib.IMAP4_SSL("imap.mail.yahoo.com",993)
@@ -1160,34 +1161,17 @@ def fetch_mcoscillator_email():
 
 
 # ============================================================
-# STEP 12: AI SYNTHESIS -- MULTI-MODEL FALLBACK CHAIN
-# ============================================================
-# Chain (single attempt each, fail-fast to preserve quota):
-#   1. gemini-3.6-flash  -- free tier, 20 RPD quota (resets midnight UTC = 6 PM MT)
-#   2. gemini-1.5-flash  -- free tier, SEPARATE quota pool from 3.6
-#   3. claude-haiku-4-5  -- Anthropic paid API (~$0.003/run)
-#      Input: $0.80/M tokens = ~$0.0016. Output: $4.00/M = ~$0.0016.
-#      22 runs/month worst case: ~$0.07/month.
-#      max_tokens=1000 caps OUTPUT ONLY. Haiku does NOT browse web.
-#      Always shown in run log with 💰 emoji and cost estimate.
-#   4. Structured text fallback -- always works, no AI narrative
+# STEP 12: AI SYNTHESIS
 # ============================================================
 
 def _call_gemini(prompt, model):
-    """Call Google Gemini API via the official SDK."""
     client = genai.Client(api_key=GEMINI_API_KEY)
     return client.interactions.create(model=model, input=prompt).output_text
 
 
 def _call_haiku(prompt):
-    """
-    Call Anthropic Claude Haiku via the Messages API.
-    Primary: anthropic library. Fallback: direct HTTP POST via requests.
-    max_tokens=1000 caps output length only, not input.
-    """
     if not ANTHROPIC_API_KEY:
         raise Exception("ANTHROPIC_API_KEY secret not set in GitHub repo")
-
     try:
         import anthropic
         client  = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
@@ -1197,7 +1181,6 @@ def _call_haiku(prompt):
             messages   = [{"role":"user","content":prompt}],
         )
         return message.content[0].text
-
     except ImportError:
         print("   ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
         resp = requests.post(
@@ -1239,8 +1222,8 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         if len(tags)>=2: overlap.append(f"{t}({','.join(tags)})")
 
     cape_val = next((r["current"] for r in fred_data if r["label"]=="Shiller CAPE (US)"),"N/A")
-    urth_str = f"URTH(MSCIWorld incl US) PE: {mkt_data.get('urth_pe','N/A')}x"
-    efa_str  = f"EFA(MSCI EAFE ex-US) PE: {mkt_data.get('efa_pe','N/A')}x"
+    urth_str = f"URTH(MSCIWorld incl US) PE: {mkt_data.get('urth_pe','N/A')}x (approx)"
+    efa_str  = f"EFA(MSCI EAFE ex-US) PE: {mkt_data.get('efa_pe','N/A')}x (approx)"
 
     prompt = f"""You are a sharp financial analyst writing a morning briefing for a
 deep-value mean reversion investor (Greenblatt, Carlisle, Howard Marks, Terry Smith,
@@ -1276,9 +1259,9 @@ McCLELLAN (market breadth): {mcoscillator_text[:400]}
 """
 
     models_to_try = [
-        ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",   lambda: _call_gemini(prompt,"gemini-3.6-flash")),
-        ("gemini-1.5-flash", "Gemini 1.5 Flash (free tier)",   lambda: _call_gemini(prompt,"gemini-1.5-flash")),
-        ("claude-haiku-4-5", "Claude Haiku 4.5 (paid ~$0.003)",lambda: _call_haiku(prompt)),
+        ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",    lambda: _call_gemini(prompt,"gemini-3.6-flash")),
+        ("gemini-1.5-flash", "Gemini 1.5 Flash (free tier)",    lambda: _call_gemini(prompt,"gemini-1.5-flash")),
+        ("claude-haiku-4-5", "Claude Haiku 4.5 (paid ~$0.003)", lambda: _call_haiku(prompt)),
     ]
 
     for model_id, model_name, call_fn in models_to_try:
@@ -1304,8 +1287,8 @@ McCLELLAN (market breadth): {mcoscillator_text[:400]}
             print(f"   ⚠️ {model_name} failed: {str(e)[:100]}")
             log(f"AI: {model_name} failed: {str(e)[:60]}","⚠️")
 
-    print("   ❌ All AI models failed (Gemini + Haiku) -- using structured fallback")
-    log("AI: ALL models failed (Gemini quota + Haiku) -- structured fallback used","❌")
+    print("   ❌ All AI models failed -- using structured fallback")
+    log("AI: ALL models failed -- structured fallback used","❌")
 
     fallback = """MARKET AND MACRO
 - AI synthesis unavailable -- Gemini quota exhausted AND Claude Haiku failed today
@@ -1320,10 +1303,10 @@ WHAT TO WATCH
 - High-conviction tickers (2+ screens) are listed in Value Screens section below
 
 AI FUN FACT
-- Shiller CAPE at 41x (Sep 2026) is the 2nd highest reading in 145 years of data. Only dot-com peak beat it.
+- Shiller CAPE at 41x (Sep 2026) is the 2nd highest reading in 145 years of data.
 
 AI LEARNING
-- Attention mechanism: lets LLMs weight relationships between all words simultaneously, enabling context-aware understanding."""
+- Attention mechanism: lets LLMs weight relationships between all words simultaneously."""
 
     return fallback, True
 
@@ -1333,11 +1316,6 @@ AI LEARNING
 # ============================================================
 
 def parse_sections(text):
-    """
-    Parse AI briefing text into named sections dictionary.
-    Handles model output variation (Gemini vs Haiku formatting differences).
-    Strips markdown artifacts (##, **, numbered lists) models sometimes add.
-    """
     secs    = {"MARKET AND MACRO":"","EARNINGS AND EVENTS":"","WHAT TO WATCH":"",
                "AI FUN FACT":"","AI LEARNING":""}
     current = None
@@ -1366,7 +1344,7 @@ def parse_sections(text):
 
 
 # ============================================================
-# STEP 14 (final): BUILD HTML DASHBOARD
+# STEP 14: BUILD HTML DASHBOARD
 # ============================================================
 
 def fmt_bullets(raw):
@@ -1392,11 +1370,6 @@ def _badge(raw_lbl, raw_col):
 
 
 def _sparkline_svg(cur_str, mo3_str, mo12_str):
-    """
-    3-point SVG sparkline: 12mo ago -> 3mo ago -> current.
-    Red line = rising vs 12mo ago. Green line = falling.
-    Returns empty string if values are N/A or unparseable.
-    """
     try:
         def parse(s): return float(re.sub(r"[^0-9.\-]","",str(s)))
         v12=parse(mo12_str); v3=parse(mo3_str); v0=parse(cur_str)
@@ -1454,7 +1427,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         +"".join([f'<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">{b}</span>' for b in mhs["breakdown"]])
     )
 
-    # Market status banner (PRE/POST only)
     if mkt_state=="PRE":
         mkt_banner='<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#3730a3;">🌅 Pre-Market · Opens 9:30 AM ET (7:30 AM MT)</div>'
     elif mkt_state=="POST":
@@ -1462,7 +1434,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     else:
         mkt_banner=""
 
-    # AI failure alert
     ai_alert=""
     if ai_failed:
         ai_alert="""<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
@@ -1476,7 +1447,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>"""
 
-    # Market performance rows
     def pr(name,val,chg,prev,rl,rc,note=""):
         nh=f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
         return (f'<tr style="border-bottom:1px solid #f3f4f6;">'
@@ -1491,7 +1461,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
        +pr("Russell 2000 (Small Cap)",rut_val,rut_chg,rut_prev,rut_lbl,rut_col,"Yahoo Finance · small-cap / risk appetite proxy")
     )
 
-    # Sentiment rows (VIX, Fear & Greed, Consumer Sentiment -- no AAII)
     try: vix_num=float(vix_val)
     except: vix_num=20
     vix_badge_lbl="CALM" if vix_num<15 else "NORMAL" if vix_num<20 else "CAUTIOUS" if vix_num<25 else "FEARFUL" if vix_num<30 else "PANIC"
@@ -1515,17 +1484,17 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
            u_lbl_raw,ucol,umich_sig,"U of Michigan · 0-100 scale · avg ~75 · <60 = consumer stress")
     )
 
-    # Global Valuation block
     cape_color="#c81e1e" if cape_num>=35 else "#b45309" if cape_num>=25 else "#057a55"
     urth_disp=f"{urth_pe}x" if urth_pe else "N/A"
     efa_disp=f"{efa_pe}x" if efa_pe else "N/A"
     cape_times=round(cape_num/17,1) if cape_num else "?"
 
+    # CHANGE 5: updated labels to show "approx" for PE values
     valuation_block=f"""
 <div class="card" style="margin-bottom:12px;border-left:4px solid #7c3aed;">
   <h2>📐 Global Market Valuation
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      &nbsp; US CAPE = Shiller 10yr smoothed · URTH/EFA = trailing 12mo PE · different methods, directional comparison only
+      &nbsp; US CAPE = Shiller 10yr smoothed (multpl.com) · URTH/EFA = approx PE from iShares.com · updated quarterly
     </span>
   </h2>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
@@ -1538,13 +1507,13 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     <div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#059669;margin-bottom:4px;">URTH (MSCI World)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#059669;">{urth_disp}</div>
-      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">incl ~70% US · trailing PE</div>
+      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">incl ~70% US · approx PE (iShares, Sep 2026)</div>
       <div style="font-size:.6rem;color:#059669;margin-top:2px;font-weight:600;">GLOBAL BLEND</div>
     </div>
     <div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1a56db;margin-bottom:4px;">EFA (ex-US Developed)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#057a55;">{efa_disp}</div>
-      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Europe/Japan/Aus · trailing PE</div>
+      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Europe/Japan/Aus · approx PE (iShares, Sep 2026)</div>
       <div style="font-size:.6rem;color:#057a55;margin-top:2px;font-weight:600;">✅ SIGNIFICANTLY CHEAPER</div>
     </div>
   </div>
@@ -1553,11 +1522,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     Ex-US developed markets ({efa_disp} trailing PE) offer dramatically better valuation support.
     Many AM screen picks are intl ADRs (EQNR, PBR, SNY, NVO, SHEL, BP) -- they benefit from
     both cheaper valuations AND potential dollar weakness (watch DXY trend above).
-    <em>Note: CAPE uses 10yr smoothed earnings; URTH/EFA use trailing 12mo -- not directly comparable but directionally valid.</em>
+    <em>Note: CAPE uses 10yr smoothed earnings; URTH/EFA use approx trailing PE -- not directly comparable but directionally valid.</em>
   </div>
 </div>"""
 
-    # FRED table
     group_order=["INFLATION","RATES","CREDIT","LABOR","COMMODITIES","CURRENCY","SENTIMENT_FRED","VALUATION"]
     fred_rows=""; rn=1
     for g in group_order:
@@ -1586,7 +1554,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
             )
             rn+=1
 
-    # Value Screens -- 5 categories
     all_tickers_set=sorted(set(si_tickers.keys())|mf_tickers|am_tickers)
     all3=[]; two3=[]; si_only=[]; mf_only=[]; am_only=[]
     for t in all_tickers_set:
@@ -1637,14 +1604,12 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                    "".join(chip(t,"one")  for t in am_only[:25]), len(am_only))
     )
 
-    # AI fun fact and learning
     fun_raw=secs.get("AI FUN FACT","").strip(); learn_raw=secs.get("AI LEARNING","").strip()
     if fun_raw:   fun_raw=re.sub(r"^[-•*]\s*","",fun_raw.splitlines()[0].strip())
     else:         fun_raw="Shiller CAPE at 41x (Sep 2026) is the 2nd highest in 145 years of data. Only dot-com peak (44.2x, Dec 1999) was higher."
     if learn_raw: learn_raw=re.sub(r"^[-•*]\s*","",learn_raw.splitlines()[0].strip())
     else:         learn_raw="Attention mechanism: lets LLMs selectively weight relationships between all tokens simultaneously, enabling context-aware reasoning."
 
-    # Hidden #market-context div for Chrome extension
     def _ctx(lbl, short):
         r=next((x for x in fred_data if x["label"]==lbl),None)
         if not r or r["current"]=="N/A": return f"{short}=N/A"
@@ -1667,8 +1632,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         _ctx("Gold Price","Gold")+"(rising+lowVIX=stealth_fear)"])
     ctx_fx=_ctx("US Dollar (DXY)","DXY")+"(weak_dollar=tailwind_intl_ADRs)"
     ctx_csent=_ctx("Consumer Sentiment","ConsSent")+"(avg~75,<60=stress)"
-    ctx_val=(f"CAPE={cape_val}(USonly,histAvg17x,98thPctileSince1881)"
-             f"|URTH_PE={urth_disp}(MSCIWorldInclUS)|EFA_PE={efa_disp}(ExUSdeveloped)")
+    ctx_val=(f"CAPE={cape_val}(USonly,histAvg17x,98thPctileSince1881,src:multpl.com)"
+             f"|URTH_PE={urth_disp}(MSCIWorldInclUS,approx)"
+             f"|EFA_PE={efa_disp}(ExUSdeveloped,approx)")
 
     def tlist(lst, si_d=None):
         if not lst: return "none"
@@ -1696,7 +1662,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         f"SCREENS_AM_ONLY(Carlisle_AcquirersMultiple):{tlist(am_only)}"
     )
 
-    # Run log (collapsed by default) -- no AAII note
     elapsed=round(time.time()-RUN_START)
     run_log_items="".join([
         f'<div style="font-size:.72rem;padding:2px 0;border-bottom:1px solid #f3f4f6;font-family:monospace;">{entry}</div>'
@@ -1754,10 +1719,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 </head>
 <body>
 
-<!-- Chrome extension reads #market-context innerText.
-     No SPX/RUT/VIX here -- extension fetches those live.
-     Dual arrows: first=vs3mo, second=vs12mo.
-     No AAII -- blocked by Incapsula on GitHub Actions. -->
 <div id="market-context" style="display:none;white-space:pre;">{mctx}</div>
 
 <div class="hero">
@@ -1770,7 +1731,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 
 {ai_alert}
 
-<!-- AI BLOCKS: Fun Fact + Learning -->
 <div class="grid-2" style="margin-bottom:12px;">
   <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:12px;">
     <div style="font-size:1.3rem;flex-shrink:0;">🤖</div>
@@ -1788,7 +1748,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>
 
-<!-- MHS: MACRO HEAT SCORE -->
 <div class="card" style="margin-bottom:12px;border-left:4px solid {mhs_col};">
   <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
     <div style="flex-shrink:0;">
@@ -1813,7 +1772,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>
 
-<!-- Market Performance + Sentiment SIDE BY SIDE -->
 <div class="grid-2" style="margin-bottom:12px;">
   <div class="card ar">
     <h2>📈 Market Performance</h2>
@@ -1833,10 +1791,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>
 
-<!-- Global Valuation Block -->
 {valuation_block}
 
-<!-- AI Briefing: 3-column grid -->
 <div class="grid-3" style="margin-bottom:12px;">
   <div class="card ab">
     <h2>📊 Market &amp; Macro</h2>
@@ -1852,7 +1808,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>
 
-<!-- Value Screens: 5 categories -->
 <div class="card ab" style="margin-bottom:12px;">
   <h2>📋 Value Screens
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
@@ -1867,11 +1822,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>
 
-<!-- FRED Macro Indicators: full table with sparklines -->
 <div class="card" style="margin-bottom:12px;">
   <h2>🏦 Macro Indicators
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      &nbsp; FRED API (St. Louis Fed) · sparkline = 12mo ago → 3mo ago → today · green=good/red=bad for equities
+      &nbsp; FRED API · Gold via Yahoo GC=F · CAPE via multpl.com · sparkline = 12mo ago → 3mo ago → today · green=good/red=bad for equities
     </span>
   </h2>
   <div style="overflow-x:auto;">
@@ -1912,6 +1866,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
   <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
   <a href="https://www.mcoscillator.com" target="_blank">McClellan</a> &nbsp;·&nbsp;
+  <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
   Gemini · Claude Haiku (fallback) · Not financial advice.
 </div>
 
@@ -1937,11 +1892,11 @@ if __name__ == "__main__":
     fred_data         = fetch_fred_data()
     fg_data           = fetch_fear_greed()
     mkt_data          = fetch_market_indicators()
-    mhs               = compute_mhs(fred_data, fg_data, mkt_data)   # no aaii_data
+    mhs               = compute_mhs(fred_data, fg_data, mkt_data)
 
-    si_tickers        = fetch_superinvestor_buys()   # dict: ticker -> buy count
-    mf_tickers        = fetch_magic_formula()         # set of tickers
-    am_tickers        = fetch_acquirers_multiple()    # set of tickers
+    si_tickers        = fetch_superinvestor_buys()
+    mf_tickers        = fetch_magic_formula()
+    am_tickers        = fetch_acquirers_multiple()
 
     ej_text           = scrape_edward_jones()
     cnbc_text         = fetch_cnbc_email()
@@ -1951,13 +1906,13 @@ if __name__ == "__main__":
     briefing, ai_failed = synthesize_with_ai(
         ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers,   # no aaii_data
+        si_tickers, mf_tickers, am_tickers,
     )
 
     build_html(
         briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers,   # no aaii_data
+        si_tickers, mf_tickers, am_tickers,
     )
 
     print("\n📧 Email disabled -- GitHub Pages dashboard is primary output")
