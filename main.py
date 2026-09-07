@@ -15,27 +15,32 @@
 #   1.  FRED macro indicators -- 15 series parallel (20s timeout)
 #       Groups: INFLATION | RATES | CREDIT | LABOR |
 #               COMMODITIES | CURRENCY | SENTIMENT_FRED | VALUATION
-#       New vs prior version: CAPE (Shiller PE), Gold, DXY added
-#   2.  AAII sentiment -- scrape attempt, N/A if Incapsula blocks
-#   3.  CNN Fear & Greed -- JSON endpoint, updates intraday
-#   4.  Market data -- SPX, RUT, VIX + URTH PE, EFA PE (Yahoo v8)
-#   5.  MHS (Macro Heat Score) -- inverted 0-100 composite
-#       Now includes CAPE contribution (+15 at current ~41x)
-#   6.  Dataroma 13F -- reads cache first, live fetch fallback
-#   7.  Magic Formula -- ASP.NET 4-step authenticated scrape
-#   8.  Acquirer's Multiple -- RCP login + HTML table scrape
-#   9.  Edward Jones daily recap -- web scrape
-#  10.  CNBC Morning Squawk -- Yahoo IMAP
-#  11.  Yahoo Finance Morning Brief -- Yahoo IMAP
-#  12.  McClellan Oscillator -- Yahoo IMAP (weekly Tom McClellan)
-#  13.  AI synthesis -- fallback chain:
+#       limit=500 per call to handle daily (Gold) and monthly (CAPE) series.
+#   2.  CNN Fear & Greed -- JSON endpoint, updates intraday
+#   3.  Market data -- SPX, RUT, VIX + URTH PE, EFA PE
+#       PE via v8/chart meta (v7/quote fallback, v10 last resort)
+#   4.  MHS (Macro Heat Score) -- inverted 0-100 composite
+#       Includes CAPE contribution (+15 at current ~41x)
+#   5.  Dataroma 13F -- reads cache first, live fetch fallback
+#   6.  Magic Formula -- ASP.NET 4-step authenticated scrape
+#   7.  Acquirer's Multiple -- RCP login + HTML table scrape
+#       Cache: am_cache.json written on success, read on timeout/fail
+#   8.  Edward Jones daily recap -- web scrape
+#   9.  CNBC Morning Squawk -- Yahoo IMAP
+#  10.  Yahoo Finance Morning Brief -- Yahoo IMAP
+#  11.  McClellan Oscillator -- Yahoo IMAP (weekly Tom McClellan)
+#  12.  AI synthesis -- fallback chain:
 #         gemini-3.6-flash  (free, 20 RPD quota)
 #         gemini-1.5-flash  (free, separate quota pool)
 #         claude-haiku-4-5  (paid ~$0.003/run -- SHOWN IN LOG)
 #         structured text   (always works, no AI narrative)
-#  14.  Build HTML dashboard + hidden #market-context div
+#  13.  Build HTML dashboard + hidden #market-context div
 #
-# MHS SCALE (Macro Heat Score -- replaces old "MRI" acronym):
+# NOTE: AAII sentiment removed -- aaii.com blocks GitHub Actions IPs
+# via Incapsula CDN every run. No reliable programmatic source exists.
+# Check manually at aaii.com/sentimentsurvey every Thursday.
+#
+# MHS SCALE (Macro Heat Score):
 #   0-33:   GREEN  DEPLOY     -- Panic/dislocation. Deploy aggressively.
 #   34-65:  AMBER  SELECTIVE  -- Best setups only. Left Leg <4, MoS >25%.
 #   66-100: RED    OVERHEATED -- Build cash. Trim winners. Avoid chasing.
@@ -99,6 +104,19 @@ print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Haiku f
 # Rate limit: 120 req/min per API key. We use 15 parallel calls --
 # well within limits. Data covers 800,000+ economic time series.
 #
+# FIX (Sep 2026): Changed limit=15 to limit=500.
+# Root cause of Gold + CAPE failures:
+#   GOLDAMGBD228NLBM is daily -- weekends/holidays stored as "." (missing).
+#   With limit=15, after filtering dots we might only have ~3 weeks of data,
+#   nowhere near enough for 12-month lookback. obs[12] was returning a recent
+#   value, not 12-months-ago.
+#   SHILLER_CAPE is monthly with ~1-2 month publication lag from Yale/Shiller.
+#   limit=15 barely covered 12 months and would fail if any obs were missing.
+# Fix: limit=500 + auto-detect daily vs monthly by checking date gap between
+# obs[0] and obs[1], then use correct index offsets:
+#   Daily:   mo3_idx=65  (trading days), mo12_idx=260
+#   Monthly: mo3_idx=3   (calendar months), mo12_idx=12
+#
 # COLOR LOGIC for trend arrows (what direction is GOOD for equity investors):
 #   INFLATION:    UP=red(bad)        DOWN=green(good)
 #   RATES:        UP=red(bad)        DOWN=green -- EXCEPT Yield Curve
@@ -110,15 +128,6 @@ print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Haiku f
 #   DXY:          UP=amber(helps US stocks, hurts intl ADRs)
 #   CONSUMER SENT:UP=green(confident)DOWN=red
 #   VALUATION/CAPE:UP=red(pricier)  DOWN=green(cheaper)
-#
-# NEW SERIES (added Sep 2026):
-#   SHILLER_CAPE      -- Shiller CAPE ratio (monthly, Robert Shiller/Yale)
-#     Fun fact: Shiller won the 2013 Nobel Prize for showing that high CAPE
-#     predicts low 10-year forward returns. At CAPE 41, we are at the 98.8th
-#     percentile of 1,749 monthly readings since 1881. Only exceeded at the
-#     dot-com peak (44.2x, Dec 1999) -- right before Nasdaq fell 78%.
-#   GOLDAMGBD228NLBM  -- Gold London AM fix (daily, LBMA)
-#   DTWEXBGS          -- Trade Weighted USD Index broad (weekly, Fed)
 # ============================================================
 
 FRED_SERIES = [
@@ -161,8 +170,8 @@ FRED_SERIES = [
      "no_pct":True, "insight":"U of Michigan 0-100 · avg ~75 · <60 = consumer stress"},
     # ---- VALUATION ----
     # Shiller CAPE: real S&P 500 price / 10yr avg real earnings.
-    # Smoothing removes business cycle noise. Robert Shiller won the
-    # 2013 Nobel Prize for predicting low future returns when CAPE is high.
+    # Monthly series from Yale/Robert Shiller. ~1-2 month publication lag.
+    # Shiller won the 2013 Nobel Prize for predicting low future returns when CAPE is high.
     # Current ~41 = 98.8th percentile. Dot-com peak was 44.2x (Dec 1999).
     {"label":"Shiller CAPE (US)",    "id":"SHILLER_CAPE",     "is_index":False, "group":"VALUATION",
      "no_pct":True,
@@ -185,7 +194,6 @@ def _trend_color(label, group, trend):
     """
     Return hex color for trend arrow based on what direction is GOOD for equity investors.
     Green = good. Red = bad. Amber = ambiguous/context-dependent.
-    Called for every FRED row in the HTML table.
     """
     if group == "INFLATION":
         return "#057a55" if trend=="▼" else "#c81e1e" if trend=="▲" else "#6b7280"
@@ -193,7 +201,6 @@ def _trend_color(label, group, trend):
         if "Yield Curve" in label:
             return "#057a55" if trend=="▲" else "#c81e1e" if trend=="▼" else "#6b7280"
         else:
-            # 10Y, 2Y, Fed Funds: rising = bad for equities
             return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
     elif group == "CREDIT":
         return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
@@ -201,19 +208,14 @@ def _trend_color(label, group, trend):
         return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
     elif group == "COMMODITIES":
         if "Gold" in label:
-            # Gold rising = ambiguous (fear OR inflation). Amber not red/green.
             return "#b45309" if trend=="▲" else "#6b7280" if trend=="▼" else "#6b7280"
         else:
-            # WTI rising = inflation/input cost pressure = bad
             return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
     elif group == "CURRENCY":
-        # DXY rising = dollar strengthening = headwind for intl ADRs. Amber.
         return "#b45309" if trend=="▲" else "#059669" if trend=="▼" else "#6b7280"
     elif group == "SENTIMENT_FRED":
-        # Consumer Sentiment rising = confident = good
         return "#057a55" if trend=="▲" else "#c81e1e" if trend=="▼" else "#6b7280"
     elif group == "VALUATION":
-        # CAPE rising = more expensive = bad for future returns
         return "#c81e1e" if trend=="▲" else "#057a55" if trend=="▼" else "#6b7280"
     return "#6b7280"
 
@@ -222,7 +224,6 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
     """
     Generate contextual insight text for each indicator.
     Compares current value to historical norms, not just recent direction.
-    Replaces old 'Today's Signal' which just restated the trend arrow.
     Uses double-arrow notation: first=vs3mo direction, second=vs12mo direction.
     """
     try:
@@ -318,7 +319,6 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
         return f"{cur:.1f}/100 ({note}) · {dir3}3mo {dir12}12mo"
 
     elif label == "Shiller CAPE (US)":
-        # Context is everything here -- this is the most important insight row.
         pct = round((cur/17.0 - 1)*100)
         if cur >= 40:
             return (f"⚠️ EXTREME {cur:.1f}x · {pct}% above hist avg 17x · "
@@ -338,7 +338,13 @@ def _fetch_one_fred(cfg, start_date, end_date):
     Fetch a single FRED series and compute current, 3mo, 12mo values.
     For index series (CPI, PCE): converts raw index to YoY % change.
     For level series (rates, spreads): returns raw values.
-    Fetches 15 obs (descending) to cover 12+ months of history.
+
+    KEY FIX: limit=500 (was 15).
+    Gold (GOLDAMGBD228NLBM) is daily -- weekends/holidays are "." and get
+    filtered. With limit=15, valid obs only spanned ~3 weeks. 12-month
+    lookback requires ~260 valid trading days in the buffer.
+    SHILLER_CAPE is monthly with ~1-2 month lag; limit=15 was too tight.
+    Auto-detects daily vs monthly by checking date gap between obs[0..1].
     """
     label    = cfg["label"]
     sid      = cfg["id"]
@@ -351,19 +357,38 @@ def _fetch_one_fred(cfg, start_date, end_date):
         url  = (f"https://api.stlouisfed.org/fred/series/observations"
                 f"?series_id={sid}&api_key={FRED_API_KEY}&file_type=json"
                 f"&observation_start={start_date}&observation_end={end_date}"
-                f"&sort_order=desc&limit=15")
+                f"&sort_order=desc&limit=500")
         resp = requests.get(url, timeout=20)
         obs  = [o for o in resp.json().get("observations",[]) if o["value"] != "."]
         if not obs: return empty
 
+        # Auto-detect daily/weekly vs monthly by checking date gap
+        is_daily = False
+        if len(obs) >= 2:
+            try:
+                d0 = datetime.strptime(obs[0]["date"], "%Y-%m-%d")
+                d1 = datetime.strptime(obs[1]["date"], "%Y-%m-%d")
+                is_daily = (abs((d0 - d1).days) <= 7)
+            except Exception:
+                is_daily = False
+
+        # Index positions for 3mo and 12mo anchors
+        if is_daily:
+            mo3_idx  = min(65,  len(obs)-1)   # ~65 trading days = 3 months
+            mo12_idx = min(260, len(obs)-1)   # ~260 trading days = 12 months
+        else:
+            mo3_idx  = min(3,  len(obs)-1)    # 3 monthly observations back
+            mo12_idx = min(12, len(obs)-1)    # 12 monthly observations back
+
         v0  = float(obs[0]["value"])
-        v3  = float(obs[min(3,  len(obs)-1)]["value"])
-        v12 = float(obs[min(12, len(obs)-1)]["value"])
+        v3  = float(obs[mo3_idx]["value"])
+        v12 = float(obs[mo12_idx]["value"])
 
         if is_index and v12:
             # YoY % change (e.g. CPI raw index -> annual inflation rate)
             cur  = (v0 - v12) / v12 * 100
-            v15  = float(obs[min(14,len(obs)-1)]["value"])
+            v15_idx = min(mo12_idx + mo3_idx, len(obs)-1)
+            v15  = float(obs[v15_idx]["value"])
             mo3v = (v3 - v15) / v15 * 100 if v15 else cur
             dc   = f"{cur:.1f}%"; dm3 = f"{mo3v:.1f}%"; dm12 = f"{mo3v:.1f}%"
             trend = "▼" if cur < mo3v-0.05 else "▲" if cur > mo3v+0.05 else "→"
@@ -412,78 +437,7 @@ def fetch_fred_data():
 
 
 # ============================================================
-# STEP 2: AAII WEEKLY SENTIMENT SURVEY
-# ============================================================
-# AAII surveys ~160K retail investors weekly (published Thursdays).
-# Contrarian indicator: bears > 50% = historically strong buy.
-# Bull-Bear spread < -20% = extreme fear = classic mean reversion signal.
-#
-# KNOWN ISSUE: aaii.com blocks GitHub Actions runner IPs via Incapsula CDN.
-# When blocked, dashboard shows link to check manually.
-# Scrape still attempted -- may succeed occasionally if CDN allows it.
-# AAII email subscription ("Investor Update") does NOT include the
-# Bull/Bear/Neutral percentage data -- only the website has those numbers.
-# ============================================================
-
-def fetch_aaii_sentiment():
-    print("\n📊 Fetching AAII Weekly Sentiment Survey (may be CDN-blocked)...")
-    try:
-        hdrs = {
-            "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "DNT":             "1",
-        }
-        resp = requests.get("https://www.aaii.com/sentimentsurvey", headers=hdrs, timeout=15)
-        text = resp.text
-
-        if any(x in text for x in ["Incapsula incident","Request unsuccessful","_Incapsula_Resource"]):
-            print("   ⚠️ AAII: Blocked by Incapsula CDN")
-            print("   💡 Check manually Thursdays: aaii.com/sentimentsurvey")
-            log("AAII: Blocked by Incapsula CDN -- check aaii.com manually on Thursdays","⚠️")
-            return None
-
-        soup  = BeautifulSoup(text,"html.parser")
-        plain = soup.get_text()
-
-        bullish = bearish = neutral = None
-        patterns = [
-            (r"[Bb]ullish[\s:]*(\d+\.?\d*)\s*%", r"[Bb]earish[\s:]*(\d+\.?\d*)\s*%", r"[Nn]eutral[\s:]*(\d+\.?\d*)\s*%"),
-            (r"(\d+\.?\d*)\s*%\s*[Bb]ullish",    r"(\d+\.?\d*)\s*%\s*[Bb]earish",    r"(\d+\.?\d*)\s*%\s*[Nn]eutral"),
-            (r"[Bb]ull[^\d]{0,20}(\d+\.?\d*)\s*%",r"[Bb]ear[^\d]{0,20}(\d+\.?\d*)\s*%",r"[Nn]eut[^\d]{0,20}(\d+\.?\d*)\s*%"),
-        ]
-        for pb,pbe,pn in patterns:
-            if bullish is None:
-                m=re.search(pb,plain); bullish=float(m.group(1)) if m else None
-            if bearish is None:
-                m=re.search(pbe,plain); bearish=float(m.group(1)) if m else None
-            if neutral is None:
-                m=re.search(pn,plain); neutral=float(m.group(1)) if m else None
-            if all(v is not None for v in [bullish,bearish,neutral]): break
-
-        if bullish is not None and bearish is not None:
-            spread = round(bullish-bearish,1)
-            if   spread<=-20: sig="⚠️ Extreme bearish -- strong contrarian buy historically"; col="#c81e1e"
-            elif spread<=-10: sig="⚠️ Bearish -- pessimism elevated, watch for entries"; col="#e97316"
-            elif spread<=10:  sig="→ Neutral -- no extreme reading"; col="#6b7280"
-            elif spread<=20:  sig="🟡 Bullish -- mild optimism, be selective"; col="#059669"
-            else:             sig="⚠️ Extreme bullish -- contrarian caution"; col="#1a56db"
-            print(f"   ✅ AAII: Bull {bullish}% / Bear {bearish}% | Spread: {spread:+.1f}%")
-            log(f"AAII: Bull {bullish}% Bear {bearish}% (spread {spread:+.1f}%)")
-            return {"bullish":bullish,"bearish":bearish,"neutral":neutral,"spread":spread,"signal":sig,"color":col}
-        else:
-            print(f"   ⚠️ AAII: Page loaded but percentages not found")
-            log("AAII: Page loaded, parse failed","⚠️")
-            return None
-
-    except Exception as e:
-        print(f"   ❌ AAII failed: {e}")
-        log(f"AAII: {str(e)[:60]}","❌")
-        return None
-
-
-# ============================================================
-# STEP 3: CNN FEAR & GREED
+# STEP 2: CNN FEAR & GREED
 # ============================================================
 # Composite of 7 market indicators: market momentum, stock price
 # strength, stock breadth, put/call ratio, junk bond demand,
@@ -523,16 +477,16 @@ def fetch_fear_greed():
 
 
 # ============================================================
-# STEP 4: MARKET DATA (Yahoo Finance v8)
+# STEP 3: MARKET DATA (Yahoo Finance)
 # ============================================================
-# Uses Yahoo Finance v8/chart endpoint -- same one used for SPX/VIX.
-# SPX, RUT, VIX: core indices
-# URTH: iShares MSCI World ETF (~70% US). PE ratio = global valuation proxy.
-#   Current PE ~23x (Sep 2026). Compares to US CAPE ~41x (different methodologies).
-# EFA: iShares MSCI EAFE ETF (Europe/Australia/Japan -- explicitly EXCLUDES US).
-#   Current PE ~14-15x. The real US vs non-US valuation comparison.
-#   US at 41x CAPE vs ex-US at 14x trailing PE -- gap hasn't been this wide since 2000.
-#   This matters: many AM screen picks are intl ADRs (EQNR, PBR, SNY, NVO, SHEL).
+# SPX, RUT, VIX: v8/chart endpoint (unchanged, reliable).
+# URTH PE, EFA PE: FIX (Sep 2026).
+#   v10/quoteSummary stopped returning trailingPE for ETFs without
+#   an auth cookie/crumb pair. Three-stage fallback chain:
+#   1. v8/chart meta.trailingPE (direct field on some ETFs)
+#   2. v8/chart: compute price / regularMarketEpsTrailingTwelveMonths
+#   3. v7/finance/quote quoteResponse trailingPE
+#   4. v10/quoteSummary (original, last resort)
 #
 # VIX thresholds (match Chrome extension background.js exactly):
 #   CALM(<15) NORMAL(<20) CAUTIOUS(<25) FEARFUL(<30) PANIC(>=30)
@@ -571,19 +525,52 @@ def _yq(ticker):
     return p, pv, chg, meta.get("marketState","UNKNOWN")
 
 def _yq_pe(ticker):
-    """Fetch trailing PE ratio from Yahoo Finance quoteSummary (for URTH, EFA)."""
+    """
+    Fetch trailing PE ratio for ETFs (URTH, EFA).
+    FIX (Sep 2026): v10/quoteSummary broken for ETFs without auth cookie.
+    Four-stage fallback: v8 direct -> v8 computed -> v7/quote -> v10 last resort.
+    """
+    hdrs = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)","Accept":"application/json"}
+
+    # Stage 1 + 2: v8/chart meta block
+    try:
+        url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
+        resp = requests.get(url, headers=hdrs, timeout=12)
+        meta = resp.json()["chart"]["result"][0]["meta"]
+        # Direct trailingPE field
+        if meta.get("trailingPE"):
+            return float(meta["trailingPE"])
+        # Compute from price / trailing EPS
+        price = float(meta.get("regularMarketPrice") or 0)
+        eps   = float(meta.get("regularMarketEpsTrailingTwelveMonths") or 0)
+        if price and eps and eps > 0:
+            return round(price / eps, 1)
+    except Exception:
+        pass
+
+    # Stage 3: v7/finance/quote
+    try:
+        url  = f"https://query1.finance.yahoo.com/v7/finance/quote?symbols={ticker}"
+        resp = requests.get(url, headers=hdrs, timeout=12)
+        results = resp.json().get("quoteResponse", {}).get("result", [])
+        if results and results[0].get("trailingPE"):
+            return float(results[0]["trailingPE"])
+    except Exception:
+        pass
+
+    # Stage 4: v10/quoteSummary (original, last resort)
     try:
         url  = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{ticker}?modules=summaryDetail"
-        hdrs = {"User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64)","Accept":"application/json"}
         resp = requests.get(url, headers=hdrs, timeout=12)
-        data = resp.json()
-        result = data.get("quoteSummary",{}).get("result",[])
+        result = resp.json().get("quoteSummary",{}).get("result",[])
         if result:
             pe = result[0].get("summaryDetail",{}).get("trailingPE",{})
-            if isinstance(pe, dict): return pe.get("raw",None)
+            if isinstance(pe, dict):
+                return pe.get("raw", None)
             return pe if pe else None
-    except:
+    except Exception:
         pass
+
     return None
 
 def fetch_market_indicators():
@@ -659,8 +646,9 @@ def fetch_market_indicators():
         res["pulse"] = "Market data unavailable."
     return res
 
+
 # ============================================================
-# STEP 5: MHS -- MACRO HEAT SCORE (replaces old "MRI" acronym)
+# STEP 4: MHS -- MACRO HEAT SCORE
 # ============================================================
 # MHS = Macro Heat Score. INVERTED 0-100 scale.
 # LOWER score = better mean reversion opportunity (fear/dislocation).
@@ -674,16 +662,14 @@ def fetch_market_indicators():
 #   HY Credit:        -15 to +12 (credit stress / complacency)
 #   Yield Curve:       -8 to +4  (recession indicator)
 #   Fed Posture:       -6 to +8  (rate cycle direction)
-#   Shiller CAPE:     -15 to +15 (structural valuation -- NEW)
-#   Gold Signal:       -3 to +3  (stealth fear vs complacency -- NEW)
-#   AAII (if avail):  -12 to +12 (retail sentiment contrarian)
+#   Shiller CAPE:     -15 to +15 (structural valuation)
+#   Gold Signal:       -3 to +3  (stealth fear vs complacency)
 #
-# At Sep 2026 readings: CAPE +15 pushes score from ~81 to ~96.
-# This reflects that structural overvaluation (CAPE 41 = 98th pctile)
-# adds genuine risk ON TOP of the sentiment/momentum overheating.
+# NOTE: AAII removed from MHS -- always N/A due to Incapsula block.
 # ============================================================
 
-def compute_mhs(fred_data, fg_data, mkt_data, aaii_data):
+def compute_mhs(fred_data, fg_data, mkt_data):
+    """Compute Macro Heat Score. No aaii_data parameter -- AAII removed."""
     raw       = 50
     breakdown = []
 
@@ -760,9 +746,8 @@ def compute_mhs(fred_data, fg_data, mkt_data, aaii_data):
         else:           adj=+2; note=f"Fed on hold {fed:.2f}%"
         raw+=adj; breakdown.append(f"Fed {adj:+d} ({note})")
 
-    # Shiller CAPE: expensive market RAISES score (NEW)
+    # Shiller CAPE: expensive market RAISES score
     # At CAPE 41 (98th pctile), structural overvaluation adds meaningful risk.
-    # Even if VIX spikes, buying into CAPE 41 is riskier than CAPE 15.
     cape,_ = get_fred("Shiller CAPE (US)")
     if cape is not None:
         if   cape>=40: adj=+15; note=f"CAPE {cape:.1f}x -- extreme (98th pctile, only dot-com was higher)"
@@ -775,8 +760,6 @@ def compute_mhs(fred_data, fg_data, mkt_data, aaii_data):
         raw+=adj; breakdown.append(f"CAPE Valuation {adj:+d} ({note})")
 
     # Gold Signal: gold up + low VIX = stealth fear (RAISES score slightly)
-    # When smart money hedges quietly (gold surges, VIX stays calm),
-    # that disconnect is a warning that complacency is deeper than it appears.
     gold, gold_trend = get_fred("Gold Price")
     try:
         vix_now = float(mkt_data["vix"]["value"])
@@ -787,17 +770,6 @@ def compute_mhs(fred_data, fg_data, mkt_data, aaii_data):
             adj=-3; note="Gold falling with high VIX -- fear already priced in"
             raw+=adj; breakdown.append(f"Gold Signal {adj:+d} ({note})")
     except: pass
-
-    # AAII (when available)
-    if aaii_data:
-        spread = aaii_data.get("spread",0)
-        if   spread<=-25: adj=-12; note=f"AAII {spread:+.1f}% extreme bearish"
-        elif spread<=-15: adj=-8;  note=f"AAII {spread:+.1f}% bearish"
-        elif spread<=-5:  adj=-3;  note=f"AAII {spread:+.1f}% mildly bearish"
-        elif spread<=10:  adj=0;   note=f"AAII {spread:+.1f}% neutral"
-        elif spread<=20:  adj=+6;  note=f"AAII {spread:+.1f}% bullish"
-        else:             adj=+12; note=f"AAII {spread:+.1f}% extreme bullish"
-        raw+=adj; breakdown.append(f"AAII {adj:+d} ({note})")
 
     score = max(0, min(100, round(raw)))
 
@@ -812,17 +784,16 @@ def compute_mhs(fred_data, fg_data, mkt_data, aaii_data):
 
 
 # ============================================================
-# STEP 6: DATAROMA SUPERINVESTOR 13F BUYS
+# STEP 5: DATAROMA SUPERINVESTOR 13F BUYS
 # ============================================================
 # 13F SEC filing: institutions >$100M AUM disclose equity holdings
 # quarterly. ~45 day lag after quarter end. Dataroma aggregates.
 # "Buys" = number of tracked superinvestors who bought this quarter.
 #
 # CACHE STRATEGY:
-# fetch_cache.py runs FIRST in the GitHub Actions workflow and writes
-# dataroma_cache.json. main.py reads that file (20hr TTL).
+# fetch_cache.py runs FIRST and writes dataroma_cache.json.
+# main.py reads that file (20hr TTL), falls back to live fetch.
 # Prevents HTTP 409 rate-limit errors on repeat manual runs.
-# Falls back to live fetch if cache is missing or stale.
 # ============================================================
 
 def fetch_superinvestor_buys():
@@ -892,15 +863,15 @@ def fetch_superinvestor_buys():
 
 
 # ============================================================
-# STEP 7: MAGIC FORMULA -- ASP.NET AUTHENTICATED SCRAPE
+# STEP 6: MAGIC FORMULA -- ASP.NET AUTHENTICATED SCRAPE
 # ============================================================
 # Greenblatt ranks stocks by Earnings Yield + Return on Capital.
 # Best stocks = cheap AND high quality. Min $2B mktcap, top 30.
 #
 # ASP.NET anti-forgery token (CSRF protection) flow:
-# 1. GET login page -> extract __RequestVerificationToken (random each load)
+# 1. GET login page -> extract __RequestVerificationToken
 # 2. POST credentials + token -> session cookie established
-# 3. GET screener page -> extract NEW token (each page has its own)
+# 3. GET screener page -> extract NEW token
 # 4. POST screener form + token -> results HTML table
 # requests.Session() carries cookies automatically between steps.
 # ============================================================
@@ -982,26 +953,51 @@ def fetch_magic_formula():
 
 
 # ============================================================
-# STEP 8: ACQUIRER'S MULTIPLE -- RCP LOGIN + HTML TABLE
+# STEP 7: ACQUIRER'S MULTIPLE -- RCP LOGIN + HTML TABLE
 # ============================================================
 # Carlisle AM = EV / Operating Earnings. Lower = cheaper.
 # Free account: Large Cap 1000 screener only. Updates daily after close.
 #
-# Login uses Restrict Content Pro (RCP) WordPress plugin.
-# Confirmed from Chrome DevTools Elements inspection:
-#   form id="rcp_login_form" action="https://acquirersmultiple.com/login/" method="POST"
-#   name="rcp_user_login" -- email/username field
-#   name="rcp_user_pass"  -- password field
-#   name="rcp_action"     -- "login" (hidden)
-#   name="rcp_redirect"   -- redirect URL (hidden)
-#   name="rcp_login_nonce"-- fresh token each page load (must extract)
+# FIX (Sep 2026): Timeout raised 15s -> 30s. Added am_cache.json backup.
+# fetch_cache.py now also pre-fetches AM before main.py runs (warm cache).
+# On any live failure, falls back to am_cache.json (48hr TTL).
+# On live success, writes am_cache.json for next run's fallback.
 #
-# Table data confirmed server-side HTML (Chrome DevTools Network tab showed
-# NO XHR/Fetch calls for table data). DataTables renders existing HTML.
+# Login uses Restrict Content Pro (RCP) WordPress plugin.
+# Fields: rcp_user_login, rcp_user_pass, rcp_action=login, rcp_login_nonce
+# Table data is server-side HTML -- no XHR/Fetch calls needed.
 # ============================================================
 
 def fetch_acquirers_multiple():
+    import json as _json
+    AM_CACHE_FILE    = "am_cache.json"
+    AM_CACHE_TTL_HRS = 48   # AM updates daily; 48h keeps yesterday's data as backup
+
     print("\n📐 Fetching Acquirer's Multiple large-cap stocks...")
+
+    def _read_am_cache():
+        try:
+            with open(AM_CACHE_FILE, "r") as f:
+                cached = _json.load(f)
+            fetched_at = datetime.fromisoformat(cached.get("fetched_at","2000-01-01T00:00:00"))
+            age_hours  = (datetime.now()-fetched_at).total_seconds()/3600
+            if age_hours < AM_CACHE_TTL_HRS and cached.get("tickers"):
+                return set(cached["tickers"]), age_hours
+        except Exception:
+            pass
+        return None, None
+
+    def _write_am_cache(tickers_set):
+        try:
+            with open(AM_CACHE_FILE, "w") as f:
+                _json.dump({
+                    "fetched_at": datetime.now().isoformat(),
+                    "tickers": sorted(tickers_set),
+                }, f, indent=2)
+            print(f"   ✅ AM cache written ({len(tickers_set)} tickers)")
+        except Exception as e:
+            print(f"   ⚠️ Could not write AM cache: {e}")
+
     try:
         sess = requests.Session()
         sess.headers.update({
@@ -1009,7 +1005,7 @@ def fetch_acquirers_multiple():
             "Accept":"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language":"en-US,en;q=0.9",
         })
-        r0    = sess.get("https://acquirersmultiple.com/login/",timeout=15)
+        r0    = sess.get("https://acquirersmultiple.com/login/", timeout=30)
         soup0 = BeautifulSoup(r0.text,"html.parser")
         print(f"   Login page: {r0.status_code} | Cookies: {len(sess.cookies)}")
 
@@ -1021,7 +1017,7 @@ def fetch_acquirers_multiple():
             "rcp_user_login": AM_EMAIL,"rcp_user_pass": AM_PASSWORD,
             "rcp_action":"login","rcp_redirect":"https://acquirersmultiple.com/login/",
             "rcp_login_nonce":nonce,
-        },timeout=15,allow_redirects=True)
+        },timeout=30,allow_redirects=True)
         print(f"   Login POST: {r1.status_code} | URL: {r1.url}")
 
         logged_in = "logout" in r1.text.lower() or "log-out" in r1.text.lower()
@@ -1031,7 +1027,7 @@ def fetch_acquirers_multiple():
             err = soup_err.find(class_=re.compile(r"rcp.error|rcp.notice|error"))
             if err: print(f"   Error: {err.get_text(strip=True)[:120]}")
 
-        r2    = sess.get("https://acquirersmultiple.com/screener/large-cap/",timeout=20)
+        r2    = sess.get("https://acquirersmultiple.com/screener/large-cap/", timeout=30)
         soup2 = BeautifulSoup(r2.text,"html.parser")
         title = soup2.find("title")
         print(f"   Screener: {r2.status_code} | Title: {title.get_text(strip=True)[:50] if title else 'none'}")
@@ -1051,18 +1047,30 @@ def fetch_acquirers_multiple():
                 break
 
         tickers=list(dict.fromkeys(tickers))
-        print(f"   ✅ Acquirer's Multiple: {len(tickers)} tickers")
-        if tickers: print(f"   Sample: {tickers[:8]}")
-        log(f"Acquirer's Multiple: {len(tickers)} stocks")
-        return set(tickers)
+
+        if tickers:
+            print(f"   ✅ Acquirer's Multiple: {len(tickers)} tickers (live)")
+            if tickers: print(f"   Sample: {tickers[:8]}")
+            log(f"Acquirer's Multiple: {len(tickers)} stocks (live)")
+            _write_am_cache(set(tickers))
+            return set(tickers)
+        else:
+            raise Exception("Live scrape returned 0 tickers")
+
     except Exception as e:
-        print(f"   ❌ Acquirer's Multiple failed: {e}")
-        log(f"Acquirer's Multiple: {str(e)[:60]}","❌")
+        print(f"   ❌ Acquirer's Multiple live fetch failed: {e}")
+        cached_set, age_h = _read_am_cache()
+        if cached_set:
+            print(f"   ⚠️ Using AM cache fallback ({age_h:.1f}h old, {len(cached_set)} stocks)")
+            log(f"Acquirer's Multiple: {len(cached_set)} stocks (CACHE {age_h:.1f}h old -- {str(e)[:40]})","⚠️")
+            return cached_set
+        print(f"   ❌ No AM cache available")
+        log(f"Acquirer's Multiple: FAILED + no cache -- {str(e)[:60]}","❌")
         return set()
 
 
 # ============================================================
-# STEPS 9-12: WEB SCRAPE + EMAIL (IMAP)
+# STEPS 8-11: WEB SCRAPE + EMAIL (IMAP)
 # ============================================================
 
 def scrape_edward_jones():
@@ -1089,11 +1097,10 @@ def _fetch_email(sender, label, char_limit=2500):
     """
     Fetch latest email from a specific sender via Yahoo IMAP SSL (port 993).
     Prefers text/plain MIME part; falls back to HTML parsed by BeautifulSoup.
-    Falls back to domain search if exact FROM match returns no results.
     Confirmed senders:
-      CNBC: morningsquawk@response.cnbc.com
-      Yahoo: finance-morning-brief@newsletters.yahoo.net
-      McClellan: admin@mcoscillator.com
+      CNBC:     morningsquawk@response.cnbc.com
+      Yahoo:    finance-morning-brief@newsletters.yahoo.net
+      McClellan:admin@mcoscillator.com
     """
     print(f"\n📬 Fetching {label}...")
     try:
@@ -1153,28 +1160,17 @@ def fetch_mcoscillator_email():
 
 
 # ============================================================
-# STEP 13: AI SYNTHESIS -- MULTI-MODEL FALLBACK CHAIN
+# STEP 12: AI SYNTHESIS -- MULTI-MODEL FALLBACK CHAIN
 # ============================================================
 # Chain (single attempt each, fail-fast to preserve quota):
-#   1. gemini-3.6-flash  -- free tier, 20 RPD (requests per day)
-#      RPD quota resets midnight UTC = 6 PM MT summer.
-#      Development testing can exhaust the daily quota.
+#   1. gemini-3.6-flash  -- free tier, 20 RPD quota (resets midnight UTC = 6 PM MT)
 #   2. gemini-1.5-flash  -- free tier, SEPARATE quota pool from 3.6
-#   3. claude-haiku-4-5  -- Anthropic paid API
-#      Cost: ~$0.003/run (input ~2000 tokens + output ~400 tokens)
-#      Input: $0.80/M tokens = ~$0.0016 for your prompt
-#      Output: $4.00/M tokens = ~$0.0016 for the briefing
-#      22 runs/month worst case: ~$0.07/month -- trivially small
-#      max_tokens=1000 caps OUTPUT ONLY -- your input can be 5000 tokens
-#      Haiku does NOT browse the web. It only reads what you send it.
-#      Haiku usage is ALWAYS shown in run log with cost estimate.
+#   3. claude-haiku-4-5  -- Anthropic paid API (~$0.003/run)
+#      Input: $0.80/M tokens = ~$0.0016. Output: $4.00/M = ~$0.0016.
+#      22 runs/month worst case: ~$0.07/month.
+#      max_tokens=1000 caps OUTPUT ONLY. Haiku does NOT browse web.
+#      Always shown in run log with 💰 emoji and cost estimate.
 #   4. Structured text fallback -- always works, no AI narrative
-#
-# Why Haiku is right for this task:
-#   Your data collection is already done. Haiku just needs to convert
-#   structured data into concise, well-organized prose bullets.
-#   That is exactly what small models excel at -- fast synthesis of
-#   provided context. No web browsing needed.
 # ============================================================
 
 def _call_gemini(prompt, model):
@@ -1186,9 +1182,8 @@ def _call_gemini(prompt, model):
 def _call_haiku(prompt):
     """
     Call Anthropic Claude Haiku via the Messages API.
-    Primary path: anthropic library (pip install anthropic).
-    Fallback path: direct HTTP POST via requests (already imported).
-    max_tokens=1000 caps the output length, NOT the input.
+    Primary: anthropic library. Fallback: direct HTTP POST via requests.
+    max_tokens=1000 caps output length only, not input.
     """
     if not ANTHROPIC_API_KEY:
         raise Exception("ANTHROPIC_API_KEY secret not set in GitHub repo")
@@ -1204,7 +1199,6 @@ def _call_haiku(prompt):
         return message.content[0].text
 
     except ImportError:
-        # anthropic library not installed -- direct HTTP fallback
         print("   ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
         resp = requests.post(
             "https://api.anthropic.com/v1/messages",
@@ -1227,7 +1221,7 @@ def _call_haiku(prompt):
 
 def synthesize_with_ai(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
                        fred_data, fg_data, mkt_data, mhs,
-                       si_tickers, mf_tickers, am_tickers, aaii_data):
+                       si_tickers, mf_tickers, am_tickers):
     print("\n🤖 Sending to AI synthesis...")
 
     fred_summary = "\n".join([
@@ -1243,10 +1237,6 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         if t in mf_tickers: tags.append("MF")
         if t in am_tickers: tags.append("AM")
         if len(tags)>=2: overlap.append(f"{t}({','.join(tags)})")
-
-    aaii_str = ""
-    if aaii_data:
-        aaii_str = f"AAII: Bull {aaii_data['bullish']}% Bear {aaii_data['bearish']}% Spread {aaii_data['spread']:+.1f}%"
 
     cape_val = next((r["current"] for r in fred_data if r["label"]=="Shiller CAPE (US)"),"N/A")
     urth_str = f"URTH(MSCIWorld incl US) PE: {mkt_data.get('urth_pe','N/A')}x"
@@ -1276,7 +1266,6 @@ DATA:
 MHS (Macro Heat Score): {mhs['score']}/100 -- {mhs['label']} | Action: {mhs['action']}
 VALUATION: US CAPE={cape_val} (hist avg 17x) | {urth_str} | {efa_str}
 MARKET: {mkt_data['pulse']}
-{aaii_str}
 FRED INDICATORS:
 {fred_summary}
 HIGH CONVICTION (2+ screens): {', '.join(overlap[:15]) if overlap else 'None today'}
@@ -1300,7 +1289,6 @@ McCLELLAN (market breadth): {mcoscillator_text[:400]}
                 briefing = fut.result(timeout=90)
 
             if model_id == "claude-haiku-4-5":
-                # Haiku usage is always highlighted in the run log
                 print(f"   ✅ Claude Haiku used as fallback: {len(briefing)} chars")
                 print(f"   💰 Estimated cost: ~$0.003 (input ~2000 tokens + output ~400 tokens)")
                 log(f"AI: Claude Haiku (PAID FALLBACK) -- {len(briefing)} chars -- est $0.003","💰")
@@ -1341,7 +1329,7 @@ AI LEARNING
 
 
 # ============================================================
-# STEP 14: PARSE AI OUTPUT INTO SECTIONS
+# STEP 13: PARSE AI OUTPUT INTO SECTIONS
 # ============================================================
 
 def parse_sections(text):
@@ -1349,7 +1337,6 @@ def parse_sections(text):
     Parse AI briefing text into named sections dictionary.
     Handles model output variation (Gemini vs Haiku formatting differences).
     Strips markdown artifacts (##, **, numbered lists) models sometimes add.
-    Aliases handle cases where the model renames a section slightly.
     """
     secs    = {"MARKET AND MACRO":"","EARNINGS AND EVENTS":"","WHAT TO WATCH":"",
                "AI FUN FACT":"","AI LEARNING":""}
@@ -1365,7 +1352,6 @@ def parse_sections(text):
         if "WHAT TO WATCH" in cln:       current="WHAT TO WATCH";       continue
         if "AI FUN FACT" in cln:         current="AI FUN FACT";         continue
         if "AI LEARNING" in cln:         current="AI LEARNING";         continue
-        # Common aliases from model paraphrasing
         if "MARKET SUMMARY" in cln or ("KEY MOVES" in cln and "MACRO" not in cln):
             current="MARKET AND MACRO"; continue
         if "EARNINGS CALENDAR" in cln: current="EARNINGS AND EVENTS"; continue
@@ -1380,7 +1366,7 @@ def parse_sections(text):
 
 
 # ============================================================
-# STEP 15: BUILD HTML DASHBOARD
+# STEP 14 (final): BUILD HTML DASHBOARD
 # ============================================================
 
 def fmt_bullets(raw):
@@ -1408,10 +1394,8 @@ def _badge(raw_lbl, raw_col):
 def _sparkline_svg(cur_str, mo3_str, mo12_str):
     """
     3-point SVG sparkline: 12mo ago -> 3mo ago -> current.
-    Red line = rising vs 12mo ago (bad for most indicators).
-    Green line = falling vs 12mo ago (good for most indicators).
-    Exception: Yield Curve and Consumer Sentiment are inverted.
-    Silently returns empty string if values are N/A or unparseable.
+    Red line = rising vs 12mo ago. Green line = falling.
+    Returns empty string if values are N/A or unparseable.
     """
     try:
         def parse(s): return float(re.sub(r"[^0-9.\-]","",str(s)))
@@ -1430,7 +1414,7 @@ def _sparkline_svg(cur_str, mo3_str, mo12_str):
 
 def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
                fred_data, fg_data, mkt_data, mhs,
-               si_tickers, mf_tickers, am_tickers, aaii_data):
+               si_tickers, mf_tickers, am_tickers):
     print("\n🎨 Building HTML dashboard...")
 
     secs    = parse_sections(briefing)
@@ -1470,7 +1454,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         +"".join([f'<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">{b}</span>' for b in mhs["breakdown"]])
     )
 
-    # Market status banner (PRE/POST only -- removed CLOSED banner per design decision)
+    # Market status banner (PRE/POST only)
     if mkt_state=="PRE":
         mkt_banner='<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#3730a3;">🌅 Pre-Market · Opens 9:30 AM ET (7:30 AM MT)</div>'
     elif mkt_state=="POST":
@@ -1478,7 +1462,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     else:
         mkt_banner=""
 
-    # AI failure alert (mentions both Gemini AND Haiku failed)
+    # AI failure alert
     ai_alert=""
     if ai_failed:
         ai_alert="""<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:8px;padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">
@@ -1507,7 +1491,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
        +pr("Russell 2000 (Small Cap)",rut_val,rut_chg,rut_prev,rut_lbl,rut_col,"Yahoo Finance · small-cap / risk appetite proxy")
     )
 
-    # Sentiment rows
+    # Sentiment rows (VIX, Fear & Greed, Consumer Sentiment -- no AAII)
     try: vix_num=float(vix_val)
     except: vix_num=20
     vix_badge_lbl="CALM" if vix_num<15 else "NORMAL" if vix_num<20 else "CAUTIOUS" if vix_num<25 else "FEARFUL" if vix_num<30 else "PANIC"
@@ -1531,7 +1515,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
            u_lbl_raw,ucol,umich_sig,"U of Michigan · 0-100 scale · avg ~75 · <60 = consumer stress")
     )
 
-    # Global Valuation block (CAPE + URTH + EFA side by side)
+    # Global Valuation block
     cape_color="#c81e1e" if cape_num>=35 else "#b45309" if cape_num>=25 else "#057a55"
     urth_disp=f"{urth_pe}x" if urth_pe else "N/A"
     efa_disp=f"{efa_pe}x" if efa_pe else "N/A"
@@ -1573,7 +1557,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>"""
 
-    # FRED table with sparklines and updated column names
+    # FRED table
     group_order=["INFLATION","RATES","CREDIT","LABOR","COMMODITIES","CURRENCY","SENTIMENT_FRED","VALUATION"]
     fred_rows=""; rn=1
     for g in group_order:
@@ -1602,7 +1586,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
             )
             rn+=1
 
-    # Value Screens -- 5 categories with distinct styling
+    # Value Screens -- 5 categories
     all_tickers_set=sorted(set(si_tickers.keys())|mf_tickers|am_tickers)
     all3=[]; two3=[]; si_only=[]; mf_only=[]; am_only=[]
     for t in all_tickers_set:
@@ -1661,9 +1645,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     else:         learn_raw="Attention mechanism: lets LLMs selectively weight relationships between all tokens simultaneously, enabling context-aware reasoning."
 
     # Hidden #market-context div for Chrome extension
-    # Format goals: compressed key=value, no SPX/RUT/VIX (extension fetches live),
-    # dual arrows (first=vs3mo, second=vs12mo), all 15 FRED indicators,
-    # 5-category screens, MHS explained inline.
     def _ctx(lbl, short):
         r=next((x for x in fred_data if x["label"]==lbl),None)
         if not r or r["current"]=="N/A": return f"{short}=N/A"
@@ -1715,13 +1696,12 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         f"SCREENS_AM_ONLY(Carlisle_AcquirersMultiple):{tlist(am_only)}"
     )
 
-    # Run log (collapsed by default)
+    # Run log (collapsed by default) -- no AAII note
     elapsed=round(time.time()-RUN_START)
     run_log_items="".join([
         f'<div style="font-size:.72rem;padding:2px 0;border-bottom:1px solid #f3f4f6;font-family:monospace;">{entry}</div>'
         for entry in RUN_LOG
     ])
-    aaii_note='<div style="font-size:.72rem;padding:4px 0;font-family:monospace;color:#b45309;">⚠️ AAII Sentiment: blocked by Incapsula CDN on GitHub Actions -- check aaii.com/sentimentsurvey manually every Thursday</div>'
 
     run_log_html=f"""
 <div style="margin-top:12px;">
@@ -1733,7 +1713,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   <div style="display:none;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;
               border-radius:0 0 6px 6px;padding:10px 14px;max-height:400px;overflow-y:auto;">
     {run_log_items}
-    {aaii_note}
     <div style="font-size:.7rem;color:#9ca3af;margin-top:4px;padding-top:4px;border-top:1px solid #e5e7eb;">
       Total runtime: {elapsed}s &nbsp;·&nbsp; {today} {now_str} MT
     </div>
@@ -1775,10 +1754,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 </head>
 <body>
 
-<!-- Chrome extension reads #market-context innerText for macro context.
+<!-- Chrome extension reads #market-context innerText.
      No SPX/RUT/VIX here -- extension fetches those live.
-     Dual arrows: first=vs3mo, second=vs12mo (sustained vs recent).
-     Format: compressed key=value, designed for LLM input tokens. -->
+     Dual arrows: first=vs3mo, second=vs12mo.
+     No AAII -- blocked by Incapsula on GitHub Actions. -->
 <div id="market-context" style="display:none;white-space:pre;">{mctx}</div>
 
 <div class="hero">
@@ -1791,7 +1770,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 
 {ai_alert}
 
-<!-- AI BLOCKS: Fun Fact + Learning (side by side) -->
+<!-- AI BLOCKS: Fun Fact + Learning -->
 <div class="grid-2" style="margin-bottom:12px;">
   <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;padding:11px 16px;display:flex;align-items:center;gap:12px;">
     <div style="font-size:1.3rem;flex-shrink:0;">🤖</div>
@@ -1851,11 +1830,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
       <thead><tr><th>Indicator</th><th>Current</th><th>History</th><th>Level</th><th>Insight</th></tr></thead>
       <tbody>{sent_rows}</tbody>
     </table>
-    <div style="margin-top:6px;font-size:.63rem;color:#9ca3af;">
-      AAII blocked by CDN on GitHub Actions ·
-      <a href="https://www.aaii.com/sentimentsurvey" target="_blank" style="color:#1a56db;">check aaii.com Thursdays</a> ·
-      Bears &gt;50% = strong contrarian buy historically
-    </div>
   </div>
 </div>
 
@@ -1921,6 +1895,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     Sparkline: red line=rising vs 12mo ago, green line=falling ·
     <a href="https://stockcharts.com/h-sc/ui?s=%24SPXA200R" target="_blank" style="color:#1a56db;">$SPXA200R breadth</a>
     (below 25%=deeply oversold · above 75%=be selective) not in free FRED API.
+    AAII sentiment: check <a href="https://www.aaii.com/sentimentsurvey" target="_blank" style="color:#1a56db;">aaii.com</a> manually every Thursday (blocked by CDN on GitHub Actions).
   </div>
 </div>
 
@@ -1960,10 +1935,9 @@ if __name__ == "__main__":
     log("Run started")
 
     fred_data         = fetch_fred_data()
-    aaii_data         = fetch_aaii_sentiment()
     fg_data           = fetch_fear_greed()
     mkt_data          = fetch_market_indicators()
-    mhs               = compute_mhs(fred_data, fg_data, mkt_data, aaii_data)
+    mhs               = compute_mhs(fred_data, fg_data, mkt_data)   # no aaii_data
 
     si_tickers        = fetch_superinvestor_buys()   # dict: ticker -> buy count
     mf_tickers        = fetch_magic_formula()         # set of tickers
@@ -1977,13 +1951,13 @@ if __name__ == "__main__":
     briefing, ai_failed = synthesize_with_ai(
         ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers, aaii_data,
+        si_tickers, mf_tickers, am_tickers,   # no aaii_data
     )
 
     build_html(
         briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers, aaii_data,
+        si_tickers, mf_tickers, am_tickers,   # no aaii_data
     )
 
     print("\n📧 Email disabled -- GitHub Pages dashboard is primary output")
