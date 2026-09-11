@@ -1,0 +1,113 @@
+name: Test Yahoo PE Fetch (URTH + EFA)
+
+on:
+  workflow_dispatch:   # manual trigger only -- never runs automatically
+
+jobs:
+  test-pe:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests --break-system-packages
+
+      - name: Test Yahoo PE fetch
+        run: |
+          python - <<'EOF'
+          import re
+          import requests
+
+          TICKERS = ["URTH", "EFA"]
+
+          def test_html_scrape(ticker):
+              url = f"https://finance.yahoo.com/quote/{ticker}/"
+              hdrs = {
+                  "User-Agent": (
+                      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                      "AppleWebKit/537.36 (KHTML, like Gecko) "
+                      "Chrome/124.0.0.0 Safari/537.36"
+                  ),
+                  "Accept-Language": "en-US,en;q=0.9",
+                  "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              }
+              try:
+                  resp = requests.get(url, headers=hdrs, timeout=15)
+                  print(f"  [{ticker}] HTML status: {resp.status_code} | "
+                        f"page size: {len(resp.text)} chars")
+                  m = re.search(r'data-test="PE_RATIO-value"[^>]*>\s*([\d.]+)', resp.text)
+                  if m:
+                      print(f"  [{ticker}] HTML scrape SUCCESS: PE = {m.group(1)}")
+                      return float(m.group(1))
+                  # Secondary pattern
+                  m2 = re.search(
+                      r'PE Ratio \(TTM\)[^<]*<[^>]+>[^<]*<[^>]+>\s*([\d.]+)', resp.text)
+                  if m2:
+                      print(f"  [{ticker}] HTML scrape (secondary) SUCCESS: PE = {m2.group(1)}")
+                      return float(m2.group(1))
+                  # Show snippet around PE_RATIO for debugging
+                  idx = resp.text.find("PE_RATIO")
+                  if idx > 0:
+                      snippet = resp.text[max(0,idx-50):idx+200].replace("\n"," ")
+                      print(f"  [{ticker}] PE_RATIO found in HTML but pattern failed. Snippet:")
+                      print(f"    {snippet}")
+                  else:
+                      print(f"  [{ticker}] PE_RATIO not found in HTML at all")
+                  return None
+              except Exception as e:
+                  print(f"  [{ticker}] HTML scrape ERROR: {e}")
+                  return None
+
+          def test_api(ticker):
+              url = f"https://query1.finance.yahoo.com/v10/finance/quoteSummary/{ticker}"
+              params = {"modules": "summaryDetail"}
+              hdrs = {
+                  "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+                  "Accept": "application/json",
+              }
+              try:
+                  resp = requests.get(url, params=params, headers=hdrs, timeout=12)
+                  print(f"  [{ticker}] API status: {resp.status_code}")
+                  if resp.status_code != 200:
+                      print(f"  [{ticker}] API FAILED: {resp.text[:200]}")
+                      return None
+                  data = resp.json()
+                  pe = (data.get("quoteSummary", {})
+                            .get("result", [{}])[0]
+                            .get("summaryDetail", {})
+                            .get("trailingPE", {})
+                            .get("raw"))
+                  if pe:
+                      print(f"  [{ticker}] API SUCCESS: PE = {pe}")
+                      return round(float(pe), 2)
+                  print(f"  [{ticker}] API: trailingPE not in response")
+                  print(f"    Keys: {list(data.get('quoteSummary',{}).get('result',[{}])[0].get('summaryDetail',{}).keys())[:10]}")
+                  return None
+              except Exception as e:
+                  print(f"  [{ticker}] API ERROR: {e}")
+                  return None
+
+          print("=" * 50)
+          print("Yahoo Finance PE Fetch Test -- URTH and EFA")
+          print("=" * 50)
+
+          for ticker in TICKERS:
+              print(f"\n--- {ticker} ---")
+              pe_html = test_html_scrape(ticker)
+              pe_api  = test_api(ticker)
+              final   = pe_html or pe_api
+              status  = "LIVE" if final else "FAILED -- will use PE_CONFIG fallback"
+              print(f"  RESULT: {ticker} PE = {final}x  [{status}]")
+
+          print("\n" + "=" * 50)
+          print("Test complete. Check results above.")
+          print("If both methods fail, PE_CONFIG values are used:")
+          print("  URTH: 22.57x (as of Sep 10 2026)")
+          print("  EFA:  18.35x (as of Sep 10 2026)")
+          EOF
