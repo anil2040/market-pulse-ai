@@ -445,32 +445,246 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                     'Gemini resets at midnight UTC (6 PM MT).</div></div></div>')
 
     # Gauge market performance -- Chrome extension style
-    # For closed/post markets, show the pct change with the signal still
+    # Live JS refresh: on page load + every 60s, fetches Yahoo v8 from browser
+    # (browser fetch works; GitHub Actions server-side fetch is what fails for market state)
     gauge_section = f"""
-<div class="card ar" style="margin-bottom:12px;">
-  <h2>📈 Market Performance</h2>
+<div class="card ar" style="margin-bottom:12px;" id="market-perf-card">
+  <h2>📈 Market Performance
+    <span id="mkt-refresh-ts" style="font-weight:400;color:var(--muted);font-size:.55rem;margin-left:8px;"></span>
+  </h2>
   {mkt_banner}{mkt_cache_banner}
-  {_gauge_row("S&P 500",      spx_val, spx_chg, spx_lbl, spx_col,
-               "Large-cap benchmark")}
-  {_gauge_row("Russell 2000", rut_val, rut_chg, rut_lbl, rut_col,
-               "Small-cap · risk appetite proxy")}
+
+  <!-- S&P 500 gauge row -->
+  <div id="gauge-spx" style="background:white;border:1px solid #e5e7eb;border-radius:8px;
+              padding:10px 14px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+      <div>
+        <div style="font-weight:700;font-size:.88rem;color:#111928;">S&amp;P 500</div>
+        <div style="font-size:.58rem;color:#9ca3af;margin-top:1px;">Large-cap benchmark</div>
+      </div>
+      <div style="text-align:right;display:flex;align-items:center;gap:8px;">
+        <span id="spx-val" style="font-weight:800;font-size:1rem;color:#111928;">{spx_val}</span>
+        <span id="spx-chg" style="font-size:.78rem;font-weight:600;color:{spx_col};">{spx_chg}</span>
+        <span id="spx-pill" style="background:{spx_col};color:white;padding:2px 10px;
+              border-radius:4px;font-size:.72rem;font-weight:800;letter-spacing:.5px;">{spx_lbl}</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.55rem;color:#9ca3af;margin-bottom:2px;">
+      <span>SELLOFF</span><span>DOWN</span><span>FLAT</span><span>UP</span><span>RALLY</span>
+    </div>
+    <div style="position:relative;margin-top:2px;">
+      <div style="background:linear-gradient(to right,#c81e1e,#e97316,#6b7280,#86c440,#057a55);
+                  border-radius:99px;height:6px;"></div>
+      <div id="spx-dot" style="position:absolute;top:-3px;left:calc(50% - 6px);width:12px;height:12px;
+                  background:{spx_col};border-radius:50%;border:2px solid white;
+                  box-shadow:0 1px 3px rgba(0,0,0,.25);"></div>
+    </div>
+  </div>
+
+  <!-- Russell 2000 gauge row -->
+  <div id="gauge-rut" style="background:white;border:1px solid #e5e7eb;border-radius:8px;
+              padding:10px 14px;margin-bottom:8px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+      <div>
+        <div style="font-weight:700;font-size:.88rem;color:#111928;">Russell 2000</div>
+        <div style="font-size:.58rem;color:#9ca3af;margin-top:1px;">Small-cap · risk appetite proxy</div>
+      </div>
+      <div style="text-align:right;display:flex;align-items:center;gap:8px;">
+        <span id="rut-val" style="font-weight:800;font-size:1rem;color:#111928;">{rut_val}</span>
+        <span id="rut-chg" style="font-size:.78rem;font-weight:600;color:{rut_col};">{rut_chg}</span>
+        <span id="rut-pill" style="background:{rut_col};color:white;padding:2px 10px;
+              border-radius:4px;font-size:.72rem;font-weight:800;letter-spacing:.5px;">{rut_lbl}</span>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:.55rem;color:#9ca3af;margin-bottom:2px;">
+      <span>SELLOFF</span><span>DOWN</span><span>FLAT</span><span>UP</span><span>RALLY</span>
+    </div>
+    <div style="position:relative;margin-top:2px;">
+      <div style="background:linear-gradient(to right,#c81e1e,#e97316,#6b7280,#86c440,#057a55);
+                  border-radius:99px;height:6px;"></div>
+      <div id="rut-dot" style="position:absolute;top:-3px;left:calc(50% - 6px);width:12px;height:12px;
+                  background:{rut_col};border-radius:50%;border:2px solid white;
+                  box-shadow:0 1px 3px rgba(0,0,0,.25);"></div>
+    </div>
+  </div>
+
+  <!-- VIX row -->
   <div style="margin-top:8px;background:white;border:1px solid #e5e7eb;border-radius:8px;
               padding:8px 14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
       <div style="font-weight:700;font-size:.88rem;color:#111928;">VIX</div>
       <div style="display:flex;align-items:center;gap:8px;">
-        <span style="font-weight:800;font-size:1rem;color:#111928;">{vix_val}</span>
-        <span style="font-size:.7rem;color:{vix_col};font-weight:600;">
-          {'prev ' + vix_prev}</span>
-        {_badge(vix_lbl, vix_col)}
+        <span id="vix-val" style="font-weight:800;font-size:1rem;color:#111928;">{vix_val}</span>
+        <span id="vix-prev" style="font-size:.7rem;color:{vix_col};font-weight:600;">prev {vix_prev}</span>
+        <span id="vix-pill" style="background:{vix_col};color:white;padding:2px 9px;
+              border-radius:4px;font-size:.68rem;font-weight:700;">{vix_lbl}</span>
       </div>
     </div>
-    <div style="font-size:.68rem;color:#6b7280;">{vix_sig}</div>
+    <div id="vix-sig" style="font-size:.68rem;color:#6b7280;">{vix_sig}</div>
   </div>
-  <div style="margin-top:4px;font-size:.63rem;color:#9ca3af;">
+
+  <div id="pulse-line" style="margin-top:4px;font-size:.63rem;color:#9ca3af;">
     ⚡ {pulse}
   </div>
-</div>"""
+</div>
+
+<script>
+// ============================================================
+// Live market refresh -- calls Yahoo Finance v8 directly from browser.
+// Works because the browser is not blocked (only GitHub Actions IPs are).
+// Refreshes on page load and every 60 seconds while market is open.
+// ============================================================
+(function() {{
+  var BANDS = {{SELLOFF:5, DOWN:25, FLAT:50, UP:75, RALLY:95}};
+  var COLORS = {{
+    RALLY:"#057a55", UP:"#86c440", FLAT:"#6b7280",
+    DOWN:"#e97316", SELLOFF:"#c81e1e",
+    CALM:"#059669", NORMAL:"#6b7280", CAUTIOUS:"#e97316",
+    FEARFUL:"#c81e1e", PANIC:"#7f1d1d"
+  }};
+
+  function classifyIdx(c) {{
+    if (c >  1.0) return "RALLY";
+    if (c >  0.1) return "UP";
+    if (c > -0.1) return "FLAT";
+    if (c > -1.0) return "DOWN";
+    return "SELLOFF";
+  }}
+
+  function classifyVix(v) {{
+    if (v < 15) return "CALM";
+    if (v < 20) return "NORMAL";
+    if (v < 25) return "CAUTIOUS";
+    if (v < 30) return "FEARFUL";
+    return "PANIC";
+  }}
+
+  function vixSig(v) {{
+    if (v >= 30) return "Panic -- forced selling, mean reversion entries emerging";
+    if (v >= 25) return "Elevated fear -- watch for entry points";
+    if (v >= 20) return "Slightly elevated -- no broad panic signal";
+    if (v >= 15) return "Normal -- market calm, no stress signal";
+    return "Calm -- low fear, complacency = less opportunity for value investors";
+  }}
+
+  function updateDot(dotId, lbl, col) {{
+    var dot = document.getElementById(dotId);
+    if (!dot) return;
+    var pct = BANDS[lbl] !== undefined ? BANDS[lbl] : 50;
+    dot.style.left = "calc(" + pct + "% - 6px)";
+    dot.style.background = col;
+  }}
+
+  function fetchTicker(sym, callback) {{
+    var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + sym +
+              "?interval=1d&range=2d&cors=true";
+    fetch(url, {{headers: {{"Accept": "application/json"}}}})
+      .then(function(r) {{ return r.json(); }})
+      .then(function(d) {{
+        var meta = d.chart.result[0].meta;
+        var p    = parseFloat(meta.regularMarketPrice || 0);
+        var pv   = parseFloat(meta.previousClose || p);
+        var chg  = pv ? (p - pv) / pv * 100 : 0;
+        var state = meta.marketState || "UNKNOWN";
+        callback(null, {{price:p, prev:pv, chg:chg, state:state}});
+      }})
+      .catch(function(e) {{ callback(e, null); }});
+  }}
+
+  function refresh() {{
+    // Fetch SPX (state source), RUT, VIX in parallel
+    var results = {{}};
+    var done = 0;
+    var tickers = ["%5EGSPC", "%5ERUT", "%5EVIX"];
+    var keys    = ["spx",     "rut",    "vix"];
+
+    tickers.forEach(function(sym, i) {{
+      fetchTicker(sym, function(err, data) {{
+        done++;
+        if (!err) results[keys[i]] = data;
+        if (done === tickers.length) apply(results);
+      }});
+    }});
+  }}
+
+  function apply(r) {{
+    var spx = r.spx; var rut = r.rut; var vix = r.vix;
+    if (!spx || !rut || !vix) return;
+
+    // Market state from SPX
+    var stateMap = {{REGULAR:"OPEN", PRE:"PRE", POST:"POST", CLOSED:"CLOSED"}};
+    var state = stateMap[spx.state] || "OPEN";
+
+    var spxLbl, rutLbl, spxChgStr, rutChgStr;
+    if (state === "PRE") {{
+      spxLbl = "PRE-MKT"; rutLbl = "PRE-MKT";
+      spxChgStr = "Pre-Market"; rutChgStr = "Pre-Market";
+    }} else {{
+      spxLbl = classifyIdx(spx.chg); rutLbl = classifyIdx(rut.chg);
+      spxChgStr = (spx.chg >= 0 ? "+" : "") + spx.chg.toFixed(2) + "%";
+      rutChgStr = (rut.chg >= 0 ? "+" : "") + rut.chg.toFixed(2) + "%";
+    }}
+    var spxCol = COLORS[spxLbl] || "#6b7280";
+    var rutCol = COLORS[rutLbl] || "#6b7280";
+    var vixLbl = classifyVix(vix.price);
+    var vixCol = COLORS[vixLbl] || "#6b7280";
+
+    // Update SPX
+    var el;
+    el = document.getElementById("spx-val");  if(el) el.textContent = spx.price.toLocaleString("en-US", {{maximumFractionDigits:0}});
+    el = document.getElementById("spx-chg");  if(el) {{ el.textContent = spxChgStr; el.style.color = spxCol; }}
+    el = document.getElementById("spx-pill"); if(el) {{ el.textContent = spxLbl; el.style.background = spxCol; }}
+    updateDot("spx-dot", spxLbl, spxCol);
+
+    // Update RUT
+    el = document.getElementById("rut-val");  if(el) el.textContent = rut.price.toLocaleString("en-US", {{maximumFractionDigits:0}});
+    el = document.getElementById("rut-chg");  if(el) {{ el.textContent = rutChgStr; el.style.color = rutCol; }}
+    el = document.getElementById("rut-pill"); if(el) {{ el.textContent = rutLbl; el.style.background = rutCol; }}
+    updateDot("rut-dot", rutLbl, rutCol);
+
+    // Update VIX
+    el = document.getElementById("vix-val");  if(el) el.textContent = vix.price.toFixed(2);
+    el = document.getElementById("vix-prev"); if(el) {{ el.textContent = "prev " + vix.prev.toFixed(2); el.style.color = vixCol; }}
+    el = document.getElementById("vix-pill"); if(el) {{ el.textContent = vixLbl; el.style.background = vixCol; }}
+    el = document.getElementById("vix-sig");  if(el) el.textContent = vixSig(vix.price);
+
+    // Pulse line
+    var tone = "";
+    if (state === "PRE") {{
+      tone = "Pre-Market · S&P last close " + spx.price.toLocaleString("en-US",{{maximumFractionDigits:0}}) +
+             " · Russell " + rut.price.toLocaleString("en-US",{{maximumFractionDigits:0}}) +
+             " · VIX " + vix.price.toFixed(1) + " (" + vixLbl + ")";
+    }} else {{
+      var mood = "";
+      if (vix.price >= 30 || spxLbl === "SELLOFF") mood = "broad stress -- mean reversion entries emerging";
+      else if (spxLbl === "FLAT") mood = "indecisive -- focus on individual catalysts";
+      else if (["UP","RALLY"].includes(spxLbl) && ["UP","RALLY"].includes(rutLbl)) mood = "broad strength -- be selective";
+      else mood = "mixed -- stay selective";
+      tone = "S&P " + spxChgStr + " (" + spxLbl + ") · Russell " + rutChgStr + " (" + rutLbl + ") · VIX " + vix.price.toFixed(1) + " (" + vixLbl + ") -- " + mood;
+    }}
+    el = document.getElementById("pulse-line"); if(el) el.textContent = "⚡ " + tone;
+
+    // Timestamp
+    var now = new Date();
+    var hh = now.getHours(); var mm = now.getMinutes();
+    var ampm = hh >= 12 ? "PM" : "AM"; hh = hh % 12 || 12;
+    var ts = "refreshed " + hh + ":" + (mm < 10 ? "0" : "") + mm + " " + ampm;
+    el = document.getElementById("mkt-refresh-ts"); if(el) el.textContent = ts;
+
+    // Auto-refresh every 60s only when market likely open (Mon-Fri, 7:30-16:05 MT)
+    var day = now.getDay(); // 0=Sun,6=Sat
+    var minOfDay = now.getHours() * 60 + now.getMinutes();
+    var mktOpen  = 7 * 60 + 30;   // 7:30 AM MT
+    var mktClose = 16 * 60 + 5;   // 4:05 PM MT
+    if (day >= 1 && day <= 5 && minOfDay >= mktOpen && minOfDay < mktClose) {{
+      setTimeout(refresh, 60000);
+    }}
+  }}
+
+  // Run on page load
+  refresh();
+}})();
+</script>"""
 
     # Sentiment table (F&G + Consumer Sentiment -- VIX now in gauge block)
     fg_cache_html   = _cache_badge(fg_cdate) if fg_cached else ""

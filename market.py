@@ -1,5 +1,5 @@
 # ============================================================
-# market.py -- Market data, PE config, Macro Heat Score, ERP
+# market.py -- Market data, PE config, MHS, ERP
 # Mean Reversion Macro Insights
 # ============================================================
 #
@@ -8,37 +8,63 @@
 #   compute_mhs(fred_data, fg_data, mkt_data) -> dict
 #   compute_erp(fred_data, cape_val_str) -> (erp, cape_yield, ten_y) | (None,None,None)
 #
-# ETF PE SOURCING -- PE_CONFIG only (quarterly manual update):
-#   Yahoo Finance HTML scrape: blocked -- PE renders via JavaScript, not in raw HTML
-#   Yahoo Finance v10 API: blocked -- requires browser session crumb, returns 401
-#   iShares CSV: dead as of Sep 2026 -- returns full HTML page, not CSV data
-#   Solution: update PE_CONFIG manually each quarter from your browser:
-#     finance.yahoo.com/quote/URTH  (look for PE Ratio TTM in the summary table)
-#     finance.yahoo.com/quote/EFA   (same)
+# ETF PE SOURCING STRATEGY (in priority order):
+#   1. iShares fund characteristics CSV (free, no auth, updated daily)
+#      Parses "P/E Ratio" row from the same CSV iShares uses for their pages.
+#   2. PE_CONFIG fallback (hardcoded quarterly from iShares.com)
+#      Update PE_LAST_UPDATED + PE_CONFIG values each quarter.
+#      Dashboard shows amber warning if data is >90 days stale.
 #
-# Macro Heat Score scale (updated Sep 2026):
-#   0-33:   DEPLOY           -- panic/dislocation, deploy aggressively
-#   34-65:  SELECTIVE        -- best setups only, Left Leg <4, MoS >25%
-#   66-85:  OVERHEATED       -- build cash, trim winners
-#   86-100: EXTREME OVERHEATED -- most stretched since dot-com, quality and patience only
+# Yahoo v8/v10: broken server-side for ETFs since mid-2026.
+# etf.com / etfdb.com: Cloudflare CDN blocks GitHub Actions.
+# Playwright: overkill for quarterly PE (adds 45-60s per run).
+# See debug_etf_pe.py for full source audit history.
+#
+# MHS SCALE:
+#   0-33:  DEPLOY   -- panic/dislocation, deploy aggressively
+#   34-65: SELECTIVE -- best setups only, Left Leg <4, MoS >25%
+#   66-85: OVERHEATED -- build cash, trim winners
+#   86-100: EXTREME OVERHEATED -- most stretched macro since dot-com,
+#           keep bar very high, stay disciplined
+#
+# MARKET STATE DETECTION:
+#   marketState from SPX (%5EGSPC) is the authoritative source.
+#   REGULAR -> OPEN, PRE -> PRE, POST -> POST, CLOSED -> CLOSED.
+#   VIX marketState is NOT used (it can differ from equity state).
 # ============================================================
 
+import os
 import re
 import concurrent.futures
 from datetime import date
 import requests
 
 # ============================================================
-# ETF PE CONFIG -- update manually each quarter
+# ETF PE CONFIG -- quarterly fallback
 # ============================================================
-# Check: finance.yahoo.com/quote/URTH and finance.yahoo.com/quote/EFA
-# Look for "PE Ratio (TTM)" in the summary stats table on the page.
-# Last updated: Sep 10 2026 from Yahoo Finance browser (confirmed live values)
+# Update manually each quarter if iShares CSV fetch fails.
+# Check: iShares product page > Fund Characteristics > P/E Ratio
+# URTH: https://www.ishares.com/us/products/239696
+# EFA:  https://www.ishares.com/us/products/239727
 
 PE_LAST_UPDATED = date(2026, 9, 10)
+
 PE_CONFIG = {
     "URTH": {"pe": 22.57, "label": "iShares MSCI World ETF"},
     "EFA":  {"pe": 18.35, "label": "iShares MSCI EAFE ETF"},
+}
+
+# iShares fund characteristics CSV URLs
+# Return a short CSV with rows like: "P/E Ratio","23.14"
+ISHARES_CSV_URLS = {
+    "URTH": (
+        "https://www.ishares.com/us/products/239696/ISHARES-MSCI-WORLD-ETF"
+        "/1467271812596.ajax?fileType=csv&fileName=URTH_fund&dataType=fund"
+    ),
+    "EFA": (
+        "https://www.ishares.com/us/products/239727/ISHARES-MSCI-EAFE-ETF"
+        "/1467271812596.ajax?fileType=csv&fileName=EFA_fund&dataType=fund"
+    ),
 }
 
 # ============================================================
@@ -46,32 +72,95 @@ PE_CONFIG = {
 # ============================================================
 
 def _classify_vix(v):
-    if v < 15: return "CALM",     "#059669"
-    if v < 20: return "NORMAL",   "#6b7280"
-    if v < 25: return "CAUTIOUS", "#e97316"
-    if v < 30: return "FEARFUL",  "#c81e1e"
-    return      "PANIC",          "#7f1d1d"
+    if v < 15: return "CALM",    "#059669"
+    if v < 20: return "NORMAL",  "#6b7280"
+    if v < 25: return "CAUTIOUS","#e97316"
+    if v < 30: return "FEARFUL", "#c81e1e"
+    return "PANIC", "#7f1d1d"
 
 def _classify_idx(c):
     if c >  1.0: return "RALLY",   "#059669"
     if c >  0.1: return "UP",      "#86c440"
     if c > -0.1: return "FLAT",    "#6b7280"
     if c > -1.0: return "DOWN",    "#e97316"
-    return        "SELLOFF",       "#c81e1e"
+    return "SELLOFF", "#c81e1e"
 
 def _vix_sig(v):
-    if v >= 30: return "Panic -- forced selling, mean reversion entries emerging"
-    if v >= 25: return "Elevated fear -- watch for entry points"
-    if v >= 20: return "Slightly elevated -- no broad panic signal"
-    if v >= 15: return "Normal -- market calm, no stress signal"
-    return             "Calm -- low fear -- complacency = less opportunity for value investors"
+    if v >= 30: return "⚠️ Panic -- forced selling, mean reversion entries emerging"
+    if v >= 25: return "⚠️ Elevated fear -- watch for entry points"
+    if v >= 20: return "→ Slightly elevated -- no broad panic signal"
+    if v >= 15: return "→ Normal -- market calm, no stress signal"
+    return "✅ Calm · low fear · complacency = less opportunity for value investors"
 
 # ============================================================
-# YAHOO FINANCE PRICE FETCHER (SPX, RUT, VIX only -- not PE)
+# ISHARES PE FETCHERS
+# ============================================================
+
+def _parse_ishares_csv_pe(csv_text):
+    """
+    Parse P/E ratio from iShares fund characteristics CSV.
+    Looks for a line starting with 'P/E Ratio' and returns the float.
+    Returns None if row is missing or unparseable.
+    """
+    for line in csv_text.splitlines():
+        if re.match(r'^["\s]*P/E Ratio', line, re.IGNORECASE):
+            parts = line.split(",")
+            if len(parts) >= 2:
+                val = re.sub(r"[^0-9.]", "", parts[-1])
+                if val:
+                    try:
+                        return float(val)
+                    except ValueError:
+                        pass
+    return None
+
+def _fetch_ishares_pe(ticker):
+    """
+    Try to fetch live PE from iShares fund characteristics CSV.
+    Returns (pe_float, source_str) or (None, reason_str).
+    """
+    url = ISHARES_CSV_URLS.get(ticker)
+    if not url:
+        return None, "no CSV URL configured"
+    try:
+        hdrs = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept":     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Referer":    "https://www.ishares.com/",
+        }
+        resp = requests.get(url, headers=hdrs, timeout=12)
+        if resp.status_code != 200:
+            return None, f"HTTP {resp.status_code}"
+        pe = _parse_ishares_csv_pe(resp.text)
+        if pe is None:
+            return None, "P/E row not found in CSV"
+        return pe, "iShares CSV (live)"
+    except Exception as e:
+        return None, str(e)[:60]
+
+def _yq_pe(ticker):
+    """
+    Return (pe_float, is_stale_bool, source_str) for URTH and EFA.
+    Tries iShares CSV first, falls back to PE_CONFIG.
+    is_stale only applies to the PE_CONFIG fallback path.
+    """
+    pe_live, source = _fetch_ishares_pe(ticker)
+    if pe_live is not None:
+        return pe_live, False, source
+
+    print(f"  ⚠️ {ticker} PE live fetch failed ({source}) -- using PE_CONFIG fallback")
+    cfg = PE_CONFIG.get(ticker)
+    if not cfg:
+        return None, False, "not configured"
+    days_stale = (date.today() - PE_LAST_UPDATED).days
+    return cfg["pe"], (days_stale > 90), f"PE_CONFIG ({PE_LAST_UPDATED})"
+
+# ============================================================
+# YAHOO FINANCE PRICE FETCHER
 # ============================================================
 
 def _yq(ticker):
-    """Fetch price, prev close, pct change, market state from Yahoo Finance v8."""
+    """Fetch price, prev close, % change, market state from Yahoo Finance v8."""
     url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=2d"
     hdrs = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -90,16 +179,19 @@ def _yq(ticker):
 
 def fetch_market_indicators():
     """
-    Fetch S&P 500, Russell 2000, VIX from Yahoo Finance v8 in parallel.
-    ETF PE (URTH, EFA): always uses PE_CONFIG -- live fetch is permanently blocked
-    from GitHub Actions (Yahoo requires browser session for PE data).
+    Fetch SPX, RUT, VIX in parallel via Yahoo Finance v8.
+    Market state is taken from SPX (authoritative), NOT VIX.
+    PE: iShares CSV first, PE_CONFIG fallback.
     """
-    print("\n📊 Fetching Market Performance (S&P 500, Russell 2000, VIX)...")
+    print("\n📊 Fetching Market Performance (SPX, RUT, VIX, URTH PE, EFA PE)...")
 
     res = {
-        "vix":    {"value": "N/A", "label": "N/A", "color": "#6b7280", "signal": "", "prev": "N/A"},
-        "spx":    {"value": "N/A", "chg":   "N/A", "label": "N/A", "color": "#6b7280", "prev": "N/A"},
-        "rut":    {"value": "N/A", "chg":   "N/A", "label": "N/A", "color": "#6b7280", "prev": "N/A"},
+        "vix":    {"value": "N/A", "label": "N/A", "color": "#6b7280",
+                   "signal": "", "prev": "N/A"},
+        "spx":    {"value": "N/A", "chg": "N/A", "label": "N/A",
+                   "color": "#6b7280", "prev": "N/A"},
+        "rut":    {"value": "N/A", "chg": "N/A", "label": "N/A",
+                   "color": "#6b7280", "prev": "N/A"},
         "urth_pe": None, "urth_pe_stale": False, "urth_pe_source": "",
         "efa_pe":  None, "efa_pe_stale":  False, "efa_pe_source":  "",
         "market_state": "UNKNOWN", "market_status_label": "", "pulse": "",
@@ -110,41 +202,52 @@ def fetch_market_indicators():
             fv = ex.submit(_yq, "%5EVIX")
             fs = ex.submit(_yq, "%5EGSPC")
             fr = ex.submit(_yq, "%5ERUT")
-            vp, vpr, _,  vs = fv.result(timeout=15)
-            sp, spr, sc, ss = fs.result(timeout=15)
-            rp, rpr, rc, rs = fr.result(timeout=15)
 
-        # PE_CONFIG -- permanent fallback, quarterly manual update
-        days_stale = (date.today() - PE_LAST_UPDATED).days
-        is_stale   = days_stale > 90
-        pe_src     = f"PE_CONFIG ({PE_LAST_UPDATED})"
+        vp, vpr, _,  _   = fv.result(timeout=15)
+        sp, spr, sc, ss  = fs.result(timeout=15)  # ss = SPX market state (authoritative)
+        rp, rpr, rc, _   = fr.result(timeout=15)
 
-        res["urth_pe"]        = PE_CONFIG["URTH"]["pe"]
-        res["urth_pe_stale"]  = is_stale
-        res["urth_pe_source"] = pe_src
-        res["efa_pe"]         = PE_CONFIG["EFA"]["pe"]
-        res["efa_pe_stale"]   = is_stale
-        res["efa_pe_source"]  = pe_src
+        urth_pe, urth_stale, urth_src = _yq_pe("URTH")
+        efa_pe,  efa_stale,  efa_src  = _yq_pe("EFA")
 
-        state_map    = {"REGULAR": "OPEN", "PRE": "PRE", "POST": "POST", "CLOSED": "CLOSED"}
-        mkt_state    = state_map.get(vs, "OPEN" if abs(sc) > 0.005 else "CLOSED")
-        status_label = {"OPEN": "", "PRE": "Pre-Market",
-                        "POST": "After-Hours", "CLOSED": "Last Close"}.get(mkt_state, "")
+        res["urth_pe"]       = urth_pe
+        res["urth_pe_stale"] = urth_stale
+        res["urth_pe_source"]= urth_src
+        res["efa_pe"]        = efa_pe
+        res["efa_pe_stale"]  = efa_stale
+        res["efa_pe_source"] = efa_src
+
+        # Use SPX marketState as the single source of truth
+        state_map  = {"REGULAR": "OPEN", "PRE": "PRE", "POST": "POST", "CLOSED": "CLOSED"}
+        mkt_state  = state_map.get(ss, "OPEN")   # default OPEN if unrecognised
+        status_label = {
+            "OPEN":   "",
+            "PRE":    "Pre-Market",
+            "POST":   "After-Hours",
+            "CLOSED": "Last Close",
+        }.get(mkt_state, "")
 
         res["market_state"]        = mkt_state
         res["market_status_label"] = status_label
 
         vl, vc  = _classify_vix(vp)
-        sl, sc2 = _classify_idx(sc)
-        rl, rc2 = _classify_idx(rc)
 
+        # Classify SPX / RUT -- label and colour depend on market state
         if mkt_state == "PRE":
-            scs = "Pre-Market"; rcs = "Pre-Market"
-            sl  = "PRE-MKT";    sc2 = "#6366f1"
-            rl  = "PRE-MKT";    rc2 = "#6366f1"
-        else:
-            scs = f"{sc:+.2f}%"
-            rcs = f"{rc:+.2f}%"
+            sl,  sc2 = "PRE-MKT",  "#6366f1"
+            rl,  rc2 = "PRE-MKT",  "#6366f1"
+            scs      = "Pre-Market"
+            rcs      = "Pre-Market"
+        elif mkt_state in ("POST", "CLOSED"):
+            sl,  sc2 = _classify_idx(sc)   # still show the day's move
+            rl,  rc2 = _classify_idx(rc)
+            scs      = f"{sc:+.2f}%"
+            rcs      = f"{rc:+.2f}%"
+        else:  # OPEN
+            sl,  sc2 = _classify_idx(sc)
+            rl,  rc2 = _classify_idx(rc)
+            scs      = f"{sc:+.2f}%"
+            rcs      = f"{rc:+.2f}%"
 
         res["vix"] = {"value": f"{vp:.2f}", "label": vl, "color": vc,
                       "signal": _vix_sig(vp), "prev": f"{vpr:.2f}"}
@@ -153,10 +256,11 @@ def fetch_market_indicators():
         res["rut"] = {"value": f"{rp:,.0f}", "chg": rcs,
                       "label": rl, "color": rc2, "prev": f"{rpr:,.0f}"}
 
+        # Pulse summary line
         if mkt_state == "OPEN":
             if vp >= 30 or sl == "SELLOFF":
                 tone = "broad stress -- mean reversion entries emerging"
-            elif sl in ("UP", "RALLY") and rl in ("UP", "RALLY"):
+            elif sl in ("UP","RALLY") and rl in ("UP","RALLY"):
                 tone = "broad strength -- be selective"
             elif sl == "FLAT":
                 tone = "indecisive -- focus on individual catalysts"
@@ -168,16 +272,15 @@ def fetch_market_indicators():
             res["pulse"] = (f"Pre-Market · S&P last close {sp:,.0f} "
                             f"· Russell {rp:,.0f} · VIX {vp:.1f} ({vl})")
         else:
-            res["pulse"] = (f"S&P {sp:,.0f} ({scs}) · Russell {rp:,.0f} ({rcs}) "
-                            f"· VIX {vp:.1f} ({vl})")
+            res["pulse"] = f"S&P {sp:,.0f} ({scs}) · Russell {rp:,.0f} ({rcs}) · VIX {vp:.1f} ({vl})"
 
-        print(f"  ✅ S&P 500: {sp:,.0f} ({scs} {sl})")
-        print(f"  ✅ Russell 2000: {rp:,.0f} ({rcs} {rl})")
-        print(f"  ✅ VIX: {vp:.2f} ({vl}) | State: {mkt_state}")
-        print(f"  ✅ URTH PE: {res['urth_pe']}x | EFA PE: {res['efa_pe']}x "
-              f"| Source: {pe_src} | Days since update: {days_stale}")
-        if is_stale:
-            print(f"  ⚠️ PE data is {days_stale} days old -- update PE_CONFIG in market.py")
+        urth_str = f"URTH PE: {urth_pe:.1f}x ({urth_src})" if urth_pe else "URTH PE: N/A"
+        efa_str  = f"EFA PE: {efa_pe:.1f}x ({efa_src})"   if efa_pe  else "EFA PE: N/A"
+
+        print(f"  ✅ S&P 500:  {sp:,.0f} ({scs} {sl}) | State: {mkt_state} (from SPX)")
+        print(f"  ✅ Russell:  {rp:,.0f} ({rcs} {rl})")
+        print(f"  ✅ VIX:      {vp:.2f} ({vl})")
+        print(f"  ✅ {urth_str} | {efa_str}")
 
     except Exception as e:
         print(f"  ❌ Market indicators failed: {e}")
@@ -191,16 +294,9 @@ def fetch_market_indicators():
 
 def compute_mhs(fred_data, fg_data, mkt_data):
     """
-    Compute Macro Heat Score (0-100, higher = more overheated).
-    Inverted scale: lower score = better mean reversion opportunity.
-
-    Scale (updated Sep 2026):
-      0-33:   DEPLOY           -- panic and dislocation, deploy aggressively
-      34-65:  SELECTIVE        -- best setups only
-      66-85:  OVERHEATED       -- build cash, trim winners
-      86-100: EXTREME OVERHEATED -- most stretched since dot-com
-
-    Note: AAII sentiment removed -- aaii.com blocks GitHub Actions via Incapsula CDN.
+    Compute Macro Heat Score (0-100 inverted -- higher = more overheated).
+    No aaii_data -- AAII removed (Incapsula CDN blocks GH Actions).
+    Scale: 0-33 DEPLOY | 34-65 SELECTIVE | 66-85 OVERHEATED | 86-100 EXTREME
     """
     raw       = 50
     breakdown = []
@@ -214,93 +310,93 @@ def compute_mhs(fred_data, fg_data, mkt_data):
         except Exception:
             return None, None
 
-    # Core PCE inflation
+    # Core PCE
     cp, cpt = get_fred("Core PCE")
     if cp is not None:
         if   cp > 3.5: adj = +15; note = f"Core PCE {cp:.1f}% -- well above 2% target"
         elif cp > 3.0: adj = +10; note = f"Core PCE {cp:.1f}% -- above 2% target"
-        elif cp > 2.5: adj =  +5; note = f"Core PCE {cp:.1f}% -- mildly elevated"
-        elif cp > 2.0: adj =  +2; note = f"Core PCE {cp:.1f}% -- near target"
-        else:          adj =  -5; note = f"Core PCE {cp:.1f}% -- at or below 2% target"
-        if cpt == "▲": adj += 5; note += " and rising"
-        elif cpt == "▼": adj -= 5; note += " and cooling"
+        elif cp > 2.5: adj = +5;  note = f"Core PCE {cp:.1f}% -- mildly elevated"
+        elif cp > 2.0: adj = +2;  note = f"Core PCE {cp:.1f}% -- near target"
+        else:          adj = -5;  note = f"Core PCE {cp:.1f}% -- at/below 2% target"
+        if cpt == "▲": adj += 5; note += " & rising"
+        elif cpt == "▼": adj -= 5; note += " & cooling"
         raw += adj; breakdown.append(f"Inflation {adj:+d} ({note})")
 
-    # VIX fear index
+    # VIX
     try:
         vix = float(mkt_data["vix"]["value"])
-        if   vix >= 40: adj = -20; note = f"VIX {vix:.1f} -- panic and forced selling"
+        if   vix >= 40: adj = -20; note = f"VIX {vix:.1f} -- panic/forced selling"
         elif vix >= 30: adj = -15; note = f"VIX {vix:.1f} -- fear"
-        elif vix >= 25: adj =  -8; note = f"VIX {vix:.1f} -- cautious"
-        elif vix >= 20: adj =  -3; note = f"VIX {vix:.1f} -- slightly elevated"
-        elif vix >= 15: adj =  +5; note = f"VIX {vix:.1f} -- calm and normal"
+        elif vix >= 25: adj = -8;  note = f"VIX {vix:.1f} -- cautious"
+        elif vix >= 20: adj = -3;  note = f"VIX {vix:.1f} -- slightly elevated"
+        elif vix >= 15: adj = +5;  note = f"VIX {vix:.1f} -- calm/normal"
         else:           adj = +10; note = f"VIX {vix:.1f} -- complacent"
         raw += adj; breakdown.append(f"VIX {adj:+d} ({note})")
     except Exception:
         pass
 
-    # CNN Fear and Greed
+    # Fear & Greed
     try:
         fg = int(fg_data.get("score", 50))
         if   fg <= 20: adj = -20; note = f"Fear and Greed {fg} -- extreme fear"
         elif fg <= 35: adj = -12; note = f"Fear and Greed {fg} -- fear"
-        elif fg <= 50: adj =  -4; note = f"Fear and Greed {fg} -- mild fear"
-        elif fg <= 65: adj =  +4; note = f"Fear and Greed {fg} -- neutral to mild greed"
+        elif fg <= 50: adj = -4;  note = f"Fear and Greed {fg} -- mild fear"
+        elif fg <= 65: adj = +4;  note = f"Fear and Greed {fg} -- neutral/mild greed"
         elif fg <= 80: adj = +12; note = f"Fear and Greed {fg} -- greed"
         else:          adj = +20; note = f"Fear and Greed {fg} -- extreme greed"
         raw += adj; breakdown.append(f"Fear&Greed {adj:+d} ({note})")
     except Exception:
         pass
 
-    # High yield credit spread
+    # HY Credit Spread
     hy, _ = get_fred("HY Credit Spread")
     if hy is not None:
-        if   hy >= 8.0: adj = -15; note = f"High yield spread {hy:.2f}% -- very wide, credit stress"
-        elif hy >= 6.0: adj = -10; note = f"High yield spread {hy:.2f}% -- wide"
-        elif hy >= 4.5: adj =  -4; note = f"High yield spread {hy:.2f}% -- elevated"
-        elif hy <= 2.5: adj = +12; note = f"High yield spread {hy:.2f}% -- very tight, complacent"
-        elif hy <= 3.5: adj =  +6; note = f"High yield spread {hy:.2f}% -- tight"
-        else:           adj =  +2; note = f"High yield spread {hy:.2f}% -- normal"
+        if   hy >= 8.0: adj = -15; note = f"HY {hy:.2f}% -- very wide (credit stress)"
+        elif hy >= 6.0: adj = -10; note = f"HY {hy:.2f}% -- wide"
+        elif hy >= 4.5: adj = -4;  note = f"HY {hy:.2f}% -- elevated"
+        elif hy <= 2.5: adj = +12; note = f"HY {hy:.2f}% -- very tight (complacent)"
+        elif hy <= 3.5: adj = +6;  note = f"HY {hy:.2f}% -- tight"
+        else:           adj = +2;  note = f"HY {hy:.2f}% -- normal"
         raw += adj; breakdown.append(f"Credit {adj:+d} ({note})")
 
-    # Yield curve
+    # Yield Curve
     cv, _ = get_fred("Yield Curve (10Y-2Y)")
     if cv is not None:
         if   cv < -0.5: adj = -8; note = f"Deeply inverted {cv:.2f}%"
-        elif cv <  0.0: adj = -4; note = f"Inverted {cv:.2f}%"
-        elif cv <  0.3: adj = +2; note = f"Nearly flat {cv:.2f}%"
+        elif cv < 0.0:  adj = -4; note = f"Inverted {cv:.2f}%"
+        elif cv < 0.3:  adj = +2; note = f"Nearly flat {cv:.2f}%"
         elif cv >= 0.5: adj = +4; note = f"Steep {cv:.2f}%"
         else:           adj = +2; note = f"Positive {cv:.2f}%"
         raw += adj; breakdown.append(f"Yield Curve {adj:+d} ({note})")
 
-    # Federal Reserve posture
+    # Fed Posture
     fed, fedt = get_fred("Fed Funds Rate")
     if fed is not None:
         if   fedt == "▼": adj = -6; note = f"Fed cutting at {fed:.2f}%"
         elif fedt == "▲": adj = +8; note = f"Fed hiking at {fed:.2f}%"
-        elif fed >= 5.0:  adj = +6; note = f"Fed restrictive at {fed:.2f}%"
-        elif fed <= 3.0:  adj = -4; note = f"Fed accommodative at {fed:.2f}%"
+        elif fed >= 5.0:  adj = +6; note = f"Fed restrictive {fed:.2f}%"
+        elif fed <= 3.0:  adj = -4; note = f"Fed accommodative {fed:.2f}%"
         else:             adj = +2; note = f"Fed on hold at {fed:.2f}%"
         raw += adj; breakdown.append(f"Fed {adj:+d} ({note})")
 
-    # Shiller CAPE valuation
+    # Shiller CAPE
     cape, _ = get_fred("Shiller CAPE (US)")
     if cape is not None:
-        if   cape >= 40: adj = +15; note = f"Shiller CAPE {cape:.1f}x -- extreme, 98th percentile"
-        elif cape >= 35: adj = +12; note = f"Shiller CAPE {cape:.1f}x -- very high, over 2x historical average"
-        elif cape >= 30: adj =  +8; note = f"Shiller CAPE {cape:.1f}x -- elevated"
-        elif cape >= 25: adj =  +5; note = f"Shiller CAPE {cape:.1f}x -- moderately high"
-        elif cape >= 20: adj =   0; note = f"Shiller CAPE {cape:.1f}x -- fair value range"
-        elif cape >= 15: adj =  -5; note = f"Shiller CAPE {cape:.1f}x -- below average, opportunity"
+        if   cape >= 40: adj = +15; note = f"Shiller CAPE {cape:.1f}x -- extreme (98th pctile, only dot-com was higher)"
+        elif cape >= 35: adj = +12; note = f"Shiller CAPE {cape:.1f}x -- very high (>2x hist avg 17x)"
+        elif cape >= 30: adj = +8;  note = f"Shiller CAPE {cape:.1f}x -- elevated"
+        elif cape >= 25: adj = +5;  note = f"Shiller CAPE {cape:.1f}x -- moderately high"
+        elif cape >= 20: adj = 0;   note = f"Shiller CAPE {cape:.1f}x -- fair value range"
+        elif cape >= 15: adj = -5;  note = f"Shiller CAPE {cape:.1f}x -- below avg (opportunity)"
         else:            adj = -15; note = f"Shiller CAPE {cape:.1f}x -- deep value territory"
         raw += adj; breakdown.append(f"Shiller CAPE {adj:+d} ({note})")
 
-    # Gold signal
+    # Gold Signal
     gold, gold_trend = get_fred("Gold Price")
     try:
         vix_now = float(mkt_data["vix"]["value"])
         if gold is not None and gold_trend == "▲" and vix_now < 20:
-            adj = +3; note = "Gold rising with low VIX -- stealth fear or inflation signal"
+            adj = +3; note = "Gold rising with low VIX -- stealth fear/inflation signal"
             raw += adj; breakdown.append(f"Gold Signal {adj:+d} ({note})")
         elif gold is not None and gold_trend == "▼" and vix_now >= 25:
             adj = -3; note = "Gold falling with high VIX -- fear already priced in"
@@ -310,9 +406,8 @@ def compute_mhs(fred_data, fg_data, mkt_data):
 
     score = max(0, min(100, round(raw)))
 
-    # Thresholds updated Sep 2026: Extreme starts at 86 (was 90)
     if score >= 86:
-        lbl    = "EXTREME OVERHEATED"
+        lbl    = "🚨 EXTREME OVERHEATED"
         col    = "#7f1d1d"
         action = (
             "Macro is at its most stretched since dot-com. "
@@ -321,26 +416,24 @@ def compute_mhs(fred_data, fg_data, mkt_data):
             "Stay patient and disciplined. Not a signal to panic."
         )
     elif score >= 66:
-        lbl    = "OVERHEATED"
+        lbl    = "⛔ OVERHEATED"
         col    = "#c81e1e"
         action = (
             "Build cash. Trim winners. "
-            "New positions only with Left Leg 0-2, margin of safety above 25%, "
-            "and a clear catalyst."
+            "New positions only with Left Leg 0-2, MoS >25%, and a clear catalyst."
         )
     elif score >= 34:
-        lbl    = "SELECTIVE"
+        lbl    = "🟠 SELECTIVE"
         col    = "#b45309"
-        action = ("Best setups only. Left Leg below 4, margin of safety above 25%. "
-                  "Measured pace. Keep 25% or more in cash.")
+        action = "Best setups only. Left Leg <4, MoS >25%. Measured pace. Keep 25%+ cash."
     else:
-        lbl    = "DEPLOY"
+        lbl    = "🟢 DEPLOY"
         col    = "#057a55"
-        action = "Aggressive deployment. Macro confirms strong buy. Full position pace."
+        action = "Aggressive deployment. Macro confirms STRONG BUY. Full position pace."
 
-    print(f"\n📊 Macro Heat Score: {score}/100 ({lbl})")
+    print(f"\n📊 MHS (Macro Heat Score): {score}/100 ({lbl})")
     for b in breakdown:
-        print(f"  {b}")
+        print(f"   {b}")
 
     return {"score": score, "label": lbl, "color": col,
             "breakdown": breakdown, "action": action}
@@ -351,9 +444,8 @@ def compute_mhs(fred_data, fg_data, mkt_data):
 
 def compute_erp(fred_data, cape_val_str):
     """
-    Equity Risk Premium = (1 / Shiller CAPE) * 100 - 10Y Treasury yield.
-    Both expressed as percentages.
-    Negative means bonds yield more than stocks -- last seen around 2002.
+    Equity Risk Premium = (1/CAPE)*100 - 10Y Treasury yield (both as %).
+    Negative ERP = bonds yield more than stocks. Last negative: ~2002.
     """
     try:
         cape = float(re.sub(r"[^0-9.]", "", str(cape_val_str)))

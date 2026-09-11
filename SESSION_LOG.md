@@ -25,6 +25,7 @@ Do NOT paste all 7 modules -- that blows the context window immediately.
 | Dashboard layout / cards / HTML | html_builder.py |
 | Pipeline order / imports / new features | main.py |
 | run_cache.json / cache fallback | main.py |
+| Cron schedule / GitHub Actions / secrets | daily.yml |
 
 ---
 
@@ -35,8 +36,8 @@ Do NOT paste all 7 modules -- that blows the context window immediately.
 - **Owner:** Anil Abraham -- deep-value mean reversion investor
 - **Style:** Greenblatt / Carlisle / Howard Marks / Burry / Pabrai
 - **Local:** VS Code on Windows 11 Home, Boise ID (MDT = UTC-6 summer)
-- **Schedule:** GitHub Actions cron `55 12 * * 1-5` (6:55 AM MT weekdays) + workflow_dispatch
-- **Runtime:** ~39 seconds, 15/15 indicators, well within free tier limits
+- **Schedule:** GitHub Actions cron `50 13 * * 1-5` (7:50 AM MT weekdays) + workflow_dispatch
+- **Runtime:** ~42 seconds, 15/15 indicators, well within free tier limits
 
 **9 GitHub Secrets (all confirmed set):**
 GEMINI_API_KEY, ANTHROPIC_API_KEY, YAHOO_EMAIL, YAHOO_APP_PASSWORD,
@@ -55,11 +56,11 @@ fetch_mcoscillator_email -> synthesize_with_ai -> build_html
 | File | Lines | Responsibility |
 |---|---|---|
 | fred.py | 503 | FRED API, Gold (Yahoo GC=F), CAPE (multpl.com), trend colors, sparklines |
-| market.py | 449 | Yahoo SPX/RUT/VIX, iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
+| market.py | ~270 | Yahoo SPX/RUT/VIX, iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | 339 | Dataroma 13F cache+live, Magic Formula ASP.NET auth, Acquirer's Multiple |
 | news.py | 156 | Edward Jones scrape, CNBC/Yahoo/McClellan IMAP email |
 | ai_synthesis.py | 238 | Gemini 3.6 flash -> 1.5 flash -> Haiku -> structured fallback, parse_sections |
-| html_builder.py | 834 | Full dashboard HTML, gauge market view, breadth card, SI 3+ filter |
+| html_builder.py | ~870 | Full dashboard HTML, gauge market view, live JS refresh, SI 3+ filter |
 | main.py | 206 | Orchestrator only -- imports all modules, runs pipeline, run log |
 | debug_etf_pe.py | 214 | Quarterly diagnostic -- run manually to re-audit PE sources |
 
@@ -73,6 +74,8 @@ Quiet footnote link remains. Check manually at aaii.com every Thursday.
 **Gold:** Yahoo Finance GC=F (GOLDAMGBD228NLBM discontinued by FRED in 2025).
 
 **Shiller CAPE:** multpl.com scrape (FRED never hosted this series).
+multpl.com updates monthly -- all three columns (3mo, 12mo, today) showing the same
+value is expected behaviour when CAPE hasn't moved in 3 months due to 10yr smoothing.
 
 **ETF PE (URTH/EFA):**
 - Priority 1: iShares fund characteristics CSV (free, no auth, "P/E Ratio" row)
@@ -80,12 +83,26 @@ Quiet footnote link remains. Check manually at aaii.com every Thursday.
 - Yahoo v8/v10 broken for ETFs since mid-2026. etf.com/etfdb.com blocked by Cloudflare.
 - Playwright considered but rejected: overkill for quarterly PE, adds 45-60s per run.
 - Update PE_LAST_UPDATED in market.py each quarter from iShares.com product pages.
+- Current values: URTH=22.57x, EFA=18.35x (Sep 10 2026)
 
 **MHS (Macro Heat Score):** Inverted 0-100 composite.
-- 0-33 DEPLOY | 34-65 SELECTIVE | 66-89 OVERHEATED | 90-100 EXTREME OVERHEATED
+- 0-33 DEPLOY | 34-65 SELECTIVE | 66-85 OVERHEATED | 86-100 EXTREME OVERHEATED
 - Base = 50. Components: Core PCE, VIX, Fear&Greed, HY Credit, Yield Curve,
   Fed Posture, Shiller CAPE, Gold Signal.
 - EXTREME OVERHEATED posture: quality and patience, not panic. Left Leg 0-2, MoS >30%.
+
+**Market State Detection:**
+- marketState taken from SPX (%5EGSPC) only -- VIX marketState is NOT used (unreliable).
+- REGULAR -> OPEN, PRE -> PRE, POST -> POST, CLOSED -> CLOSED.
+- GitHub Actions IPs blocked by Yahoo for JS/crumb-based API -- only v8 basic fetch works.
+- Browser-side JS fetch works fine (not blocked) -- live refresh handled in html_builder.py.
+
+**Live Market Refresh (html_builder.py):**
+- Gauge section has embedded JavaScript that calls Yahoo Finance v8 from the browser.
+- Runs on page load + every 60s while market is open (Mon-Fri 7:30-16:05 MT).
+- Updates SPX, RUT, VIX values, pills, gauge dot positions, and pulse line in real time.
+- No backend changes needed -- this is purely client-side.
+- Timestamp shown next to "Market Performance" heading after each refresh.
 
 **AI Synthesis fallback chain:**
 gemini-3.6-flash (free, 20 RPD resets midnight UTC = 6 PM MT) ->
@@ -100,12 +117,17 @@ structured text (always works)
 - Dataroma cache: 20hr TTL, written by fetch_cache.py, read by screens.py
 - AM cache: 48hr TTL, written on success, read on failure
 
+**McClellan Oscillator:**
+- Card removed. Email is a paid article teaser with no usable data.
+- fetch_mcoscillator_email() still runs in pipeline (harmless, ~3s).
+- Can remove from news.py + main.py in a future cleanup session.
+
 **Dashboard layout:**
-- Gauge-style market performance (cloned from Chrome extension view)
-- Market Breadth card using McClellan Oscillator email (replaces "What to Watch")
+- Gauge-style market performance with live JS refresh
 - AI briefing: 2-column grid (Market & Macro + Earnings & Events)
 - Valuation block: Shiller CAPE (US) + URTH + EFA + ERP row
 - Hidden #market-context div for Chrome extension (compact data string)
+- Fun Fact + AI Learning: AI-generated by Gemini synthesis step
 
 ---
 
@@ -167,13 +189,8 @@ ERP: -2.24% (bonds yield more than stocks, last seen ~2002)
 - html_builder.py: AI briefing changed to 2-column grid
 - SESSION_LOG.md: created (this file)
 
-**Open items / next session:**
-- Playwright: documented but not implemented (overkill for quarterly PE)
-- run_cache.json fallback: if any fetch fails, serve last known good data (future)
-- SEC EDGAR 13F API: future replacement for Dataroma scraping
-- Chrome extension token optimization: ~60% reduction possible (future)
-
 ---
+
 ### Session 6
 **Date:** Sep 11 2026
 **Files changed:** market.py, main.py, html_builder.py, ai_synthesis.py, daily.yml
@@ -199,11 +216,39 @@ MHS: 94/100 EXTREME OVERHEATED
 SPX: 7,670 | RUT: 2,910 | VIX: 15.87 | CAPE: 40.7x | Gold: $4,426 | WTI: $97.3
 run_cache.json: committed and pushed successfully on first run
 
+---
+
+### Session 7
+**Date:** Sep 11 2026
+**Files changed:** market.py, html_builder.py, daily.yml, SESSION_LOG.md
+**Done:**
+- market.py: Market state detection fixed -- now uses SPX marketState as single
+  source of truth (VIX marketState is unreliable and was causing FLAT/+0.00% bug).
+  REGULAR->OPEN, PRE->PRE, POST->POST, CLOSED->CLOSED. Defaults to OPEN if unknown.
+- market.py: POST/CLOSED now still shows the day's % change (not zeroed out).
+  Only PRE-MKT shows "Pre-Market" text instead of a % change.
+- market.py: Dead Yahoo PE HTML/API fetch comments cleaned up (code was already
+  removed in session 6 but comment noise remained).
+- market.py: PE_CONFIG confirmed at URTH=22.57x, EFA=18.35x, date=Sep 10 2026.
+- market.py: MHS threshold confirmed at 86 for EXTREME OVERHEATED.
+- html_builder.py: Gauge section rebuilt with individual element IDs (spx-val,
+  spx-chg, spx-pill, spx-dot, rut-*, vix-*, pulse-line, mkt-refresh-ts).
+- html_builder.py: Live JS refresh block added -- calls Yahoo Finance v8 directly
+  from the browser on page load and every 60s during market hours (7:30-16:05 MT).
+  This mirrors the Chrome extension behaviour. No backend changes needed.
+- html_builder.py: Refresh timestamp shown next to "Market Performance" heading.
+- daily.yml: Cron changed from `55 12` (6:55 AM MT) to `50 13` (7:50 AM MT).
+  Market opens 7:30 AM MT -- pipeline now runs 20 min after open for live prices.
+- SESSION_LOG.md: Module map updated (added daily.yml row). Session 7 documented.
+
 **Open items / next session:**
-- Remove Yahoo PE HTML/API fetch code from market.py (dead code, adds noise to logs)
-- SESSION_LOG module map: add run_cache.json -> main.py entry
-- Consider replacing McClellan card space with something useful
-  (e.g. AAII reminder, or a simple What to Watch card from AI briefing section)
+- Remove fetch_mcoscillator_email() from news.py and its call in main.py (dead code,
+  wastes ~3s per run, McClellan card already removed from dashboard)
+- Verify live JS refresh works correctly on first load after deploy
+- Consider future: SEC EDGAR 13F API as Dataroma replacement
+- Consider future: Chrome extension token optimization (~60% reduction possible)
+
+---
 
 ## PLAYWRIGHT REFERENCE (for future use)
 
@@ -248,7 +293,7 @@ overhead not worth it). Ready to implement if a daily JS-rendered source is need
 - Long-term holder, not a trader
 - Key metrics: Left Leg score, Margin of Safety (MoS >25%)
 - MHS is the macro backdrop gauge -- it sets the bar, not a buy/sell trigger
-- EXTREME OVERHEATED (90+): raise bar, not panic. Quality and patience above all.
+- EXTREME OVERHEATED (86+): raise bar, not panic. Quality and patience above all.
 - Loves the value screens (All-3 = highest conviction, 2-of-3 = strong convergence)
 - Does NOT want prescriptive rule-based instructions hardcoded in the AI prompt
 - Prefers genuine insights over data regurgitation

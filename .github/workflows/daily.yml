@@ -2,7 +2,7 @@ name: MarketPulse Daily Briefing
 
 on:
   schedule:
-    - cron: "55 12 * * 1-5"
+    - cron: "50 13 * * 1-5"   # 7:50 AM MT (13:50 UTC) -- 20 min after market open
   workflow_dispatch:
 
 jobs:
@@ -46,7 +46,7 @@ jobs:
       - name: Run MarketPulse AI
         env:
           GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
-          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }} 
+          ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
           YAHOO_EMAIL:         ${{ secrets.YAHOO_EMAIL }}
           YAHOO_APP_PASSWORD:  ${{ secrets.YAHOO_APP_PASSWORD }}
           FRED_API_KEY:        ${{ secrets.FRED_API_KEY }}
