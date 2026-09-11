@@ -8,32 +8,28 @@
 #              yahoo_text, mcoscillator_text,
 #              fred_data, fg_data, mkt_data, mhs,
 #              si_tickers, mf_tickers, am_tickers,
-#              run_log, run_start) -> None   (writes index.html)
+#              run_log, run_start) -> None  (writes index.html)
 #
-# ALSO EXPORTED (used by main.py for the run log):
-#   fmt_bullets(raw) -> str   (HTML <li> items)
-#
-# PATCHES APPLIED IN THIS MODULE:
-#   PATCH 2: Label "US Shiller CAPE" -> "Shiller CAPE (US)"
-#   PATCH 4: Equity Risk Premium row in valuation block
-#            ERP = (1/CAPE)*100 - 10Y yield
-#            Negative ERP = bonds yield more than stocks (last seen ~2002)
-#   MHS scale: updated to show 4 tiers including 90-100 EXTREME OVERHEATED
+# LAYOUT CHANGES vs previous version:
+#   - Market Performance: Chrome-extension gauge style
+#     (SELLOFF/DOWN/FLAT/UP/RALLY pill + colored progress bar + % change)
+#   - "What to Watch" card removed -- was restating value screens
+#   - New "Market Breadth" card using McClellan Oscillator email text
+#   - AI briefing now 2-column grid (Market & Macro + Earnings & Events)
+#   - SI-only tickers filtered to >= 3 managers (removes 1-2SI noise)
 # ============================================================
 
 import re
 from datetime import datetime, timezone, timedelta
 
-# Boise MDT = UTC-6 (summer), MST = UTC-7 (winter after Nov first Sunday)
-MT = timezone(timedelta(hours=-6))
+MT = timezone(timedelta(hours=-6))  # Boise MDT = UTC-6 summer
 
 
 # ============================================================
-# HTML HELPER FUNCTIONS
+# HELPERS
 # ============================================================
 
 def fmt_bullets(raw):
-    """Convert raw AI bullet text to HTML <li> items."""
     if not raw or not raw.strip():
         return "<li>No data available</li>"
     items = ""
@@ -46,7 +42,6 @@ def fmt_bullets(raw):
 
 
 def _badge(raw_lbl, raw_col):
-    """Return a colored pill badge for a market signal label."""
     m = {
         "RALLY": "BULLISH", "UP": "BULLISH", "CALM": "BULLISH",
         "Greed": "BULLISH", "Extreme Greed": "BULLISH", "HIGH": "BULLISH",
@@ -58,8 +53,7 @@ def _badge(raw_lbl, raw_col):
     }
     c = {
         "BULLISH": "#057a55", "NEUTRAL": "#6b7280", "CAUTIOUS": "#b45309",
-        "BEARISH": "#c81e1e", "CLOSED": "#9ca3af", "PRE-MKT": "#6366f1",
-        "N/A": "#9ca3af",
+        "BEARISH": "#c81e1e", "CLOSED": "#9ca3af", "PRE-MKT": "#6366f1", "N/A": "#9ca3af",
     }
     std = m.get(raw_lbl, raw_lbl)
     col = c.get(std, raw_col)
@@ -68,58 +62,156 @@ def _badge(raw_lbl, raw_col):
 
 
 def _sparkline_svg(cur_str, mo3_str, mo12_str):
-    """Return a 3-point SVG sparkline (12mo ago -> 3mo ago -> today)."""
     try:
-        def parse(s):
-            return float(re.sub(r"[^0-9.\-]", "", str(s)))
-        v12 = parse(mo12_str)
-        v3  = parse(mo3_str)
-        v0  = parse(cur_str)
-        mn  = min(v12, v3, v0)
-        mx  = max(v12, v3, v0)
-        r   = mx - mn if mx != mn else 1
-
-        def y(v, h=24):
-            return round(h - (v - mn) / r * (h - 4) + 2, 1)
-
+        def parse(s): return float(re.sub(r"[^0-9.\-]", "", str(s)))
+        v12 = parse(mo12_str); v3 = parse(mo3_str); v0 = parse(cur_str)
+        mn  = min(v12, v3, v0); mx = max(v12, v3, v0); r = mx - mn if mx != mn else 1
+        def y(v, h=24): return round(h - (v - mn) / r * (h - 4) + 2, 1)
         pts      = f"0,{y(v12)} 20,{y(v3)} 40,{y(v0)}"
         line_col = "#c81e1e" if v0 > v12 else "#057a55"
-        return (
-            f'<svg width="42" height="28" viewBox="0 0 42 28" '
-            f'style="display:inline-block;vertical-align:middle;">'
-            f'<polyline points="{pts}" fill="none" stroke="{line_col}" '
-            f'stroke-width="1.8" stroke-linejoin="round"/>'
-            f'<circle cx="40" cy="{y(v0)}" r="2.5" fill="{line_col}"/>'
-            f'</svg>'
-        )
+        return (f'<svg width="42" height="28" viewBox="0 0 42 28" '
+                f'style="display:inline-block;vertical-align:middle;">'
+                f'<polyline points="{pts}" fill="none" stroke="{line_col}" '
+                f'stroke-width="1.8" stroke-linejoin="round"/>'
+                f'<circle cx="40" cy="{y(v0)}" r="2.5" fill="{line_col}"/></svg>')
     except Exception:
         return ""
 
 
-def _perf_row(name, val, chg, prev, rl, rc, note=""):
-    nh = f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
-    return (
-        f'<tr style="border-bottom:1px solid #f3f4f6;">'
-        f'<td style="padding:7px 10px;">'
-        f'<div style="font-weight:600;font-size:.82rem;">{name}</div>{nh}</td>'
-        f'<td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td>'
-        f'<td style="padding:7px 10px;font-size:.78rem;color:#6b7280;">{chg}</td>'
-        f'<td style="padding:7px 10px;font-size:.75rem;color:#9ca3af;">prev {prev}</td>'
-        f'<td style="padding:7px 10px;">{_badge(rl,rc)}</td></tr>'
-    )
+# ============================================================
+# GAUGE-STYLE MARKET PERFORMANCE ROW
+# (Cloned from Chrome extension view)
+# ============================================================
+
+def _gauge_row(name, value_str, chg_str, signal_lbl, signal_col, prev_str, note=""):
+    """
+    Renders a market index as a gauge card matching the Chrome extension style:
+    - Signal pill (SELLOFF / DOWN / FLAT / UP / RALLY)
+    - Colored progress bar showing position on the scale
+    - % change and prev close
+    """
+    # Map signal label to a 0-100 position on the gauge bar
+    gauge_pct_map = {
+        "SELLOFF": 5, "DOWN": 25, "FLAT": 50, "UP": 75, "RALLY": 95,
+        "CLOSED": 50, "PRE-MKT": 50,
+    }
+    gauge_pct = gauge_pct_map.get(signal_lbl, 50)
+
+    # Bar color: green for up, red for down, gray for closed/flat
+    if signal_lbl in ("RALLY", "UP"):
+        bar_col = "#057a55"
+    elif signal_lbl in ("SELLOFF", "DOWN"):
+        bar_col = "#c81e1e"
+    elif signal_lbl == "FLAT":
+        bar_col = "#6b7280"
+    else:
+        bar_col = "#9ca3af"
+
+    # Signal pill
+    pill_col = signal_col
+    pill = (f'<span style="background:{pill_col};color:white;padding:2px 10px;'
+            f'border-radius:4px;font-size:.7rem;font-weight:800;letter-spacing:.5px;">'
+            f'{signal_lbl}</span>')
+
+    note_html = (f'<div style="font-size:.58rem;color:#9ca3af;margin-top:1px;">'
+                 f'{note}</div>') if note else ""
+
+    return f"""
+<div style="background:white;border:1px solid #e5e7eb;border-radius:8px;padding:10px 14px;margin-bottom:8px;">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+    <div>
+      <div style="font-weight:700;font-size:.85rem;color:#111928;">{name}</div>
+      {note_html}
+    </div>
+    <div style="text-align:right;">
+      <span style="font-weight:800;font-size:1rem;color:#111928;">{value_str}</span>
+      <span style="font-size:.75rem;color:#6b7280;margin-left:6px;">{chg_str}</span>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <div style="font-size:.6rem;color:#9ca3af;width:40px;text-align:left;">SELLOFF</div>
+    <div style="flex:1;position:relative;">
+      <div style="background:#e5e7eb;border-radius:99px;height:6px;overflow:hidden;">
+        <div style="width:{gauge_pct}%;background:{bar_col};height:100%;border-radius:99px;transition:width .3s;"></div>
+      </div>
+      <div style="position:absolute;top:-2px;left:calc({gauge_pct}% - 5px);width:10px;height:10px;
+                  background:{bar_col};border-radius:50%;border:2px solid white;box-shadow:0 1px 3px rgba(0,0,0,.2);"></div>
+    </div>
+    <div style="font-size:.6rem;color:#9ca3af;width:36px;text-align:right;">RALLY</div>
+    <div style="margin-left:8px;">{pill}</div>
+  </div>
+  <div style="font-size:.62rem;color:#9ca3af;margin-top:4px;">prev close {prev_str}</div>
+</div>"""
 
 
-def _sent_row(name, val, hist, rl, rc, sig, note=""):
-    nh = f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
-    return (
-        f'<tr style="border-bottom:1px solid #f3f4f6;">'
-        f'<td style="padding:7px 10px;">'
-        f'<div style="font-weight:600;font-size:.82rem;">{name}</div>{nh}</td>'
-        f'<td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td>'
-        f'<td style="padding:7px 10px;font-size:.75rem;color:#6b7280;">{hist}</td>'
-        f'<td style="padding:7px 10px;">{_badge(rl,rc)}</td>'
-        f'<td style="padding:7px 10px;font-size:.72rem;color:#374151;">{sig}</td></tr>'
-    )
+# ============================================================
+# MCCLELLAN / BREADTH CARD
+# ============================================================
+
+def _breadth_card(mcoscillator_text):
+    """
+    Build the Market Breadth card from the McClellan Oscillator email.
+    Extracts key numbers and context if present; shows raw excerpt otherwise.
+    """
+    text = mcoscillator_text.strip() if mcoscillator_text else ""
+
+    # Try to extract the oscillator value from the email text
+    osc_match  = re.search(r"McClellan\s+Oscillator[:\s]+([+-]?\d+\.?\d*)", text, re.I)
+    summ_match = re.search(r"Summation[:\s]+([+-]?\d+\.?\d*)", text, re.I)
+
+    osc_val  = osc_match.group(1)  if osc_match  else None
+    summ_val = summ_match.group(1) if summ_match else None
+
+    # Build header line
+    header_parts = []
+    if osc_val:
+        v = float(osc_val)
+        col = "#057a55" if v > 0 else "#c81e1e"
+        interp = "expanding breadth" if v > 50 else ("shrinking breadth" if v < -50 else "neutral breadth")
+        header_parts.append(
+            f'Oscillator: <strong style="color:{col};">{osc_val}</strong> '
+            f'<span style="color:#6b7280;font-size:.65rem;">({interp})</span>'
+        )
+    if summ_val:
+        v2 = float(summ_val)
+        col2 = "#057a55" if v2 > 0 else "#c81e1e"
+        header_parts.append(
+            f'Summation: <strong style="color:{col2};">{summ_val}</strong>'
+        )
+
+    header_html = ""
+    if header_parts:
+        header_html = (f'<div style="font-size:.75rem;color:#374151;margin-bottom:6px;">'
+                       + " &nbsp;·&nbsp; ".join(header_parts) + "</div>")
+
+    # Show first 400 chars of the email as context, cleaned up
+    if text and text != "McClellan Oscillator unavailable today." and "not found" not in text.lower():
+        lines   = [l.strip() for l in text.splitlines() if l.strip()]
+        excerpt = " ".join(lines)[:450]
+        excerpt_html = (f'<div style="font-size:.72rem;color:#374151;line-height:1.6;'
+                        f'background:#f9fafb;border-radius:5px;padding:6px 10px;">'
+                        f'{excerpt}...</div>')
+    else:
+        excerpt_html = (f'<div style="font-size:.72rem;color:#9ca3af;">'
+                        f'McClellan Oscillator email not received this week -- '
+                        f'published weekly, usually Thursday.</div>')
+
+    return f"""
+<div class="card ag" style="margin-bottom:12px;">
+  <h2>📡 Market Breadth · McClellan Oscillator
+    <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
+      &nbsp; Weekly · Tom McClellan · above 0 = expanding breadth · below -50 = oversold
+    </span>
+  </h2>
+  {header_html}
+  {excerpt_html}
+  <div style="font-size:.62rem;color:#9ca3af;margin-top:6px;">
+    $SPXA200R (% of S&P 500 stocks above 200-day MA):
+    <a href="https://stockcharts.com/h-sc/ui?s=%24SPXA200R" target="_blank" style="color:#1a56db;">
+      check StockCharts</a>
+    &nbsp;·&nbsp; &lt;25% = deeply oversold / deploy zone &nbsp;·&nbsp; &gt;75% = be selective
+  </div>
+</div>"""
 
 
 # ============================================================
@@ -127,8 +219,7 @@ def _sent_row(name, val, hist, rl, rc, sig, note=""):
 # ============================================================
 
 def _build_fred_rows(fred_data, trend_color_fn):
-    """Build HTML table rows for the FRED macro indicators section."""
-    from fred import GROUP_META  # import here to avoid circular at module level
+    from fred import GROUP_META
     group_order = [
         "INFLATION", "RATES", "CREDIT", "LABOR",
         "COMMODITIES", "CURRENCY", "SENTIMENT_FRED", "VALUATION",
@@ -140,13 +231,10 @@ def _build_fred_rows(fred_data, trend_color_fn):
         items = [r for r in fred_data if r.get("group") == g]
         if not items:
             continue
-        rows += (
-            f'<tr style="background:#f9fafb;">'
-            f'<td colspan="9" style="padding:6px 10px;font-size:.64rem;font-weight:700;'
-            f'letter-spacing:1px;text-transform:uppercase;color:{gm["color"]};'
-            f'border-bottom:1px solid #e5e7eb;">'
-            f'{gm["icon"]} {gm["label"]}</td></tr>'
-        )
+        rows += (f'<tr style="background:#f9fafb;"><td colspan="9" style="padding:6px 10px;'
+                 f'font-size:.64rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;'
+                 f'color:{gm["color"]};border-bottom:1px solid #e5e7eb;">'
+                 f'{gm["icon"]} {gm["label"]}</td></tr>')
         for r in items:
             tc    = trend_color_fn(r["label"], g, r["trend"])
             spark = _sparkline_svg(r["current"], r["mo3"], r["mo12"])
@@ -171,12 +259,12 @@ def _build_fred_rows(fred_data, trend_color_fn):
 
 # ============================================================
 # VALUE SCREEN CHIPS
+# SI filter: show only tickers with >= 3 superinvestors (removes noise)
 # ============================================================
 
 def _build_screens_html(si_tickers, mf_tickers, am_tickers):
-    """Build the value screens section with colored ticker chips."""
     all_tickers_set = sorted(set(si_tickers.keys()) | mf_tickers | am_tickers)
-    all3 = []; two3 = []; si_only = []; mf_only = []; am_only = []
+    all3    = []; two3 = []; si_only = []; mf_only = []; am_only = []
 
     for t in all_tickers_set:
         in_si = si_tickers.get(t, 0) > 0
@@ -189,59 +277,62 @@ def _build_screens_html(si_tickers, mf_tickers, am_tickers):
         elif in_mf:    mf_only.append(t)
         elif in_am:    am_only.append(t)
 
+    # SI-only: filter to >= 3 managers -- removes single-fund noise
+    si_only_filtered = [t for t in si_only if si_tickers.get(t, 0) >= 3]
+    si_only_excluded = len(si_only) - len(si_only_filtered)
+
     def chip(t, style="one"):
         tags = []
         cnt  = si_tickers.get(t, 0)
-        if cnt > 0:    tags.append(f"{cnt}SI")
+        if cnt > 0:         tags.append(f"{cnt}SI")
         if t in mf_tickers: tags.append("MF")
         if t in am_tickers: tags.append("AM")
         tag_str = ",".join(tags)
         if style == "all3":
-            return (
-                f'<div style="background:#1a56db;border-radius:6px;padding:5px 9px;'
-                f'white-space:nowrap;display:inline-block;margin:2px;">'
-                f'<span style="font-weight:800;font-size:.82rem;color:white;">{t}</span>'
-                f'<span style="color:rgba(255,255,255,.7);font-size:.65rem;'
-                f'margin-left:3px;">({tag_str})</span></div>'
-            )
+            return (f'<div style="background:#1a56db;border-radius:6px;padding:5px 9px;'
+                    f'white-space:nowrap;display:inline-block;margin:2px;">'
+                    f'<span style="font-weight:800;font-size:.82rem;color:white;">{t}</span>'
+                    f'<span style="color:rgba(255,255,255,.7);font-size:.65rem;margin-left:3px;">'
+                    f'({tag_str})</span></div>')
         elif style == "two":
-            return (
-                f'<div style="background:#057a55;border-radius:6px;padding:5px 9px;'
-                f'white-space:nowrap;display:inline-block;margin:2px;">'
-                f'<span style="font-weight:800;font-size:.82rem;color:white;">{t}</span>'
-                f'<span style="color:rgba(255,255,255,.7);font-size:.65rem;'
-                f'margin-left:3px;">({tag_str})</span></div>'
-            )
-        return (
-            f'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;'
-            f'padding:4px 8px;white-space:nowrap;display:inline-block;margin:2px;">'
-            f'<span style="font-weight:700;font-size:.78rem;color:#374151;">{t}</span>'
-            f'<span style="color:#9ca3af;font-size:.63rem;margin-left:3px;">'
-            f'({tag_str})</span></div>'
-        )
+            return (f'<div style="background:#057a55;border-radius:6px;padding:5px 9px;'
+                    f'white-space:nowrap;display:inline-block;margin:2px;">'
+                    f'<span style="font-weight:800;font-size:.82rem;color:white;">{t}</span>'
+                    f'<span style="color:rgba(255,255,255,.7);font-size:.65rem;margin-left:3px;">'
+                    f'({tag_str})</span></div>')
+        return (f'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;'
+                f'padding:4px 8px;white-space:nowrap;display:inline-block;margin:2px;">'
+                f'<span style="font-weight:700;font-size:.78rem;color:#374151;">{t}</span>'
+                f'<span style="color:#9ca3af;font-size:.63rem;margin-left:3px;">'
+                f'({tag_str})</span></div>')
 
-    def screen_row(label, chips_html, count):
+    def screen_row(label, chips_html, count, footnote=""):
         empty = '<span style="font-size:.75rem;color:#9ca3af;">None today</span>'
-        return (
-            f'<div style="margin-bottom:8px;">'
-            f'<div style="font-size:.63rem;font-weight:700;color:#374151;margin-bottom:3px;">'
-            f'{label} <span style="color:#9ca3af;font-weight:400;">({count})</span></div>'
-            f'<div style="display:flex;flex-wrap:wrap;">'
-            f'{chips_html if chips_html else empty}</div></div>'
-        )
+        fn_html = (f'<div style="font-size:.6rem;color:#9ca3af;margin-top:2px;">{footnote}</div>'
+                   if footnote else "")
+        return (f'<div style="margin-bottom:8px;">'
+                f'<div style="font-size:.63rem;font-weight:700;color:#374151;margin-bottom:3px;">'
+                f'{label} <span style="color:#9ca3af;font-weight:400;">({count})</span></div>'
+                f'<div style="display:flex;flex-wrap:wrap;">'
+                f'{chips_html if chips_html else empty}</div>{fn_html}</div>')
 
-    return (
+    si_footnote = (f"Showing 3+ SI managers only. {si_only_excluded} tickers with 1-2 SI managers hidden."
+                   if si_only_excluded > 0 else "")
+
+    html = (
         screen_row("🔵 All 3 Screens -- SI + MF + AM (highest conviction)",
                    "".join(chip(t, "all3") for t in all3), len(all3))
         + screen_row("🟢 2 of 3 Screens (strong convergence)",
                      "".join(chip(t, "two") for t in two3), len(two3))
-        + screen_row("⭐ Superinvestors only (13F quarterly, ~45d lag)",
-                     "".join(chip(t, "one") for t in si_only[:25]), len(si_only))
+        + screen_row("⭐ Superinvestors only (13F, 3+ managers)",
+                     "".join(chip(t, "one") for t in si_only_filtered), len(si_only_filtered),
+                     si_footnote)
         + screen_row("🔮 Magic Formula only (Greenblatt, daily)",
                      "".join(chip(t, "one") for t in mf_only[:25]), len(mf_only))
         + screen_row("📐 Acquirer's Multiple only (Carlisle, daily)",
                      "".join(chip(t, "one") for t in am_only[:25]), len(am_only))
-    ), all3, two3, si_only, mf_only, am_only
+    )
+    return html, all3, two3, si_only_filtered, mf_only, am_only
 
 
 # ============================================================
@@ -253,11 +344,9 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
                            all3, two3, si_only, mf_only, am_only,
                            cape_val, urth_disp, efa_disp,
                            erp, cape_yield, ten_y_rate):
-    """Build the compact data string for the #market-context hidden div."""
     def _ctx(lbl, short):
         r = next((x for x in fred_data if x["label"] == lbl), None)
-        if not r or r["current"] == "N/A":
-            return f"{short}=N/A"
+        if not r or r["current"] == "N/A": return f"{short}=N/A"
         cur = r["current"]; mo3 = r["mo3"]; mo12 = r["mo12"]; t3 = r["trend"]
         try:
             c   = float(re.sub(r"[^0-9.\-]", "", cur))
@@ -269,62 +358,37 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
         return f"{short}={cur}[3m:{mo3},12m:{mo12}]{a3}{t12}"
 
     def tlist(lst, si_d=None):
-        if not lst:
-            return "none"
-        if si_d:
-            return "|".join(f"{t}({si_d.get(t,0)}SI)" for t in lst)
+        if not lst: return "none"
+        if si_d:    return "|".join(f"{t}({si_d.get(t,0)}SI)" for t in lst)
         return "|".join(lst)
 
-    fg_score = fg_data.get("score", 50)
-    fg_lbl   = fg_data.get("label", "N/A")
-
-    ctx_inflation = "|".join([_ctx(l, s) for l, s in [
-        ("CPI Inflation", "CPI"), ("Core CPI", "CoreCPI"),
-        ("PCE Inflation", "PCE"), ("Core PCE", "CorePCE"),
-    ]])
-    ctx_rates = "|".join([_ctx(l, s) for l, s in [
-        ("10Y Treasury", "10Y"), ("2Y Treasury", "2Y"),
-        ("Yield Curve (10Y-2Y)", "YldCurve"), ("Fed Funds Rate", "FedFunds"),
-    ]])
-    ctx_credit = _ctx("HY Credit Spread", "HYSpread") + "(Tight<3%=calm,Wide>6%=stress)"
-    ctx_labor  = _ctx("Unemployment", "Unemp") + "(avg~5.7%historic)"
-    ctx_commod = "|".join([
-        _ctx("WTI Crude Oil", "WTI") + "(>$85=inflation_risk)",
-        _ctx("Gold Price", "Gold") + "(rising+lowVIX=stealth_fear)",
-    ])
-    ctx_fx    = _ctx("US Dollar (DXY)", "DXY") + "(weak_dollar=tailwind_intl_ADRs)"
-    ctx_csent = _ctx("Consumer Sentiment", "ConsSent") + "(avg~75,<60=stress)"
-
-    erp_ctx = ""
-    if erp is not None:
-        erp_ctx = f"|ERP={erp:+.2f}%(CAPEyield{cape_yield:.2f}%-10Y{ten_y_rate:.2f}%)"
-
-    ctx_val = (
-        f"CAPE={cape_val}(USonly,histAvg17x,98thPctileSince1881,src:multpl.com)"
-        f"|URTH_PE={urth_disp}(MSCIWorldInclUS,approx)"
-        f"|EFA_PE={efa_disp}(ExUSdeveloped,approx)"
-        f"{erp_ctx}"
-    )
+    fg_score = fg_data.get("score", 50); fg_lbl = fg_data.get("label", "N/A")
+    erp_ctx  = (f"|ERP={erp:+.2f}%(CAPEyield{cape_yield:.2f}%-10Y{ten_y_rate:.2f}%)"
+                if erp is not None else "")
 
     mhs_clean = (mhs["label"]
-                 .replace("🟢 ", "").replace("🟠 ", "")
-                 .replace("⛔ ", "").replace("🚨 ", ""))
+                 .replace("🟢 ","").replace("🟠 ","").replace("⛔ ","").replace("🚨 ",""))
 
     return (
         f"MHS={mhs['score']}/100({mhs_clean})|Scale:0=max_fear/deploy,100=max_greed/overheated\n"
         f"POSTURE={mhs['action']}\n"
-        f"INFLATION:{ctx_inflation}\n"
-        f"RATES:{ctx_rates}\n"
-        f"CREDIT:{ctx_credit}\n"
-        f"LABOR:{ctx_labor}\n"
-        f"COMMODITIES:{ctx_commod}\n"
-        f"CURRENCY:{ctx_fx}\n"
-        f"SENTIMENT_CONSUMER:{ctx_csent}\n"
+        f"INFLATION:{_ctx('CPI Inflation','CPI')}|{_ctx('Core CPI','CoreCPI')}|"
+        f"{_ctx('PCE Inflation','PCE')}|{_ctx('Core PCE','CorePCE')}\n"
+        f"RATES:{_ctx('10Y Treasury','10Y')}|{_ctx('2Y Treasury','2Y')}|"
+        f"{_ctx('Yield Curve (10Y-2Y)','YldCurve')}|{_ctx('Fed Funds Rate','FedFunds')}\n"
+        f"CREDIT:{_ctx('HY Credit Spread','HYSpread')}(Tight<3%=calm,Wide>6%=stress)\n"
+        f"LABOR:{_ctx('Unemployment','Unemp')}(avg~5.7%historic)\n"
+        f"COMMODITIES:{_ctx('WTI Crude Oil','WTI')}(>$85=inflation_risk)|"
+        f"{_ctx('Gold Price','Gold')}(rising+lowVIX=stealth_fear)\n"
+        f"CURRENCY:{_ctx('US Dollar (DXY)','DXY')}(weak_dollar=tailwind_intl_ADRs)\n"
+        f"SENTIMENT_CONSUMER:{_ctx('Consumer Sentiment','ConsSent')}(avg~75,<60=stress)\n"
         f"SENTIMENT_MARKET:FG={fg_score}/100({fg_lbl})\n"
-        f"VALUATION:{ctx_val}\n"
+        f"VALUATION:CAPE={cape_val}(USonly,histAvg17x,98thPctileSince1881,src:multpl.com)"
+        f"|URTH_PE={urth_disp}(MSCIWorldInclUS,approx)"
+        f"|EFA_PE={efa_disp}(ExUSdeveloped,approx){erp_ctx}\n"
         f"SCREENS_ALL3(highest_conviction):{tlist(all3)}\n"
         f"SCREENS_2OF3(strong_convergence):{tlist(two3)}\n"
-        f"SCREENS_SI_ONLY(13F_superinvestors):{tlist(si_only, si_tickers)}\n"
+        f"SCREENS_SI_ONLY(13F_3plus_managers):{tlist(si_only, si_tickers)}\n"
         f"SCREENS_MF_ONLY(Greenblatt_MagicFormula):{tlist(mf_only)}\n"
         f"SCREENS_AM_ONLY(Carlisle_AcquirersMultiple):{tlist(am_only)}"
     )
@@ -338,23 +402,18 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                fred_data, fg_data, mkt_data, mhs,
                si_tickers, mf_tickers, am_tickers,
                run_log, run_start):
-    """
-    Build the full HTML dashboard and write index.html.
-    Also builds the hidden #market-context div for the Chrome extension.
-    """
     import time
-    from fred import trend_color as _trend_color
-    from market import PE_LAST_UPDATED, compute_erp
+    from fred         import trend_color as _trend_color
+    from market       import PE_LAST_UPDATED, compute_erp
     from ai_synthesis import parse_sections
 
     print("\n🎨 Building HTML dashboard...")
-
     secs    = parse_sections(briefing)
     now_mt  = datetime.now(MT)
     today   = now_mt.strftime("%A, %B %d, %Y")
     now_str = now_mt.strftime("%I:%M %p")
 
-    # ---- Extract market values ----
+    # ---- Market values ----
     vix_val  = mkt_data["vix"]["value"];  vix_prev = mkt_data["vix"]["prev"]
     vix_lbl  = mkt_data["vix"]["label"];  vix_col  = mkt_data["vix"]["color"]
     vix_sig  = mkt_data["vix"]["signal"]
@@ -368,12 +427,12 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     mkt_state = mkt_data.get("market_state", "UNKNOWN")
     urth_pe   = mkt_data.get("urth_pe");  urth_stale = mkt_data.get("urth_pe_stale", False)
     efa_pe    = mkt_data.get("efa_pe");   efa_stale  = mkt_data.get("efa_pe_stale",  False)
+    urth_src  = mkt_data.get("urth_pe_source", "")
+    efa_src   = mkt_data.get("efa_pe_source",  "")
 
-    # ---- Fear & Greed ----
-    fg_score = fg_data.get("score", 50)
-    fg_lbl   = fg_data.get("label", "N/A")
-    fg_col   = fg_data.get("color", "#6b7280")
-    fg_sig   = fg_data.get("signal", "")
+    # ---- F&G ----
+    fg_score = fg_data.get("score", 50); fg_lbl = fg_data.get("label", "N/A")
+    fg_col   = fg_data.get("color", "#6b7280"); fg_sig = fg_data.get("signal", "")
 
     # ---- Consumer Sentiment ----
     umich     = next((r for r in fred_data if r["label"] == "Consumer Sentiment"), None)
@@ -381,97 +440,85 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     umich_mo3 = umich["mo3"]     if umich else "N/A"
     umich_m12 = umich["mo12"]    if umich else "N/A"
     umich_sig = umich.get("sig", "") if umich else ""
-    try:
-        umich_num = float(str(umich_val))
-    except Exception:
-        umich_num = 55
-    ucol    = "#c81e1e" if umich_num < 60 else "#6b7280" if umich_num < 75 else "#057a55"
-    u_lbl   = "LOW"     if umich_num < 60 else "MID"     if umich_num < 75 else "HIGH"
+    try:    umich_num = float(str(umich_val))
+    except: umich_num = 55
+    ucol  = "#c81e1e" if umich_num < 60 else "#6b7280" if umich_num < 75 else "#057a55"
+    u_lbl = "LOW"     if umich_num < 60 else "MID"     if umich_num < 75 else "HIGH"
 
     # ---- CAPE + ERP ----
     cape_row = next((r for r in fred_data if r["label"] == "Shiller CAPE (US)"), None)
     cape_val = cape_row["current"] if cape_row else "N/A"
-    try:
-        cape_num = float(re.sub(r"[^0-9.]", "", str(cape_val)))
-    except Exception:
-        cape_num = 0
-
+    try:    cape_num = float(re.sub(r"[^0-9.]", "", str(cape_val)))
+    except: cape_num = 0
     erp, cape_yield, ten_y_rate = compute_erp(fred_data, cape_val)
 
     # ---- MHS ----
-    mhs_score  = mhs["score"]
-    mhs_lbl    = mhs["label"]
-    mhs_col    = mhs["color"]
-    mhs_action = mhs["action"]
+    mhs_score  = mhs["score"]; mhs_lbl = mhs["label"]
+    mhs_col    = mhs["color"]; mhs_action = mhs["action"]
     mhs_bdown  = (
         '<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">Base +50</span>'
-        + "".join(
-            f'<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">{b}</span>'
-            for b in mhs["breakdown"]
-        )
+        + "".join(f'<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">{b}</span>'
+                  for b in mhs["breakdown"])
     )
 
     # ---- Market state banner ----
     if mkt_state == "PRE":
-        mkt_banner = (
-            '<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;'
-            'padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#3730a3;">'
-            '🌅 Pre-Market · Opens 9:30 AM ET (7:30 AM MT)</div>'
-        )
+        mkt_banner = ('<div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:5px;'
+                      'padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#3730a3;">'
+                      '🌅 Pre-Market · Opens 9:30 AM ET (7:30 AM MT)</div>')
     elif mkt_state == "POST":
-        mkt_banner = (
-            '<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:5px;'
-            'padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#6d28d9;">'
-            '🌙 After-Hours</div>'
-        )
+        mkt_banner = ('<div style="background:#faf5ff;border:1px solid #e9d5ff;border-radius:5px;'
+                      'padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#6d28d9;">'
+                      '🌙 After-Hours</div>')
     else:
         mkt_banner = ""
 
     # ---- AI failure alert ----
     ai_alert = ""
     if ai_failed:
-        ai_alert = (
-            '<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:8px;'
-            'padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
-            '<span style="font-size:1.3rem;">⚠️</span>'
-            '<div>'
-            '<div style="font-weight:700;font-size:.82rem;color:#c81e1e;">AI Synthesis Unavailable</div>'
-            '<div style="font-size:.73rem;color:#6b7280;margin-top:2px;">'
-            'Gemini quota exhausted AND Claude Haiku fallback failed. All data sections are complete. '
-            'Check run log for details. Gemini resets at midnight UTC (6 PM MT).'
-            '</div></div></div>'
-        )
+        ai_alert = ('<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:8px;'
+                    'padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
+                    '<span style="font-size:1.3rem;">⚠️</span><div>'
+                    '<div style="font-weight:700;font-size:.82rem;color:#c81e1e;">AI Synthesis Unavailable</div>'
+                    '<div style="font-size:.73rem;color:#6b7280;margin-top:2px;">'
+                    'Gemini quota exhausted AND Claude Haiku fallback failed. All data sections complete. '
+                    'Gemini resets at midnight UTC (6 PM MT).</div></div></div>')
 
-    # ---- Performance table rows ----
-    perf_rows = (
-        _perf_row("S&P 500 (Large Cap)", spx_val, spx_chg, spx_prev,
-                  spx_lbl, spx_col, "Yahoo Finance · large-cap benchmark")
-        + _perf_row("Russell 2000 (Small Cap)", rut_val, rut_chg, rut_prev,
-                    rut_lbl, rut_col, "Yahoo Finance · small-cap / risk appetite proxy")
-    )
+    # ---- Gauge-style market performance ----
+    gauge_section = f"""
+<div class="card ar" style="margin-bottom:12px;">
+  <h2>📈 Market Performance</h2>
+  {mkt_banner}
+  {_gauge_row("S&P 500", spx_val, spx_chg, spx_lbl, spx_col, spx_prev,
+               "Large-cap benchmark · Yahoo Finance")}
+  {_gauge_row("Russell 2000", rut_val, rut_chg, rut_lbl, rut_col, rut_prev,
+               "Small-cap · risk appetite proxy · Yahoo Finance")}
+  <div style="margin-top:4px;font-size:.65rem;color:#9ca3af;">⚡ {pulse}</div>
+</div>"""
 
-    try:
-        vix_num = float(vix_val)
-    except Exception:
-        vix_num = 20
-    vix_badge = ("CALM"    if vix_num < 15 else "NORMAL"   if vix_num < 20
-                 else "CAUTIOUS" if vix_num < 25 else "FEARFUL" if vix_num < 30
-                 else "PANIC")
+    # ---- Sentiment table ----
+    def sr(name, val, hist, rl, rc, sig, note=""):
+        nh = f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
+        return (f'<tr style="border-bottom:1px solid #f3f4f6;">'
+                f'<td style="padding:7px 10px;"><div style="font-weight:600;font-size:.82rem;">{name}</div>{nh}</td>'
+                f'<td style="padding:7px 10px;font-weight:700;font-size:.9rem;">{val}</td>'
+                f'<td style="padding:7px 10px;font-size:.75rem;color:#6b7280;">{hist}</td>'
+                f'<td style="padding:7px 10px;">{_badge(rl,rc)}</td>'
+                f'<td style="padding:7px 10px;font-size:.72rem;color:#374151;">{sig}</td></tr>')
+
+    try:    vix_num = float(vix_val)
+    except: vix_num = 20
+    vix_badge = ("CALM" if vix_num<15 else "NORMAL" if vix_num<20
+                 else "CAUTIOUS" if vix_num<25 else "FEARFUL" if vix_num<30 else "PANIC")
 
     sent_rows = (
-        _sent_row("VIX (Volatility Index)", vix_val, f"prev {vix_prev}",
-                  vix_badge, vix_col, vix_sig,
-                  "CBOE · CALM<15 · NORMAL<20 · CAUTIOUS<25 · FEARFUL<30 · PANIC>=30")
-        + _sent_row("Fear & Greed Index", f"{fg_score}/100",
-                    f"1wk:{fg_data.get('prev_week','N/A')} "
-                    f"1mo:{fg_data.get('prev_month','N/A')} "
-                    f"1yr:{fg_data.get('prev_year','N/A')}",
-                    fg_lbl, fg_col, fg_sig,
-                    "CNN Business · 7-indicator composite · 0=extreme fear · 100=extreme greed")
-        + _sent_row("Consumer Sentiment", f"{umich_val}",
-                    f"3mo:{umich_mo3} 12mo:{umich_m12}",
-                    u_lbl, ucol, umich_sig,
-                    "U of Michigan · 0-100 scale · avg ~75 · <60 = consumer stress")
+        sr("VIX", vix_val, f"prev {vix_prev}", vix_badge, vix_col, vix_sig,
+           "CBOE · CALM<15 · NORMAL<20 · CAUTIOUS<25 · FEARFUL<30 · PANIC>=30")
+        + sr("Fear & Greed", f"{fg_score}/100",
+             f"1wk:{fg_data.get('prev_week','N/A')} 1mo:{fg_data.get('prev_month','N/A')} 1yr:{fg_data.get('prev_year','N/A')}",
+             fg_lbl, fg_col, fg_sig, "CNN Business · 0=extreme fear · 100=extreme greed")
+        + sr("Consumer Sentiment", f"{umich_val}", f"3mo:{umich_mo3} 12mo:{umich_m12}",
+             u_lbl, ucol, umich_sig, "U of Michigan · avg ~75 · <60 = consumer stress")
     )
 
     # ---- Valuation block ----
@@ -479,28 +526,23 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     pe_updated  = PE_LAST_UPDATED.strftime("%b %Y")
     urth_disp   = f"{urth_pe:.1f}x" if urth_pe else "N/A"
     efa_disp    = f"{efa_pe:.1f}x"  if efa_pe  else "N/A"
-    urth_note   = ('<span style="color:#b45309;font-size:.55rem;font-weight:700;"> '
-                   '⚠️ UPDATE NEEDED</span>') if urth_stale else ""
-    efa_note    = ('<span style="color:#b45309;font-size:.55rem;font-weight:700;"> '
-                   '⚠️ UPDATE NEEDED</span>') if efa_stale  else ""
     cape_times  = round(cape_num / 17, 1) if cape_num else "?"
     cape_status = ("⚠️ EXTREME (98th pctile)" if cape_num >= 40
-                   else "⚠️ ELEVATED"           if cape_num >= 30
-                   else "→ MODERATE")
+                   else "⚠️ ELEVATED" if cape_num >= 30 else "→ MODERATE")
+    urth_note   = (' <span style="color:#b45309;font-size:.55rem;font-weight:700;">⚠️ UPDATE NEEDED</span>'
+                   if urth_stale else "")
+    efa_note    = (' <span style="color:#b45309;font-size:.55rem;font-weight:700;">⚠️ UPDATE NEEDED</span>'
+                   if efa_stale else "")
+    pe_src_note = f"source: {urth_src}" if urth_src and "iShares CSV (live)" in urth_src else f"approx, {pe_updated}"
 
-    # PATCH 4: ERP row HTML
     if erp is not None:
         erp_col = "#c81e1e" if erp < 0 else "#b45309" if erp < 1.0 else "#057a55"
-        if erp < 0:
-            erp_label = "⚠️ NEGATIVE ERP"
-            erp_desc  = f"Bonds yield {abs(erp):.2f}% MORE than stocks (last seen ~2002)"
-        elif erp < 1.0:
-            erp_label = "→ LOW ERP"
-            erp_desc  = "Stocks barely out-earn bonds -- thin margin of safety"
-        else:
-            erp_label = "✅ POSITIVE ERP"
-            erp_desc  = f"Stocks yield {erp:.2f}% more than 10Y bonds"
-        erp_html = f"""
+        erp_label = ("⚠️ NEGATIVE ERP" if erp < 0
+                     else "→ LOW ERP" if erp < 1.0 else "✅ POSITIVE ERP")
+        erp_desc  = (f"Bonds yield {abs(erp):.2f}% MORE than stocks (last seen ~2002)" if erp < 0
+                     else "Stocks barely out-earn bonds -- thin margin of safety" if erp < 1.0
+                     else f"Stocks yield {erp:.2f}% more than 10Y bonds")
+        erp_html  = f"""
     <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;padding:8px 12px;margin-top:8px;">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
         <div>
@@ -511,21 +553,18 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         </div>
         <div style="font-size:.7rem;color:#374151;line-height:1.6;flex:1;min-width:200px;">
           <strong style="color:{erp_col};">{erp_label}:</strong> {erp_desc}<br>
-          <span style="color:#9ca3af;">
-            CAPE yield (1/{cape_num:.0f}x) = {cape_yield:.2f}% &nbsp;vs&nbsp; 10Y Treasury = {ten_y_rate:.2f}%
-          </span>
+          <span style="color:#9ca3af;">CAPE yield (1/{cape_num:.0f}x) = {cape_yield:.2f}% &nbsp;vs&nbsp; 10Y Treasury = {ten_y_rate:.2f}%</span>
         </div>
       </div>
     </div>"""
     else:
         erp_html = ""
 
-    # PATCH 2: label is "Shiller CAPE (US)" not "US Shiller CAPE"
     valuation_block = f"""
 <div class="card" style="margin-bottom:12px;border-left:4px solid #7c3aed;">
   <h2>📐 Global Market Valuation
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      &nbsp; Shiller CAPE (US) = 10yr smoothed (multpl.com) · URTH/EFA = approx PE from iShares.com ({pe_updated}) · update quarterly
+      &nbsp; Shiller CAPE (US) = 10yr smoothed (multpl.com) · URTH/EFA PE: {pe_src_note}
     </span>
   </h2>
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
@@ -538,23 +577,22 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     <div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#059669;margin-bottom:4px;">URTH (MSCI World)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#059669;">{urth_disp}{urth_note}</div>
-      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">incl ~70% US · approx PE (iShares, {pe_updated})</div>
+      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">incl ~70% US · trailing PE</div>
       <div style="font-size:.6rem;color:#059669;margin-top:2px;font-weight:600;">GLOBAL BLEND</div>
     </div>
     <div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#1a56db;margin-bottom:4px;">EFA (ex-US Developed)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#057a55;">{efa_disp}{efa_note}</div>
-      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Europe/Japan/Aus · approx PE (iShares, {pe_updated})</div>
+      <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Europe/Japan/Aus · trailing PE</div>
       <div style="font-size:.6rem;color:#057a55;margin-top:2px;font-weight:600;">✅ SIGNIFICANTLY CHEAPER</div>
     </div>
   </div>
   {erp_html}
   <div style="font-size:.67rem;color:#374151;background:#f9fafb;border-radius:5px;padding:6px 10px;line-height:1.6;margin-top:8px;">
     <strong>Why this matters:</strong> US trades at {cape_times}x the 145-year historical average (CAPE 17x).
-    Ex-US developed markets ({efa_disp} trailing PE) offer dramatically better valuation support.
-    Many AM screen picks are intl ADRs (EQNR, PBR, SNY, NVO, SHEL, BP) -- they benefit from
-    both cheaper valuations AND potential dollar weakness (watch DXY trend above).
-    <em>Note: CAPE uses 10yr smoothed earnings; URTH/EFA use approx trailing PE -- not directly comparable but directionally valid.</em>
+    Ex-US developed markets ({efa_disp} PE) offer dramatically better valuation support.
+    Many AM screen picks are intl ADRs (EQNR, PBR, SNY, NVO, SHEL, BP) -- cheaper valuations
+    AND potential dollar weakness tailwind (DXY {next((r['current'] for r in fred_data if r['label']=='US Dollar (DXY)'), 'N/A')}).
   </div>
 </div>"""
 
@@ -569,27 +607,25 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     fun_raw   = secs.get("AI FUN FACT", "").strip()
     learn_raw = secs.get("AI LEARNING", "").strip()
     if fun_raw:   fun_raw   = re.sub(r"^[-•*]\s*", "", fun_raw.splitlines()[0].strip())
-    else:         fun_raw   = ("Shiller CAPE at 41x (Sep 2026) is the 2nd highest in 145 years. "
-                               "Only dot-com peak (44.2x, Dec 1999) was higher.")
+    else:         fun_raw   = ("Shiller CAPE at 41x is only the 2nd highest reading in 145 years -- "
+                               "exceeded only at the dot-com peak of 44.2x in Dec 1999.")
     if learn_raw: learn_raw = re.sub(r"^[-•*]\s*", "", learn_raw.splitlines()[0].strip())
-    else:         learn_raw = ("Attention mechanism: lets LLMs selectively weight relationships "
-                               "between all tokens simultaneously, enabling context-aware reasoning.")
+    else:         learn_raw = ("Attention mechanism: LLMs weight relationships between all tokens "
+                               "simultaneously, enabling context-aware reasoning across long documents.")
 
     # ---- Market context for Chrome extension ----
     mctx = _build_market_context(
         fred_data, fg_data, mkt_data, mhs,
         si_tickers, mf_tickers, am_tickers,
         all3, two3, si_only, mf_only, am_only,
-        cape_val, urth_disp, efa_disp,
-        erp, cape_yield, ten_y_rate,
+        cape_val, urth_disp, efa_disp, erp, cape_yield, ten_y_rate,
     )
 
     # ---- Run log ----
     elapsed       = round(time.time() - run_start)
     run_log_items = "".join(
-        f'<div style="font-size:.72rem;padding:2px 0;border-bottom:1px solid #f3f4f6;'
-        f'font-family:monospace;">{entry}</div>'
-        for entry in run_log
+        f'<div style="font-size:.72rem;padding:2px 0;border-bottom:1px solid #f3f4f6;font-family:monospace;">{e}</div>'
+        for e in run_log
     )
     run_log_html = f"""
 <div style="margin-top:12px;">
@@ -607,12 +643,11 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   </div>
 </div>"""
 
-    # MHS scale description -- 4 tiers including EXTREME OVERHEATED
     mhs_scale = (
         "🟢 DEPLOY (0-33): Panic &amp; dislocation -- aggressive deployment &nbsp;·&nbsp; "
         "🟠 SELECTIVE (34-65): Best setups only, Left Leg &lt;4 &amp; MoS &gt;25% &nbsp;·&nbsp; "
         "⛔ OVERHEATED (66-89): Build cash, trim winners &nbsp;·&nbsp; "
-        "🚨 EXTREME (90-100): No new positions, aggressive cash build."
+        "🚨 EXTREME (90-100): Most stretched since dot-com -- quality and patience above all."
     )
 
     # ============================================================
@@ -705,15 +740,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 </div>
 
 <div class="grid-2" style="margin-bottom:12px;">
-  <div class="card ar">
-    <h2>📈 Market Performance</h2>
-    {mkt_banner}
-    <table class="tbl">
-      <thead><tr><th>Index</th><th>Price</th><th>Change</th><th>Prev</th><th>Signal</th></tr></thead>
-      <tbody>{perf_rows}</tbody>
-    </table>
-    <div style="margin-top:6px;font-size:.65rem;color:#9ca3af;">⚡ {pulse}</div>
-  </div>
+  {gauge_section}
   <div class="card aa">
     <h2>🌡️ Market Sentiment</h2>
     <table class="tbl">
@@ -725,7 +752,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 
 {valuation_block}
 
-<div class="grid-3" style="margin-bottom:12px;">
+<div class="grid-2" style="margin-bottom:12px;">
   <div class="card ab">
     <h2>📊 Market &amp; Macro</h2>
     <ul>{fmt_bullets(secs.get("MARKET AND MACRO",""))}</ul>
@@ -734,30 +761,28 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     <h2>💰 Earnings &amp; Events</h2>
     <ul>{fmt_bullets(secs.get("EARNINGS AND EVENTS",""))}</ul>
   </div>
-  <div class="card ag">
-    <h2>🔭 What to Watch</h2>
-    <ul>{fmt_bullets(secs.get("WHAT TO WATCH",""))}</ul>
-  </div>
 </div>
+
+{_breadth_card(mcoscillator_text)}
 
 <div class="card ab" style="margin-bottom:12px;">
   <h2>📋 Value Screens
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      &nbsp; SI=Superinvestors 13F (~45d lag) · MF=Greenblatt Magic Formula (daily) · AM=Carlisle Acquirer's Multiple (daily)
+      &nbsp; SI=Superinvestors 13F (3+ managers, ~45d lag) · MF=Greenblatt Magic Formula (daily) · AM=Carlisle Acquirer's Multiple (daily)
     </span>
   </h2>
   {screens_html}
   <div style="font-size:.67rem;color:#6b7280;background:#f0f9ff;border-radius:5px;padding:6px 10px;line-height:1.6;margin-top:8px;">
     <strong>How to use:</strong> Blue (All 3) = highest conviction. Green (2 of 3) = strong convergence.
-    Cross-reference with Finviz screener. Left Leg &lt;4 + MoS &gt;25% = strong setup.
-    13F: ~45d lag after quarter end. MF and AM update daily after market close.
+    Cross-reference with Finviz. Left Leg &lt;4 + MoS &gt;25% = strong setup.
+    13F lag: ~45 days after quarter end. MF and AM update daily.
   </div>
 </div>
 
 <div class="card" style="margin-bottom:12px;">
   <h2>🏦 Macro Indicators
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      &nbsp; FRED API · Gold via Yahoo GC=F · CAPE via multpl.com · sparkline = 12mo ago → 3mo ago → today · green=good/red=bad for equities
+      &nbsp; FRED API · Gold via Yahoo GC=F · CAPE via multpl.com · sparkline = 12mo → 3mo → today · green=good / red=bad for equities
     </span>
   </h2>
   <div style="overflow-x:auto;">
@@ -768,8 +793,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Current</th>
         <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">3 Mo</th>
         <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">12 Mo</th>
-        <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">3Mo Dir</th>
-        <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Trend (1Y)</th>
+        <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Dir</th>
+        <th style="padding:6px 10px;text-align:center;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">Trend</th>
         <th style="padding:6px 8px;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);">As Of</th>
         <th style="padding:6px 10px;font-size:.55rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);min-width:220px;">Insights</th>
       </tr></thead>
@@ -777,11 +802,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     </table>
   </div>
   <div style="margin-top:8px;font-size:.62rem;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:6px;">
-    Trend colors: green=good for equities, red=bad, amber=context-dependent (Gold, DXY) ·
-    Sparkline: red line=rising vs 12mo ago, green line=falling ·
-    <a href="https://stockcharts.com/h-sc/ui?s=%24SPXA200R" target="_blank" style="color:#1a56db;">$SPXA200R breadth</a>
-    (below 25%=deeply oversold · above 75%=be selective) not in free FRED API.
-    AAII sentiment: check <a href="https://www.aaii.com/sentimentsurvey" target="_blank" style="color:#1a56db;">aaii.com</a> manually every Thursday (blocked by CDN on GitHub Actions).
+    Trend colors: green=good for equities, red=bad, amber=context-dependent ·
+    AAII: check <a href="https://www.aaii.com/sentimentsurvey" target="_blank" style="color:#1a56db;">aaii.com</a> manually every Thursday.
   </div>
 </div>
 
