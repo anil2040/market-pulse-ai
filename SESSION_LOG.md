@@ -24,6 +24,7 @@ Do NOT paste all 7 modules -- that blows the context window immediately.
 | Gemini / Haiku / AI output / prompt | ai_synthesis.py |
 | Dashboard layout / cards / HTML | html_builder.py |
 | Pipeline order / imports / new features | main.py |
+| run_cache.json / cache fallback | main.py |
 
 ---
 
@@ -173,6 +174,36 @@ ERP: -2.24% (bonds yield more than stocks, last seen ~2002)
 - Chrome extension token optimization: ~60% reduction possible (future)
 
 ---
+### Session 6
+**Date:** Sep 11 2026
+**Files changed:** market.py, main.py, html_builder.py, ai_synthesis.py, daily.yml
+**Done:**
+- Yahoo PE fetch attempted (HTML + API) -- both blocked by GitHub Actions
+  (no JS rendering for HTML, no crumb for API v10). PE_CONFIG confirmed permanent solution.
+- PE_CONFIG updated: URTH=22.57x, EFA=18.35x (Sep 10 2026, from Yahoo Finance browser)
+- MHS EXTREME OVERHEATED threshold lowered from 90 to 86 (tighter top tier)
+- MHS scale: 0-33 DEPLOY | 34-65 SELECTIVE | 66-85 OVERHEATED | 86-100 EXTREME
+- run_cache.json implemented: per-indicator persistent fallback
+  Each fetch writes on success, reads stale on failure, shows amber cached badge
+  Committed back to repo after every run via _commit_cache()
+- daily.yml: git add index.html run_cache.json added to final commit step
+- Gauge market performance: exact Chrome extension style
+  (gradient bar, SELLOFF/DOWN/FLAT/UP/RALLY band labels, no closed/prev language)
+- Dir column removed from FRED macro table
+- McClellan Oscillator card removed (email is paid article teaser, no value)
+- AI prompt rewritten: no data regurgitation, interpret combinations and tensions
+- test_pe_fetch.yml added for future PE source debugging
+
+**Confirmed working:** Sep 11 2026 run, 74s, 15/15 indicators, Gemini succeeded
+MHS: 94/100 EXTREME OVERHEATED
+SPX: 7,670 | RUT: 2,910 | VIX: 15.87 | CAPE: 40.7x | Gold: $4,426 | WTI: $97.3
+run_cache.json: committed and pushed successfully on first run
+
+**Open items / next session:**
+- Remove Yahoo PE HTML/API fetch code from market.py (dead code, adds noise to logs)
+- SESSION_LOG module map: add run_cache.json -> main.py entry
+- Consider replacing McClellan card space with something useful
+  (e.g. AAII reminder, or a simple What to Watch card from AI briefing section)
 
 ## PLAYWRIGHT REFERENCE (for future use)
 
