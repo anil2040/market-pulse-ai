@@ -13,7 +13,7 @@
       "date": "Aug 01 2026",
       "sig": "\ud83d\udcc9 Cooling \u00b7 \u21933mo \u219312mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Core CPI": {
     "value": {
@@ -29,7 +29,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Heating \u00b7 \u21913mo \u219112mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_PCE Inflation": {
     "value": {
@@ -45,7 +45,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Heating \u00b7 \u21913mo \u219112mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Core PCE": {
     "value": {
@@ -61,7 +61,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f SUSTAINED RISE \u00b7 65% above 2% target \u00b7 rates stay elevated"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_10Y Treasury": {
     "value": {
@@ -77,7 +77,7 @@
       "date": "Aug 01 2026",
       "sig": "\u21913mo \u219112mo \u00b7 rising = headwind, falling = tailwind for all equities"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_2Y Treasury": {
     "value": {
@@ -93,7 +93,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 4.22% \u00b7 \u21913mo \u00b7 Fed expectations proxy"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Yield Curve (10Y-2Y)": {
     "value": {
@@ -102,14 +102,14 @@
       "is_index": false,
       "group": "RATES",
       "insight": "Negative = inverted = recession signal 12-18mo ahead",
-      "current": "0.32%",
-      "mo3": "0.42%",
-      "mo12": "0.60%",
+      "current": "0.33%",
+      "mo3": "0.40%",
+      "mo12": "0.64%",
       "trend": "\u25bc",
-      "date": "Sep 14 2026",
-      "sig": "\u2705 Positive 0.32% \u00b7 steepening = growth expectations improving"
+      "date": "Sep 15 2026",
+      "sig": "\u2705 Positive 0.33% \u00b7 steepening = growth expectations improving"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Fed Funds Rate": {
     "value": {
@@ -125,7 +125,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 On hold at 3.63% \u00b7 \u219312mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_HY Credit Spread": {
     "value": {
@@ -134,14 +134,14 @@
       "is_index": false,
       "group": "CREDIT",
       "insight": "Junk bond premium \u00b7 <3%=calm \u00b7 >6%=credit fear/stress",
-      "current": "2.65%",
+      "current": "2.76%",
       "mo3": "2.71%",
-      "mo12": "2.79%",
-      "trend": "\u25bc",
-      "date": "Sep 11 2026",
-      "sig": "\u2192 Tight 2.65% (normal ~4-5%) \u00b7 \u21933mo"
+      "mo12": "2.71%",
+      "trend": "\u2192",
+      "date": "Sep 15 2026",
+      "sig": "\u2192 Tight 2.76% (normal ~4-5%) \u00b7 \u21923mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Unemployment": {
     "value": {
@@ -157,7 +157,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 4.1% \u00b7 \u21933mo \u219312mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_WTI Crude Oil": {
     "value": {
@@ -174,7 +174,7 @@
       "date": "Sep 09 2026",
       "sig": "\u26a0\ufe0f HIGH & RISING $97 \u00b7 inflation pressure + recession risk"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Gold Price": {
     "value": {
@@ -185,14 +185,14 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,334",
-      "mo3": "$4,239",
-      "mo12": "$3,636",
+      "current": "$4,385",
+      "mo3": "$4,352",
+      "mo12": "$3,607",
       "trend": "\u25b2",
-      "date": "Sep 15 2026",
-      "sig": "\u2192 $4,334 \u00b7 +19% vs 12mo \u00b7 \u21913mo"
+      "date": "Sep 16 2026",
+      "sig": "\u26a0\ufe0f Stealth fear signal (VIX low, gold surging) $4,385 \u00b7 +22% vs 12mo \u00b7 \u21913mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_US Dollar (DXY)": {
     "value": {
@@ -209,7 +209,7 @@
       "date": "Sep 11 2026",
       "sig": "DXY 118.2 \u00b7 -2% vs 12mo \u00b7 \u21933mo \u00b7 tailwind for intl ADRs"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Consumer Sentiment": {
     "value": {
@@ -226,7 +226,7 @@
       "date": "Jul 01 2026",
       "sig": "55.2/100 (well below avg ~75) \u00b7 \u21913mo \u219312mo"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fred_Shiller CAPE (US)": {
     "value": {
@@ -236,28 +236,28 @@
       "group": "VALUATION",
       "no_pct": true,
       "insight": "Cyclically Adj PE \u00b7 10yr smoothed \u00b7 hist avg 17x \u00b7 ~41 = 2nd highest ever",
-      "current": "40.9",
-      "mo3": "40.9",
-      "mo12": "40.9",
+      "current": "40.7",
+      "mo3": "40.7",
+      "mo12": "40.7",
       "trend": "\u2192",
-      "date": "Sep 15 2026",
-      "sig": "\u26a0\ufe0f EXTREME 40.9x \u00b7 141% above hist avg 17x \u00b7 98th pctile since 1881 \u00b7 only exceeded at dot-com peak 44.2x"
+      "date": "Sep 16 2026",
+      "sig": "\u26a0\ufe0f EXTREME 40.7x \u00b7 139% above hist avg 17x \u00b7 98th pctile since 1881 \u00b7 only exceeded at dot-com peak 44.2x"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "fear_greed": {
     "value": {
-      "score": 31,
+      "score": 29,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 31,
-      "prev_week": 39,
+      "prev_close": 29,
+      "prev_week": 38,
       "prev_month": 64,
       "prev_year": 64,
       "cached": false
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "market_indicators": {
     "value": {
@@ -269,18 +269,18 @@
         "prev": "16.98"
       },
       "spx": {
-        "value": "7,607",
+        "value": "7,612",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,607"
+        "prev": "7,612"
       },
       "rut": {
-        "value": "2,880",
+        "value": "2,879",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,880"
+        "prev": "2,879"
       },
       "urth_pe": 22.57,
       "urth_pe_stale": false,
@@ -292,7 +292,7 @@
       "market_status_label": "",
       "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 17.0 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "screens_si": {
     "value": {
@@ -397,132 +397,132 @@
       "CTSH": 4,
       "GDS": 2
     },
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "screens_mf": {
     "value": [
-      "BCRX",
-      "ZD",
-      "VSNT",
-      "IT",
-      "ANF",
+      "PTC",
+      "BBWI",
       "BKE",
-      "WLY",
-      "CARG",
-      "GDDY",
-      "TNET",
-      "CI",
-      "CVS",
-      "EPAM",
-      "KBR",
-      "HAS",
-      "CROX",
-      "HPQ",
-      "TDC",
-      "PNR",
-      "OMC",
-      "FOXA",
+      "SIRI",
+      "OTEX",
+      "GRGDF",
       "CTSH",
+      "DECK",
+      "GDDY",
       "LOPE",
       "MD",
-      "KFY",
-      "BMY",
-      "PTON",
-      "VNT",
       "MO",
-      "LULU",
-      "WDOFF",
-      "GIB",
+      "HPQ",
+      "CI",
+      "FOXA",
       "SGHC",
-      "BBWI",
-      "GRGDF",
-      "ADBE",
-      "DBD",
-      "OTEX",
       "DOX",
+      "DBD",
       "HRMY",
-      "BHC",
-      "HRB",
-      "SIRI",
-      "DECK",
-      "PBI",
-      "PTC",
-      "LRN",
+      "OMC",
+      "WLY",
       "WH",
+      "ZD",
+      "PTON",
+      "LRN",
+      "CARG",
+      "KFY",
+      "KBR",
+      "BHC",
+      "EPAM",
+      "BLKB",
+      "WDOFF",
+      "BCRX",
+      "HAS",
+      "CVS",
+      "LULU",
+      "PNR",
+      "VNT",
+      "TDC",
+      "ANF",
+      "PBI",
       "PRDO",
-      "BLKB"
+      "ADBE",
+      "TNET",
+      "CROX",
+      "BMY",
+      "GIB",
+      "IT",
+      "HRB",
+      "VSNT"
     ],
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "screens_am": {
     "value": [
-      "RYAAY",
-      "PHM",
-      "ZTS",
-      "TLK",
-      "EIX",
-      "EQNR",
       "SSNC",
-      "FSLR",
-      "CQP",
-      "BP",
-      "CI",
-      "KVUE",
-      "CVS",
-      "BTI",
-      "HPQ",
-      "SBS",
-      "EXEL",
-      "FIS",
-      "YPF",
-      "SQM",
-      "FOXA",
-      "LOW",
-      "CTSH",
-      "VICI",
-      "OTIS",
-      "SNY",
-      "BMY",
-      "MO",
-      "NVO",
-      "SKHY",
-      "LDOS",
-      "CHTR",
-      "GIB",
-      "SYF",
       "APA",
-      "PBR",
-      "ERIC",
-      "DINO",
-      "FDX",
-      "FMX",
-      "SONY",
-      "LNG",
-      "UPS",
-      "UL",
-      "KR",
-      "CMCSA",
-      "BBY",
-      "VZ",
+      "BP",
+      "BTI",
       "CF",
-      "SHEL"
+      "PBR",
+      "KVUE",
+      "CTSH",
+      "RYAAY",
+      "CQP",
+      "MO",
+      "BBY",
+      "HPQ",
+      "CI",
+      "FOXA",
+      "FDX",
+      "LOW",
+      "SBS",
+      "SYF",
+      "EQNR",
+      "ERIC",
+      "ZTS",
+      "SONY",
+      "EXEL",
+      "UPS",
+      "CMCSA",
+      "SHEL",
+      "TLK",
+      "SNY",
+      "FMX",
+      "SQM",
+      "EIX",
+      "LDOS",
+      "OTIS",
+      "CHTR",
+      "VZ",
+      "CVS",
+      "SKHY",
+      "LNG",
+      "VICI",
+      "UL",
+      "YPF",
+      "DINO",
+      "PHM",
+      "KR",
+      "NVO",
+      "BMY",
+      "FSLR",
+      "FIS",
+      "GIB"
     ],
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "news_ej": {
-    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nMonday 9/14/2026 p.m.\nStocks close lower amid AI concerns and lingering risks in the Middle East \u2013\nU.S. equity markets traded lower on Monday, with AI in focus after several CEOs of leading AI labs endorsed slowing the pace of advanced-model development to allow safety measures to better keep pace with model capabilities. Stocks declined sharply early in the session but regained ground over the course of the day, with the S&P 500 and Nasdaq Composite posting modest declines of 0.5% and 0.6%, respectively. In addition to AI-related concerns, lingering geopolitical uncertainty weighed on investor sentiment, in our view, after planned diplomatic talks between Iran and several Gulf nations were postponed. Oil prices moved higher amid the diplomatic setback and continued supply concerns, with WTI crude trading above $100 per barrel. In bond markets, Treasury yields were little changed, with the 10-year U.S. Treasury yield near 4.99% and the 2-year yield around 4.64%. Amid heightened market and geopolitical uncertainty, the U.S. dollar strengthened against a basket of developed-market currencies.\nAI concerns weigh on markets \u2013\nGlobal equity markets closed mostly lower on Monday, with technology stocks and companies exposed to the AI infrastructure buildout among the laggards. The weakness followed calls from several leaders of major AI labs over the weekend to slow the pace of AI development so that safety and governance measures can better keep pace with advances in model capabilities. In an essay published Saturday, Anthropic CEO Dario Amodei described the underlying concern by stating that AI has been \u201cadvancing drastically faster, driven by AI\u2019s growing ability to build the next generation of AI.\u201d In other words, AI is increasingly helping to accelerate its own development and, if left unchecked, \u201ccould outrun our ability to understand and control these systems,\u201d according to Amodei. These announcements have led investors to question whether the effort could slow the pace of AI-related capital spending or corporate adoption. Either outcome could create a headwind for companies that have benefited most from the AI buildout. It remains unclear to us whether these comments will ultimately translate into a new regulatory framework, voluntary limits on model development, or slower spending on chips and computing infrastructure if companies devote more resources to safety. President Donald Trump, however, opposed slowing AI development over the weekend, emphasizing the importance of maintaining the United States\u2019 competitive advantage.\nAlongside ongoing geopolitical uncertainty, we believe these developments could weigh on markets in the coming days or weeks as investors assess the potential implications for corporate profits. Although the ultimate impact of this weekend\u2019s comments remains uncertain, we believe the underlying macroeconomic backdrop remains supportive for equity markets. Labor-market conditions have improved, manufacturing activity has rebounded, and consumer spending trends have remained healthy. Additionally, earnings growth has been robust in 2026. S&P 500 earnings are expected to increase by more than 30% this year, while U.S. small- and mid-cap companies, which generally have less exposure to technology-related industries, are expected to deliver earnings growth of more than 20%. We remain favorable toward equity markets over the longer term but continue to believe that diversification is critical. In addition to favoring U.S. large-cap stocks and emerging-market equities, we also favor U.S. mid-cap stocks. Within U.S. equities, we recommend maintaining balanced exposure to growth- and value-style stocks. Within international markets, we recommend favoring value-style stocks, which could help provide diversification benefits because of their lower technology exposure and greater orientation toward cyclical industries.\nGeopolitics remain in focus as oil prices rise \u2013\nAfter a brief reprieve on Friday, when oil prices declined amid hopes for diplomatic discussions between Iran and several Gulf nations, crude prices closed higher to begin the week following the postponement of those talks. The diplomatic setback comes after Saudi Arabia closed a key pipeline that allows the country to transport crude oil to Red Sea export terminals, bypassing the Strait of Hormuz. The renewed uncertainty in the Middle East has pushed oil prices higher, with Brent crude, the international benchmark, and West Texas Intermediate crude both trading above $100 per barrel. Without a clear near-term diplomatic off-ramp, the path forward remains uncertain. Even so, we would remind investors that making portfolio changes in response to geopolitical developments has generally not served long-term investors well, historically. Despite a roughly 9% peak-to-trough decline in the S&P 500 during the first quarter, when the conflict began, stocks have staged an impressive recovery. Through Friday\u2019s close, the S&P 500 had gained nearly 12% year to date, while U.S. small- and mid-cap stocks had each advanced more than 13%. Economic activity has also remained resilient, supported by continued job growth, an expansion in manufacturing activity, and stability in consumer spending. Alongside recent uncertainty surrounding AI, risks in the Middle East could continue to weigh on investor sentiment, place additional upward pressure on near-term inflation, and constrain households\u2019 discretionary spending, in our view. However, resilient economic activity and robust corporate profit growth continue to underpin our constructive longer-term outlook for equity markets. While geopolitical uncertainty could contribute to periods of market volatility, we continue to believe investors are best served by maintaining a diversified portfolio aligned with their long-term financial goals and risk tolerance.\nBrock Weimer, CFA\n;\nInvestment Strategy\nSource for all data: FactSet.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
-    "fetched": "2026-09-15"
+    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nWednesday 9/16/2026 a.m.\nMarkets edge higher as investors wait for the Fed \u2013\nU.S. equity markets rebounded cautiously on Wednesday's open, with bonds rallying too. The S&P 500 index is up 0.2%, led by strong performance among financial and energy names, and mirroring the upbeat tone in European and Asian equity markets overnight. U.S. government bonds, which have sold off sharply in recent weeks on the back of concerns over inflation, higher short-term interest rates, and debt levels, are rallying slightly this morning. This has helped push the closely followed 10-year Treasury yield back below the 5% mark, although at 4.97% this remains near 20-year highs. Oil prices are a little softer today, with WTI crude tracking $104 per barrel, down from $106 yesterday in what remains a headline-driven market.\nRetail sales continue to point to resilient consumers \u2013\nU.S. retail sales rebounded smartly in August, providing an encouraging indication of the strength of consumer spending. Headline sales were up 1.2% over the month, more than reversing a 0.5% decline in July that now looks to have been caused by seasonality. Spending was broad-based, with all subsectors aside from building materials registering higher sales over August. Looking through the noise in recent reports, the pace of underlying consumer spending looks to be advancing at a healthy rate, in our view. This should help provide some reassurance around the resilience of the U.S. economy in the face of increasing short-term headwinds to growth, including higher interest rates, a renewed spike in oil prices, trade disruptions, and waning support from tax cuts.\nAll eyes on the Fed \u2013\nTalking of higher interest rates, markets overwhelmingly expect the Federal Reserve Open Market Committee (FOMC) to deliver the first increase in U.S. interest rates since 2023 this afternoon. A shift back to policy tightening should reflect a growing concern at the Fed that inflation pressures are proving stickier than anticipated, with the renewed spike in oil prices in recent days likely to add to fears that a return to the central bank's 2% inflation target could be delayed even further. Moreover, with the economy continuing to deliver solid growth, an increasing number of Fed policymakers are likely to judge that interest rates are not restrictive enough at current settings, in our view. Absent any surprises in today's decision, we think the most important aspect of the meeting will be what signals the central bank provides around where policy is heading from here. Chair Warsh has been reluctant to give explicit guidance on the direction for Fed policy, meaning that the market may well instead look to the updated FOMC members' interest rate forecasts for views as to how much tightening the committee sees as appropriate to get inflation back on track.\nJames McCann\n;\nInvestment Strategy\nSource for all data: FactSet.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
+    "fetched": "2026-09-16"
   },
   "news_cnbc": {
     "value": "5 things to know before the market opens Thursday\nVIEW IN BROWSER\n|\nCNBC NEWSLETTERS\nTHU, SEP 03, 2026\nDOW\nFUTURES\n+0.42%\nS&P 500 FUTURES\n+0.19%\nNASDAQ 100 FUTURES\n+0.02%\nData as of 8:30 a.m. ET\nThink a friend or colleague should be getting this newsletter? Share\nthis link\nwith them to sign up.\nAlex Harring\nCNBC Reporter & Morning Squawk Writer\nHappy Thursday. Breaking news this morning:\u00a0Nvidia\u00a0has agreed to buy open-source artificial intelligence platform Hugging Face\nfor nearly $13 billion.\nStock futures\nare mixed this morning after a\nwinning day\non Wall Street.\nHere are five key things investors need to know to start the trading day:\n1. Summit up\nThe G20 wrapped up its two-day Innovation Ministerial yesterday, where technology leaders and government representatives talked artificial intelligence, data centers and tariffs.\nHere are some of the biggest headlines out of the gathering:\nNvidia CEO Jensen Huang said that AI will \u201cdemocratize intelligence\u201d for G20 countries and called the technology \u201cthe great equalizer.\u201d\nOpenAI CEO Sam Altman, meanwhile, said using AI is a \u201cnon-negotiable\u201d for countries, comparing the adoption of AI to the adoption of electricity.\nPalantir\u00a0CEO Alex Karp acknowledged that there are \u201chuge dangers\u201d to the technology but pushed back on what he called the \u201cdoom message\u201d around AI. He appeared to allude to Anthropic and its CEO, who have warned about the technology\u2019s risks.\nOn the data center front, Anthropic co-founder Tom Brown said he \u201creally loved\u201d President Donald Trump\u2019s Monday Truth Social post, in which the president said communities who opposed data centers \u201cwant to end up being backwards and poor.\u201d\nCommerce Secretary Howard Lutnick said that data centers will \u201cbring prosperity\u201d and are \u201cgetting a bad rap.\u201d He also downplayed the facilities\u2019 water consumption.\nCatch up on all the biggest moments here.\n2. Bond, John Bond\nAfter hitting its\nhighest level since 2023\n, the\u00a010-year U.S. Treasury\u00a0yield pulled back in Wednesday\u2019s session, providing relief for other corners of the market.\nNew York Federal Reserve President John Williams\u00a0told CNBC yesterday\u00a0that the recent yield jumps should be seen as\na sign of a strong economy\nrather than as market dysfunction. Williams also said he would have to \u201cwait and see\u201d before deciding whether an interest rate hike would be necessary to calm inflation.\nThe three major averages snapped three-day losing streaks yesterday.\nFollow live market updates here.\n3. Snow forecast\nSnowflake\u00a0soared 24%",
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   },
   "news_yahoo": {
-    "value": "Subject Line: Morning Brief: AI development slowdowns seem unlikely\r\nPreheader: Plus: The 10-year yield crosses the 5% rubicon \u2014 and why maybe that's okay.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBNS8NAEED3t8y5aWbysdntyVIEEclFBfESZpNJG022mI0GEf-71Bo89fzmzRvmmn3XV-xGPvBQcXi_-uTD8XiKqt0XDF0DG6DC2EzrzFKKKdbkTMtU59jCCuoJNvDrRF7m0Ms0yRjlTkvamKI11mWFY9bYakuGsMkNFhgRrGBsFvWUg2_1uPzio5N5_b8urM9TXqZ4kBB4LyG-eFQ88qzun28qf7arsnzYlmgpTzDRdZJkRKlRd74ntee316eXrbpd8O4P_wwAav4dc1202a\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to unsubscribe:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBPS8NAEMX3s8y5aWbyZ7PpyVIEEclFBfESZjeTNppsMZtYRPzuUmvw5PnN-_2Gd82-62u2Ix94qDnMVx98OB7PUrX7hKFrYANUmDLTOispxRQdWdMyuRxbWIGbYAM_ncjLKfQyTTJGudWSNqZoTWmzwjJrbHVJhrDJDRYYEaxgbJbqWQdf6nHZ4r2T0_oPF9aXKy9TPEgIvJcQ__tUPPsw2-DGzoq6f76p_YVSV9XDtsKS8gQT7ZIkI0qNuvM9qT2_vT69bNXtEu9-4-8BAA5t4173283c",
-    "fetched": "2026-09-15"
+    "value": "Subject Line: Morning Brief: Get ready for a Fed hike \u2014 and market turbulence\r\nPreheader: Plus: Trump administration investments are struggling, and Musk is talking about combining Tesla and SpaceX.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBBT_MwDEDzW3xe18b9msQ7fdOEhCbUC3DhUrmJ2Sq12WgKFUL8dzRGxYnz8_OzfMOx6xtuRz7y0HB6_f_Ox9PpElW7Dxi6ABvQ1lFVIRWudBopeJbKskMDK_ATbODbyaLMqZdpkjGryAUKVkLLpqTy2f8rjbC0HoNusbCZhhWMYVEvOfhUj8sv3jqZ17_r0vo6FWXKB0mJD5LyP4_KR57V_dNtE692U9cP27ogbbBA4xGJjHXqLvZaHfjlfN5v1X7Bux_8NQA1teef4690a\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to unsubscribe:\r\nhttps://e.newsletters.yahoo.net/click?ZdJAxT8MwEIX9W25umtghtq8TVYWEKpQFWFiis320kRK3xAkVQvx3VELExPzufd_p3VFsu4bcQEfqG0rT7QcdT6erVOw-oW8DbEAai1WlsLCllQqDJ64MWaVhBX6EDfx0ssiX1PE48pBVaAMGw8GRLrF89TelZmLnVZBOFSaTsIIhLNWrDr7E87LFe8uX9R8ureeryGPec0p04JT_-1Q-xTS55IfWsXh8uW_iTGnq-mlbFyi1KpT2SiFqY8VD7KQ40Nv5vN-K_RLvfuPvAQA7ked109553",
+    "fetched": "2026-09-16"
   },
   "news_mcoscillator": {
     "value": "I covered here in June 2026 how the upturn in oil prices was on time, but the magnitude was overly amplified by the war with Iran.  Now oil prices\r\n\r\nhttps://www.mcoscillator.com/market_reports/?utm_source=McClellan+Chart+In+Focus&utm_campaign=e73b918767-email_cif_2026-09-10_gold_says_oil_prices_going_hi&utm_medium=email&utm_term=0_9e79f8200f-e73b918767-151652241\r\nChart In Focus\r\nGold Says Oil Prices Going Higher For Longer (https://www.mcoscillator.com/learning_center/weekly_chart/gold_says_oil_prices_going_higher_for_longer/?utm_source=McClellan+Chart+In+Focus&utm_campaign=e73b918767-email_cif_2026-09-10_gold_says_oil_prices_going_hi&utm_medium=email&utm_term=0_9e79f8200f-e73b918767-151652241)\r\nEnable Images to see chart or view in browser\r\n\r\nSeptember 10, 2026\r\n\r\nI covered here in June 2026 how the upturn in oil prices was on time, but the magnitude was overly amplified by the war with Iran.  Now oil prices are starting upward again after a pullback, and this is going to be a much longer uptrend.  That is the message of gold's 20-month leading indication shown in this week's chart.\r\n\r\nThis is a relationship I discovered years ago, when looking at gold and oil prices on a long term chart.  I was not using the time offset then, but when I tilted my head to the side I could see that a better alignment of the chart patterns of each plot could be achieved with a slight adjustment.  After some tinkering, I found that a lag time of 19.8 months seemed to get the best overall fit,",
-    "fetched": "2026-09-15"
+    "fetched": "2026-09-16"
   }
 }
