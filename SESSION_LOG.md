@@ -219,34 +219,48 @@ run_cache.json: committed and pushed successfully on first run
 ---
 
 ### Session 7
-**Date:** Sep 11 2026
+**Date:** Sep 17 2026
 **Files changed:** market.py, html_builder.py, daily.yml, SESSION_LOG.md
 **Done:**
 - market.py: Market state detection fixed -- now uses SPX marketState as single
-  source of truth (VIX marketState is unreliable and was causing FLAT/+0.00% bug).
-  REGULAR->OPEN, PRE->PRE, POST->POST, CLOSED->CLOSED. Defaults to OPEN if unknown.
-- market.py: POST/CLOSED now still shows the day's % change (not zeroed out).
-  Only PRE-MKT shows "Pre-Market" text instead of a % change.
-- market.py: Dead Yahoo PE HTML/API fetch comments cleaned up (code was already
-  removed in session 6 but comment noise remained).
+  source of truth (VIX marketState is unreliable). Defaults to OPEN if unrecognised.
 - market.py: PE_CONFIG confirmed at URTH=22.57x, EFA=18.35x, date=Sep 10 2026.
 - market.py: MHS threshold confirmed at 86 for EXTREME OVERHEATED.
 - html_builder.py: Gauge section rebuilt with individual element IDs (spx-val,
   spx-chg, spx-pill, spx-dot, rut-*, vix-*, pulse-line, mkt-refresh-ts).
-- html_builder.py: Live JS refresh block added -- calls Yahoo Finance v8 directly
-  from the browser on page load and every 60s during market hours (7:30-16:05 MT).
-  This mirrors the Chrome extension behaviour. No backend changes needed.
-- html_builder.py: Refresh timestamp shown next to "Market Performance" heading.
+- html_builder.py: Live JS refresh block added (attempted) -- CORS blocked.
+  Yahoo Finance v8 blocks cross-origin browser fetches from GitHub Pages.
+  Chrome extension bypasses this via host_permissions in manifest -- a static
+  webpage cannot. JS refresh code remains in HTML but does not update values.
 - daily.yml: Cron changed from `55 12` (6:55 AM MT) to `50 13` (7:50 AM MT).
-  Market opens 7:30 AM MT -- pipeline now runs 20 min after open for live prices.
 - SESSION_LOG.md: Module map updated (added daily.yml row). Session 7 documented.
 
-**Open items / next session:**
-- Remove fetch_mcoscillator_email() from news.py and its call in main.py (dead code,
-  wastes ~3s per run, McClellan card already removed from dashboard)
-- Verify live JS refresh works correctly on first load after deploy
-- Consider future: SEC EDGAR 13F API as Dataroma replacement
-- Consider future: Chrome extension token optimization (~60% reduction possible)
+**Root cause of +0.00% FLAT bug -- still unresolved:**
+Yahoo Finance resets regularMarketChangePercent to 0.00 in three windows:
+  1. Pre-market (before 7:30 AM MT)
+  2. First few minutes after open
+  3. After market close (after 4:00 PM MT)
+The _yq() function in market.py trusts Yahoo's chg value directly.
+Fix: compute chg manually as (price - previousClose) / previousClose * 100
+always, regardless of market state. Yahoo always returns both price and
+previousClose reliably -- only the pre-computed change field goes to 0.
+
+**Open items / next session (priority order):**
+
+1. PRIORITY -- Fix +0.00% bug in market.py _yq():
+   Compute chg = (price - prevClose) / prevClose * 100 manually.
+   Do NOT trust Yahoo's regularMarketChangePercent -- it resets to 0 at open/close.
+   Paste market.py and ask Claude to fix _yq() (3-line change).
+
+2. Remove fetch_mcoscillator_email() from news.py and its call in main.py.
+   Dead code -- card removed, email is paid teaser only, wastes ~3s per run.
+
+3. Consider second daily cron at 2:00 PM MT as belt-and-suspenders for live prices:
+   - cron: "0 20 * * 1-5"  # 2:00 PM MT = 20:00 UTC
+   Paste daily.yml and add the second schedule line.
+
+4. Future: SEC EDGAR 13F API as Dataroma replacement.
+5. Future: Chrome extension token optimization (~60% reduction possible).
 
 ---
 
