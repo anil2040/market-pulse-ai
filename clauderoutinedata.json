@@ -1,0 +1,23 @@
+{
+  "date": "2026-09-18",
+  "time_collected_utc": "00:27",
+  "futures": {
+    "sp500": {"change_pct": 0.30, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.50, "direction": "up"},
+    "dow": {"change_pct": 0.20, "direction": "up"}
+  },
+  "etf_pe": {
+    "URTH": {"pe_ttm": 22.44, "proxy_for": "MSCI World", "source": "Yahoo Finance"},
+    "EFA": {"pe_ttm": 18.24, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance"}
+  },
+  "rates_commodities": {
+    "treasury_10yr_pct": 4.93,
+    "crude_oil_usd": 100.50,
+    "crude_oil_type": "WTI"
+  },
+  "global_markets": {
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.50},
+    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 0.33}
+  },
+  "macro_note": "The Fed hiked rates 25bp to 3.75%-4% on Sept 16 (first hike since 2023), while oil eased after Saudi Arabia signaled a damaged Hormuz-area pipeline would resume operations shortly."
+}
