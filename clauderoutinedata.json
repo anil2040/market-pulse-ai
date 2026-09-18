@@ -1,23 +1,39 @@
 {
   "date": "2026-09-18",
-  "time_collected_utc": "00:27",
+  "time_collected_utc": "10:10",
   "futures": {
     "sp500": {"change_pct": 0.30, "direction": "up"},
     "nasdaq100": {"change_pct": 0.50, "direction": "up"},
-    "dow": {"change_pct": 0.20, "direction": "up"}
+    "dow": {"change_pct": 0.20, "direction": "up"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 22.44, "proxy_for": "MSCI World", "source": "Yahoo Finance"},
-    "EFA": {"pe_ttm": 18.24, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance"}
+    "EFA": {"pe_ttm": 17.85, "proxy_for": "MSCI EAFE ex-US Developed", "source": "GuruFocus"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.93,
-    "crude_oil_usd": 100.50,
+    "treasury_10yr_pct": 4.23,
+    "crude_oil_usd": 101.21,
     "crude_oil_type": "WTI"
+  },
+  "macro_events": [
+    "Fed hiked rates 25bp to 3.75%-4.00% on Sept 16 and signaled another increase before year-end",
+    "Saudi Arabia's damaged East-West oil pipeline expected to resume within days, easing the geopolitical risk premium",
+    "Surprise surge in US crude inventories confirmed bearish supply conditions, pressuring oil prices"
+  ],
+  "sector_movers": {
+    "leading": [
+      {"sector": "Technology", "change_pct": 0.50, "reason": "chip names and mega-cap AI leaders extending gains"},
+      {"sector": "Financials", "change_pct": 0.30, "reason": "easing Treasury yields lifting bank stocks"}
+    ],
+    "lagging": [
+      {"sector": "Energy", "change_pct": -0.60, "reason": "falling crude oil prices on eased geopolitical risk and rising inventories"},
+      {"sector": "Utilities", "change_pct": -0.20, "reason": "rotation out of defensives amid risk-on tone"}
+    ]
   },
   "global_markets": {
     "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.50},
-    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 0.33}
+    "asia": {"index": "Nikkei", "direction": "down", "change_pct": -0.03}
   },
-  "macro_note": "The Fed hiked rates 25bp to 3.75%-4% on Sept 16 (first hike since 2023), while oil eased after Saudi Arabia signaled a damaged Hormuz-area pipeline would resume operations shortly."
+  "open_focus": "Traders are focused on the Fed's rate path after Wednesday's hike, with easing oil prices and Treasury yields supporting risk appetite ahead of key earnings from FedEx and Lennar."
 }
