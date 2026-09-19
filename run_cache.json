@@ -284,10 +284,10 @@
       },
       "urth_pe": 22.44,
       "urth_pe_stale": false,
-      "urth_pe_source": "Claude Routine (00:27 UTC)",
+      "urth_pe_source": "Claude Routine",
       "efa_pe": 18.24,
       "efa_pe_stale": false,
-      "efa_pe_source": "Claude Routine (00:27 UTC)",
+      "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
       "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 14.8 (CALM) -- indecisive -- focus on individual catalysts"
