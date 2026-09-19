@@ -30,7 +30,7 @@
 
 import re
 import time
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 
 MT = timezone(timedelta(hours=-6))  # Boise MDT = UTC-6 summer
 
@@ -43,10 +43,16 @@ def fmt_bullets(raw):
         return "<li>No data available</li>"
     items = ""
     for line in raw.strip().splitlines():
-        line = re.sub(r"^[-•*]\s*", "", line.strip())
-        line = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", line)
-        if line:
-            items += f"    <li>{line}</li>\n"
+        stripped = line.strip()
+        # Divider sentinel inserted by _merge_macro_sections
+        if stripped == "---":
+            items += ('    <li style="list-style:none;border-top:1px solid #e5e7eb;'
+                      'margin:4px 0 4px -13px;padding:0;"></li>\n')
+            continue
+        stripped = re.sub(r"^[-•*]\s*", "", stripped)
+        stripped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", stripped)
+        if stripped:
+            items += f"    <li>{stripped}</li>\n"
     return items or "<li>No data available</li>"
 
 
@@ -246,14 +252,24 @@ def _build_screens_html(si_tickers, mf_list, am_list):
     si_only_excluded = len(si_only) - len(si_only_filtered)
 
     def chip(t, style="one", extra_label=""):
-        """extra_label: rank or multiple string to show in chip."""
+        """
+        Build a ticker chip.
+        extra_label: rank (MF-only) or multiple (AM-only) shown in chip.
+        For all3/two3 chips, MF rank and AM multiple are embedded in tag_str
+        so the full signal is visible even when a ticker appears in a higher screen.
+        """
+        si_cnt = si_tickers.get(t, 0)
+        # Build enriched tag string with rank/multiple where available
         tags = []
-        cnt  = si_tickers.get(t, 0)
-        if cnt > 0:       tags.append(f"{cnt}SI")
-        if t in mf_dict:  tags.append("MF")
-        if t in am_dict:  tags.append("AM")
+        if si_cnt > 0:    tags.append(f"{si_cnt}SI")
+        if t in mf_dict:
+            rank = mf_dict[t]
+            tags.append(f"MF#{rank}")
+        if t in am_dict:
+            mult = am_dict[t]
+            tags.append(f"AM {mult}x" if mult != "-" else "AM")
         tag_str = ",".join(tags)
-        detail  = f" {extra_label}" if extra_label and extra_label != "-" else ""
+        detail  = f" {extra_label}" if extra_label and extra_label not in ("", "-") else ""
         if style == "all3":
             return (f'<div style="background:#1a56db;border-radius:6px;padding:5px 9px;'
                     f'white-space:nowrap;display:inline-block;margin:2px;">'
@@ -384,67 +400,197 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
     )
 
 # ============================================================
-# WEEK AHEAD CALENDAR CARD
+# MACRO SECTION MERGER
 # ============================================================
 
-def _build_calendar_card(calendar_text):
+def _merge_macro_sections(market_macro_text, what_to_watch_text):
     """
-    Render the Yahoo Morning Brief earnings/economic calendar as a
-    collapsible card. Monday has full week Mon-Fri. Other days partial.
-    Returns empty string if no calendar text available.
+    Merge Market & Macro and What to Watch bullets into one list.
+    Adds a subtle visual separator between the two groups using a
+    blank/divider bullet so the reader can see where one ends and
+    the other begins, without needing a second header.
     """
-    if not calendar_text or len(calendar_text.strip()) < 50:
+    mm   = market_macro_text.strip()
+    wtw  = what_to_watch_text.strip()
+    if mm and wtw:
+        return mm + "\n- ---\n" + wtw
+    return mm or wtw
+
+
+# ============================================================
+# WEEKLY CALENDAR -- 5-DAY BOX LAYOUT
+# ============================================================
+
+# Day names in order for the calendar
+_WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+
+
+def _parse_calendar_into_days(calendar_text):
+    """
+    Parse the raw calendar text into a dict {day_name: {eco: [...], earn: [...]}}.
+    Handles both structured (Economic data: / Earnings calendar:) and
+    plain bullet formats from the Yahoo Morning Brief.
+    Returns dict with keys from _WEEKDAYS.
+    """
+    days = {d: {"eco": [], "earn": []} for d in _WEEKDAYS}
+    if not calendar_text:
+        return days
+
+    current_day  = None
+    current_type = None  # "eco" or "earn"
+
+    for raw_line in calendar_text.splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+
+        # Detect day header
+        matched_day = next(
+            (d for d in _WEEKDAYS if line.lower().startswith(d.lower())), None)
+        if matched_day:
+            current_day  = matched_day
+            current_type = None
+            continue
+
+        if current_day is None:
+            continue
+
+        # Detect section type
+        if re.match(r"^Economic data:", line, re.IGNORECASE):
+            current_type = "eco"
+            content = line.split(":", 1)[1].strip() if ":" in line else ""
+            if content and content.lower() not in ("no notable economic data.", ""):
+                days[current_day]["eco"].append(content)
+            continue
+        if re.match(r"^Earnings calendar:", line, re.IGNORECASE):
+            current_type = "earn"
+            content = line.split(":", 1)[1].strip() if ":" in line else ""
+            if content and content.lower() not in ("no notable earnings.", ""):
+                days[current_day]["earn"].append(content)
+            continue
+
+        # Continuation bullet or plain line
+        clean = re.sub(r"^[•\-\*]\s*", "", line)
+        if clean.lower() in ("no notable economic data.", "no notable earnings.", ""):
+            continue
+        if current_type == "eco":
+            days[current_day]["eco"].append(clean)
+        elif current_type == "earn":
+            days[current_day]["earn"].append(clean)
+
+    return days
+
+
+def _build_weekly_calendar(cache, yahoo_calendar):
+    """
+    Render the weekly economic/earnings calendar as 5 day-boxes (Mon-Fri).
+
+    PERSISTENCE LOGIC:
+      Monday's Yahoo Brief has the full week (Mon-Fri).
+      Tue-Fri briefs only have that day onward.
+      So: on Monday, store the calendar in run_cache.json under "weekly_calendar"
+      keyed by the Monday date. Tue-Fri: read from cache if same week, else
+      show what we have from today's brief.
+
+    Cache key: "weekly_calendar" -> {"week_of": "YYYY-MM-DD", "text": "..."}
+    where week_of is the Monday date of the current week (ISO format).
+    """
+    # Determine this week's Monday
+    now         = datetime.now(MT)
+    days_since_monday = now.weekday()  # 0=Mon, 6=Sun
+    this_monday = (now - timedelta(days=days_since_monday)).strftime("%Y-%m-%d")
+
+    # On Monday (weekday==0): store fresh calendar from Yahoo Brief
+    if now.weekday() == 0 and yahoo_calendar and len(yahoo_calendar.strip()) > 100:
+        cache["weekly_calendar"] = {
+            "week_of": this_monday,
+            "text":    yahoo_calendar,
+        }
+        print(f"  📅 Weekly calendar stored for week of {this_monday}")
+        calendar_text = yahoo_calendar
+        source_note   = "Yahoo Finance Morning Brief (today)"
+    else:
+        # Tue-Fri: try cache first
+        stored = cache.get("weekly_calendar", {})
+        if stored.get("week_of") == this_monday and stored.get("text"):
+            calendar_text = stored["text"]
+            source_note   = f"Yahoo Morning Brief (Mon {this_monday})"
+            print(f"  📅 Using cached weekly calendar for week of {this_monday}")
+        elif yahoo_calendar and len(yahoo_calendar.strip()) > 50:
+            # Fallback: use today's partial calendar
+            calendar_text = yahoo_calendar
+            source_note   = "Yahoo Finance Morning Brief (partial -- no Monday cache)"
+        else:
+            return ""  # Nothing to show
+
+    days_data = _parse_calendar_into_days(calendar_text)
+
+    # Build 5-day box layout
+    today_name = now.strftime("%A")  # e.g. "Tuesday"
+
+    day_boxes = ""
+    for day in _WEEKDAYS:
+        data      = days_data[day]
+        is_today  = (day == today_name)
+        has_data  = data["eco"] or data["earn"]
+        border    = "#1a56db" if is_today else "#e5e7eb"
+        bg        = "#f0f6ff" if is_today else "#ffffff"
+        hdr_col   = "#1a56db" if is_today else "#374151"
+        today_tag = (' <span style="background:#1a56db;color:white;font-size:.5rem;'
+                     'padding:1px 4px;border-radius:3px;font-weight:700;">TODAY</span>'
+                     if is_today else "")
+
+        eco_html  = ""
+        if data["eco"]:
+            items = "".join(
+                f'<div style="font-size:.63rem;color:#374151;padding:1px 0;'
+                f'border-bottom:1px solid #f3f4f6;">{e}</div>'
+                for e in data["eco"]
+            )
+            eco_html = (f'<div style="font-size:.55rem;font-weight:700;color:#b45309;'
+                        f'text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;'
+                        f'margin-top:5px;">Economic</div>{items}')
+        else:
+            eco_html = '<div style="font-size:.62rem;color:#9ca3af;">No key data</div>'
+
+        earn_html = ""
+        if data["earn"]:
+            items = "".join(
+                f'<div style="font-size:.63rem;color:#057a55;padding:1px 0;">{e}</div>'
+                for e in data["earn"]
+            )
+            earn_html = (f'<div style="font-size:.55rem;font-weight:700;color:#059669;'
+                         f'text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;'
+                         f'margin-top:5px;">Earnings</div>{items}')
+        else:
+            earn_html = '<div style="font-size:.62rem;color:#9ca3af;margin-top:4px;">No notable earnings</div>'
+
+        day_boxes += f"""
+<div style="background:{bg};border:1px solid {border};border-radius:8px;
+            padding:8px 10px;min-width:0;overflow:hidden;">
+  <div style="font-weight:700;font-size:.75rem;color:{hdr_col};
+              border-bottom:1px solid {border};padding-bottom:4px;margin-bottom:4px;">
+    {day[:3].upper()}{today_tag}
+  </div>
+  {eco_html}
+  {earn_html}
+</div>"""
+
+    if not any(days_data[d]["eco"] or days_data[d]["earn"] for d in _WEEKDAYS):
         return ""
 
-    # Format calendar text as HTML -- preserve day headers and bullet structure
-    lines = calendar_text.strip().splitlines()
-    html_lines = []
-    for line in lines:
-        stripped = line.strip()
-        if not stripped:
-            html_lines.append("")
-            continue
-        # Day headers (Monday, Tuesday, etc.)
-        if re.match(r"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$",
-                    stripped, re.IGNORECASE):
-            html_lines.append(
-                f'<div style="font-weight:700;font-size:.8rem;color:#1a56db;'
-                f'margin-top:8px;margin-bottom:3px;border-bottom:1px solid #e5e7eb;'
-                f'padding-bottom:2px;">{stripped}</div>')
-        elif stripped.startswith(("Economic data:", "Earnings calendar:")):
-            label, _, rest = stripped.partition(":")
-            rest = rest.strip()
-            html_lines.append(
-                f'<div style="font-size:.75rem;margin-bottom:2px;">'
-                f'<span style="font-weight:600;color:#374151;">{label}:</span>'
-                f'<span style="color:#6b7280;"> {rest}</span></div>')
-        elif stripped.startswith(("•", "-", "*")):
-            item = re.sub(r"^[•\-\*]\s*", "", stripped)
-            html_lines.append(
-                f'<div style="font-size:.75rem;color:#374151;padding-left:10px;'
-                f'margin-bottom:1px;">▸ {item}</div>')
-        else:
-            html_lines.append(
-                f'<div style="font-size:.75rem;color:#6b7280;margin-bottom:1px;">'
-                f'{stripped}</div>')
-
-    content = "\n".join(html_lines)
     return f"""
 <div class="card" style="margin-bottom:12px;border-left:4px solid #059669;">
-  <button onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';"
-          style="background:none;border:none;cursor:pointer;width:100%;text-align:left;padding:0;">
-    <h2 style="margin-bottom:0;">📅 Week Ahead
-      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-        Yahoo Finance Morning Brief · Mon=full week · click to expand
-      </span>
-    </h2>
-  </button>
-  <div style="display:none;margin-top:10px;">
-    {content}
-    <div style="font-size:.6rem;color:#9ca3af;margin-top:8px;padding-top:6px;
-                border-top:1px solid #f3f4f6;">
-      Source: Yahoo Finance Morning Brief · Monday brief has full Mon-Fri calendar
-    </div>
+  <h2>📅 Week Ahead
+    <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
+      {source_note} · stored Mon, shown all week
+    </span>
+  </h2>
+  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
+    {day_boxes}
+  </div>
+  <div style="font-size:.58rem;color:#9ca3af;margin-top:6px;">
+    Monday's brief has full Mon-Fri calendar · cached each Monday · refreshes next Monday
   </div>
 </div>"""
 
@@ -960,8 +1106,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
                    if efa_stale else "")
 
     # PE source note: Claude Routine > iShares CSV > PE_CONFIG fallback
+    # Show just "Claude Routine" with no timestamp -- it always runs at 4am MT
     if urth_src and "Claude Routine" in urth_src:
-        pe_src_note = urth_src  # e.g. "Claude Routine (07:45 UTC)"
+        pe_src_note = "Claude Routine"
     elif urth_src and "iShares CSV" in urth_src:
         pe_src_note = "iShares CSV (live)"
     else:
@@ -1218,16 +1365,21 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   {valuation_block}
 
   <div class="card ab" style="margin-bottom:12px;">
-    <h2>📊 Market &amp; Macro</h2>
-    <ul>{fmt_bullets(secs.get("MARKET AND MACRO",""))}</ul>
+    <h2>📊 Market &amp; Macro
+      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
+        · macro interpretation + what to watch
+      </span>
+    </h2>
+    <div style="columns:2;column-gap:20px;column-rule:1px solid #f3f4f6;">
+      <ul style="margin:0;break-inside:avoid-column;">
+        {fmt_bullets(_merge_macro_sections(
+            secs.get("MARKET AND MACRO",""),
+            secs.get("WHAT TO WATCH","")))}
+      </ul>
+    </div>
   </div>
 
-  <div class="card ag" style="margin-bottom:12px;">
-    <h2>🔭 What to Watch</h2>
-    <ul>{fmt_bullets(secs.get("WHAT TO WATCH",""))}</ul>
-  </div>
-
-  {_build_calendar_card(yahoo_calendar)}
+  {_build_weekly_calendar(cache, yahoo_calendar)}
 
   <div class="card ab" style="margin-bottom:12px;">
     <h2>📋 Value Screens

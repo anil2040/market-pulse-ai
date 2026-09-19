@@ -121,9 +121,7 @@ def _routine_pe(ticker, routine_data):
         pe = float(pe_val)
         if pe <= 0:
             return None, f"routine {ticker} PE is zero or negative"
-        time_utc = routine_data.get("time_collected_utc", "")
-        src = f"Claude Routine ({time_utc} UTC)" if time_utc else "Claude Routine"
-        return pe, src
+        return pe, "Claude Routine"
     except (ValueError, TypeError) as e:
         return None, f"routine {ticker} PE parse error: {e}"
 
