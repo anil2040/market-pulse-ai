@@ -4,24 +4,33 @@
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py):
-#   scrape_edward_jones()      -> str
-#   fetch_cnbc_email()         -> str
-#   fetch_yahoo_morning_brief()-> str
+#   scrape_edward_jones()         -> str
+#   fetch_cnbc_email()            -> str
+#   fetch_yahoo_morning_brief()   -> (brief_str, calendar_str)
 #
 # WHAT THIS COVERS:
 #   - Edward Jones daily market recap (web scrape)
 #   - CNBC Morning Squawk (Yahoo IMAP SSL)
 #   - Yahoo Finance Morning Brief (Yahoo IMAP SSL)
+#     Returns TWO values: the main brief text AND the extracted
+#     earnings/economic calendar section.
+#     Monday brief has the full week Mon-Fri.
+#     Tue-Fri briefs have that day onward.
+#     Calendar shown in its own "Week Ahead" card in the dashboard.
 #
-# NOTE: McClellan Oscillator removed -- email is a paid article
-#   teaser with no usable data. Card was already removed from
-#   html_builder.py. Dead code cleanup Sep 2026.
+# NOTE: McClellan Oscillator removed Sep 2026 -- paid teaser only.
+#
+# CHAR LIMITS:
+#   Yahoo brief: 4000 chars (raised from 2000)
+#   CNBC: 2500 chars (unchanged)
+#   Calendar: up to 3000 chars (separate from brief limit)
 #
 # All IMAP fetches use Yahoo Mail (imap.mail.yahoo.com:993).
 # Credentials from env: YAHOO_EMAIL, YAHOO_APP_PASSWORD.
 # ============================================================
 
 import os
+import re
 import imaplib
 import email
 import requests
@@ -31,15 +40,7 @@ YAHOO_EMAIL    = os.environ.get("YAHOO_EMAIL")
 YAHOO_PASSWORD = os.environ.get("YAHOO_APP_PASSWORD")
 
 
-# ============================================================
-# EDWARD JONES WEB SCRAPE
-# ============================================================
-
 def scrape_edward_jones():
-    """
-    Scrape the Edward Jones daily market recap page.
-    Returns plain text (up to ~120 lines worth).
-    """
     print("\n🔍 Scraping Edward Jones...")
     url  = ("https://www.edwardjones.com/us-en/market-news-insights"
             "/stock-market-news/daily-market-recap")
@@ -60,16 +61,7 @@ def scrape_edward_jones():
         return "Edward Jones data unavailable today."
 
 
-# ============================================================
-# YAHOO IMAP EMAIL FETCHER
-# ============================================================
-
-def _fetch_email(sender, label, char_limit=2500):
-    """
-    Fetch the latest email from a specific sender via Yahoo IMAP SSL.
-    Falls back to domain search if exact sender address yields nothing.
-    Returns plain text body up to char_limit characters.
-    """
+def _fetch_email_raw(sender, label, char_limit=2500):
     print(f"\n📬 Fetching {label}...")
     try:
         mail = imaplib.IMAP4_SSL("imap.mail.yahoo.com", 993)
@@ -97,14 +89,12 @@ def _fetch_email(sender, label, char_limit=2500):
         msg  = email.message_from_bytes(msg_data[0][1])
         body = ""
 
-        # Prefer plain text part
         if msg.is_multipart():
             for part in msg.walk():
                 if part.get_content_type() == "text/plain":
                     body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
                     break
 
-        # Fall back to HTML -> text
         if not body:
             if msg.is_multipart():
                 for part in msg.walk():
@@ -122,7 +112,7 @@ def _fetch_email(sender, label, char_limit=2500):
 
         mail.logout()
         body = body[:char_limit].strip()
-        print(f"   ✅ {label}: {len(body)} chars")
+        print(f"   ✅ {label}: {len(body)} chars (raw)")
         return body
 
     except Exception as e:
@@ -130,12 +120,54 @@ def _fetch_email(sender, label, char_limit=2500):
         return f"{label} unavailable today."
 
 
-# ============================================================
-# PUBLIC EMAIL WRAPPERS
-# ============================================================
+def _extract_calendar(body_text):
+    """
+    Extract the earnings/economic calendar section from Yahoo Morning Brief.
+    Monday has full week Mon-Fri. Tue-Fri have that day onward.
+    Returns up to 3000 chars of calendar text, or empty string.
+    """
+    start_patterns = [
+        r"Earnings and economic calendar",
+        r"Economic calendar",
+        r"Earnings calendar",
+        r"Week ahead",
+    ]
+    end_patterns = [
+        r"If you like what we do",
+        r"Privacy Policy",
+        r"Unsubscribe",
+        r"Yahoo Finance App",
+        r"Download now",
+        r"sign up right here",
+    ]
+
+    start_idx = None
+    for pattern in start_patterns:
+        m = re.search(pattern, body_text, re.IGNORECASE)
+        if m:
+            start_idx = m.start()
+            break
+
+    if start_idx is None:
+        return ""
+
+    end_idx = len(body_text)
+    for pattern in end_patterns:
+        m = re.search(pattern, body_text[start_idx:], re.IGNORECASE)
+        if m:
+            candidate = start_idx + m.start()
+            if candidate < end_idx:
+                end_idx = candidate
+
+    calendar_text = body_text[start_idx:end_idx].strip()
+    calendar_text = re.sub(r"\n{3,}", "\n\n", calendar_text)
+    print(f"   📅 Calendar extracted: {len(calendar_text)} chars")
+    return calendar_text[:3000]
+
 
 def fetch_cnbc_email():
-    return _fetch_email(
+    """Returns CNBC Morning Squawk text."""
+    return _fetch_email_raw(
         "morningsquawk@response.cnbc.com",
         "CNBC Morning Squawk",
         char_limit=2500,
@@ -143,8 +175,23 @@ def fetch_cnbc_email():
 
 
 def fetch_yahoo_morning_brief():
-    return _fetch_email(
+    """
+    Returns (brief_text, calendar_text) tuple.
+    brief_text: first 4000 chars of the morning brief body.
+    calendar_text: extracted earnings/economic calendar section (up to 3000 chars).
+    Monday brief has full week. Other days have remainder of week.
+    """
+    raw = _fetch_email_raw(
         "finance-morning-brief@newsletters.yahoo.net",
         "Yahoo Morning Brief",
-        char_limit=2000,
+        char_limit=12000,
     )
+
+    if not raw or raw.startswith("Yahoo Morning Brief"):
+        return (raw[:4000] if raw else ""), ""
+
+    calendar_text = _extract_calendar(raw)
+    brief_text    = raw[:4000].strip()
+
+    print(f"   ✅ Yahoo Brief: {len(brief_text)} chars main | {len(calendar_text)} chars calendar")
+    return brief_text, calendar_text

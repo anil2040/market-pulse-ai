@@ -15,6 +15,14 @@
 #   Returns a list of enriched dicts with keys:
 #     label, id, group, current, mo3, mo12, trend, date, sig, insight
 #
+# INSIGHT PHILOSOPHY (Sep 2026 rewrite):
+#   The 'sig' field shown in the Insights column must be INTERPRETIVE,
+#   not descriptive. The table already shows current/3mo/12mo values
+#   and trend arrows. The insight column should answer "what does this
+#   mean for a value investor?" -- not restate what the numbers show.
+#   WRONG: "↑3mo ↑12mo" (that's what the trend arrow already says)
+#   RIGHT: "Disinflation stalled -- Fed has no room to cut soon"
+#
 # GOLD FIX (Sep 2026):
 #   GOLDAMGBD228NLBM discontinued by FRED in 2025 with no replacement.
 #   Now uses Yahoo Finance GC=F (Comex front-month futures).
@@ -79,7 +87,7 @@ FRED_SERIES = [
     # ---- COMMODITIES ----
     {"label": "WTI Crude Oil",        "id": "DCOILWTICO",    "is_index": False, "group": "COMMODITIES",
      "prefix": "$", "insight": "Energy price · >$85 = inflation pressure & input cost risk"},
-    # Gold: _YAHOO_GCF routes to Yahoo Finance GC=F (FRED discontinued GOLDAMGBD228NLBM in 2025)
+    # Gold: _YAHOO_GCF routes to Yahoo Finance GC=F
     {"label": "Gold Price",           "id": "_YAHOO_GCF",    "is_index": False, "group": "COMMODITIES",
      "prefix": "$", "no_pct": True,
      "insight": "Fear/inflation hedge · rising+lowVIX = stealth fear signal"},
@@ -90,7 +98,7 @@ FRED_SERIES = [
     # ---- CONSUMER SENTIMENT ----
     {"label": "Consumer Sentiment",   "id": "UMCSENT",       "is_index": False, "group": "SENTIMENT_FRED",
      "no_pct": True, "insight": "U of Michigan 0-100 · avg ~75 · <60 = consumer stress"},
-    # CAPE: _SCRAPE_MULTPL routes to multpl.com (FRED never hosted Shiller CAPE)
+    # CAPE: _SCRAPE_MULTPL routes to multpl.com
     {"label": "Shiller CAPE (US)",    "id": "_SCRAPE_MULTPL","is_index": False, "group": "VALUATION",
      "no_pct": True,
      "insight": "Cyclically Adj PE · 10yr smoothed · hist avg 17x · ~41 = 2nd highest ever"},
@@ -172,13 +180,15 @@ def sparkline_svg(cur_str, mo3_str, mo12_str):
 
 
 # ============================================================
-# INSIGHT GENERATOR
+# INSIGHT GENERATOR -- INTERPRETIVE, NOT DESCRIPTIVE
 # ============================================================
 
 def _insight(label, cur_str, mo3_str, mo12_str, trend):
     """
-    Generate contextual insight text for each indicator.
-    Compares current value to historical norms, not just recent direction.
+    Generate interpretive macro insight for each indicator.
+    Answers "what does this mean?" not "what is the number?".
+    The table already shows current/3mo/12mo and trend arrows.
+    Do NOT restate those -- interpret the macro implication.
     """
     try:
         cur  = float(re.sub(r"[%$,]", "", str(cur_str)))
@@ -187,99 +197,236 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
     except Exception:
         return ""
 
-    dir3  = "↑" if cur > mo3  + 0.05 else "↓" if cur < mo3  - 0.05 else "→"
-    dir12 = "↑" if cur > mo12 + 0.05 else "↓" if cur < mo12 - 0.05 else "→"
+    # Direction helpers -- used only to inform interpretation, not to display
+    rising3  = cur > mo3  + 0.05
+    falling3 = cur < mo3  - 0.05
+    rising12 = cur > mo12 + 0.05
+
+    # ----------------------------------------------------------
+    # INFLATION GROUP
+    # ----------------------------------------------------------
 
     if label == "Core PCE":
-        pct = round((cur / 2.0 - 1) * 100)
+        # THE key number for the Fed
+        above_pct = round((cur / 2.0 - 1) * 100)
         if cur <= 2.0:
-            return f"✅ AT Fed 2% target · {dir3}3mo {dir12}12mo"
-        elif cur > 3.0 and dir3 == "↑" and dir12 == "↑":
-            return f"⚠️ SUSTAINED RISE · {pct}% above 2% target · rates stay elevated"
+            return "✅ Fed target achieved -- door open for cuts, tailwind for rate-sensitive equities"
+        elif cur > 3.0 and rising3:
+            return f"⚠️ Re-accelerating at {above_pct}% above Fed target -- hike risk rising, PE compression ahead"
+        elif cur > 3.0 and falling3:
+            return f"→ Still {above_pct}% above target but cooling -- Fed will want more evidence before cutting"
         elif cur > 3.0:
-            return f"⚠️ {pct}% above 2% target · {dir3}3mo {dir12}12mo"
-        return f"→ Elevated but {dir3}3mo · {dir12}12mo · watch direction"
+            return f"⚠️ Stuck {above_pct}% above target with no momentum -- rates stay higher for longer"
+        elif rising3:
+            return "⚠️ Ticking back up toward 3% -- watch next print, cuts may be off the table"
+        return "→ Elevated but drifting toward target -- cuts possible in 2-3 meetings if trend holds"
 
-    elif label in ("CPI Inflation", "PCE Inflation", "Core CPI"):
-        mood = ("⚠️ Heating" if dir3 == "↑" and dir12 == "↑"
-                else "📉 Cooling" if dir3 == "↓" else "→ Mixed")
-        return f"{mood} · {dir3}3mo {dir12}12mo"
+    elif label == "CPI Inflation":
+        if cur > 4.0 and rising3:
+            return "⚠️ Broad inflation re-igniting -- input costs rising across sectors, margin compression risk"
+        elif cur > 3.5 and rising3:
+            return "⚠️ Above historical avg and accelerating -- pushes Fed toward holding or hiking"
+        elif cur > 3.0 and falling3:
+            return "→ Above avg but decelerating -- progress toward 2% but not there yet"
+        elif cur <= 2.5 and falling3:
+            return "✅ Returning to normal range -- removes a key macro headwind for equities"
+        elif falling3 and not rising12:
+            return "→ Disinflation trend intact -- confirms Fed has room to hold or cut"
+        return "→ Tracking near historical avg -- not a swing factor today"
 
-    elif label == "Fed Funds Rate":
-        if cur >= 5.0:   return f"⚠️ Restrictive (avg ~2.5%) · {dir3}3mo · growth headwind"
-        elif cur <= 3.0: return f"✅ Accommodative · {dir3}3mo"
-        elif dir3 == "↓": return "📉 Cutting cycle · positive for rate-sensitive equities"
-        elif dir3 == "↑": return "⚠️ Rising rates · tightening · headwind for P/E multiples"
-        return f"→ On hold at {cur:.2f}% · {dir12}12mo"
+    elif label == "Core CPI":
+        if cur > 3.5 and rising3:
+            return "⚠️ Shelter and services inflation sticky -- Fed cannot declare victory, rates stay restrictive"
+        elif cur > 3.0 and falling3:
+            return "→ Slowly cooling but still above comfort zone -- Fed patience required"
+        elif cur <= 2.5:
+            return "✅ Approaching target -- supports case for eventual cuts"
+        elif rising3:
+            return "⚠️ Re-heating -- service sector inflation erodes real returns and PE expansion"
+        return "→ Moderate -- not forcing Fed's hand in either direction"
+
+    elif label == "PCE Inflation":
+        if cur > 3.5:
+            return "⚠️ Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
+        elif cur > 3.0 and rising3:
+            return "⚠️ Fed preferred measure re-accelerating -- cuts pushed further out, duration risk rises"
+        elif falling3:
+            return "→ PCE cooling -- early signal Fed may eventually get the all-clear"
+        return "→ Elevated but not accelerating -- watch next month's print for direction"
+
+    # ----------------------------------------------------------
+    # RATES GROUP
+    # ----------------------------------------------------------
 
     elif label == "10Y Treasury":
-        if cur >= 5.0 and dir3 == "↑":
-            return f"⚠️ High & rising at {cur:.2f}% · P/E compression intensifying"
+        if cur >= 5.0 and rising3:
+            return "⚠️ Surging past 5% -- PE multiples compress mechanically, bond math now competes directly with equities"
         elif cur >= 5.0:
-            return f"⚠️ Elevated at {cur:.2f}% (avg ~4%) · P/E compression risk"
-        elif cur <= 3.5:
-            return f"✅ Low at {cur:.2f}% · supports higher valuations · {dir3}3mo"
-        return f"{dir3}3mo {dir12}12mo · rising = headwind, falling = tailwind for all equities"
+            return "⚠️ Above 5% -- discount rate headwind is severe, especially for long-duration growth names"
+        elif cur >= 4.5 and rising3:
+            return "⚠️ Approaching levels where bonds compete with equities on yield -- watch spread compression"
+        elif cur >= 4.0 and rising3:
+            return "→ Rising toward 4.5% -- gradual valuation headwind, especially painful at CAPE 40x+"
+        elif cur <= 3.5 and falling3:
+            return "✅ Falling yields reduce the discount rate -- supports PE expansion and mean reversion setups"
+        elif falling3:
+            return "→ Easing -- early tailwind for rate-sensitive sectors and international ADRs"
+        return "→ Holding steady -- not adding incremental pressure on multiples today"
 
     elif label == "2Y Treasury":
-        if cur >= 4.5 and dir3 == "↑":
-            return "⚠️ High & rising · market pricing in NO rate cuts"
-        elif dir3 == "↓":
-            return f"✅ Falling · rate cuts being priced in · {dir12}12mo"
-        return f"→ {cur:.2f}% · {dir3}3mo · Fed expectations proxy"
+        if cur >= 4.5 and rising3:
+            return "⚠️ Market pricing in zero rate cuts -- tight monetary policy embedded for the foreseeable future"
+        elif cur >= 4.0 and falling3:
+            return "→ Starting to price in eventual cuts -- watch 10Y-2Y spread for curve re-steepening signal"
+        elif falling3:
+            return "✅ Falling 2Y = market expecting cuts -- historically a tailwind for value stocks 6-12mo out"
+        elif rising3:
+            return "⚠️ Higher 2Y locks in restrictive financial conditions -- reduces room for P/E expansion"
+        return "→ Stable -- no new signal on Fed timing from short end of the curve"
 
     elif label == "Yield Curve (10Y-2Y)":
-        if cur < -0.5:  return f"⚠️ DEEPLY INVERTED {cur:.2f}% · strong recession signal (12-18mo lead)"
-        elif cur < 0:   return f"⚠️ Inverted {cur:.2f}% · historically predicts recession"
-        elif cur < 0.3: return f"→ Nearly flat {cur:.2f}% · {dir3}3mo · watch for re-inversion"
-        return f"✅ Positive {cur:.2f}% · steepening = growth expectations improving"
+        if cur < -0.5:
+            return "⚠️ Deep inversion -- historically the strongest single recession predictor; 12-18mo lead time"
+        elif cur < 0.0:
+            return "⚠️ Inverted -- recession signal intact; value investors: watch credit spreads for the turn"
+        elif cur < 0.3:
+            return "→ Nearly flat -- disinversion underway but not yet a steepening growth signal; watch direction"
+        elif cur >= 0.5 and rising3:
+            return "✅ Steepening curve -- growth expectations improving, historically positive for cyclicals and banks"
+        return "✅ Positive slope -- no inversion signal; normal credit environment for long-term investors"
+
+    elif label == "Fed Funds Rate":
+        if cur >= 5.0 and rising3:
+            return "⚠️ Fed actively tightening -- max pressure on leveraged companies and rate-sensitive sectors"
+        elif cur >= 5.0:
+            return "⚠️ Restrictive territory -- financial conditions tight, separates quality from fragile businesses"
+        elif falling3:
+            return "✅ Cutting cycle -- historically the single strongest tailwind for mean reversion value setups"
+        elif cur <= 3.0:
+            return "✅ Accommodative -- cheap capital supports business investment and consumer spending"
+        return "→ On hold -- Fed is watching; next move direction matters more than current level"
+
+    # ----------------------------------------------------------
+    # CREDIT GROUP
+    # ----------------------------------------------------------
 
     elif label == "HY Credit Spread":
-        if cur <= 2.5:  return f"⚠️ Historically tight {cur:.2f}% · credit fully complacent · no fear priced in"
-        elif cur <= 3.5: return f"→ Tight {cur:.2f}% (normal ~4-5%) · {dir3}3mo"
-        elif cur >= 6.0: return f"⚠️ WIDE {cur:.2f}% · credit stress · fear of defaults rising"
-        return f"→ {cur:.2f}% · {dir3}3mo {dir12}12mo"
+        if cur <= 2.5:
+            return "⚠️ Historically tight -- credit markets fully complacent; no risk premium for bad outcomes"
+        elif cur <= 3.5 and falling3:
+            return "→ Tight and tightening further -- credit calm signals no systemic fear, but leaves no buffer"
+        elif cur <= 3.5:
+            return "→ Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
+        elif cur >= 6.0 and rising3:
+            return "⚠️ Wide and widening -- credit stress signal; historically precedes equity drawdowns by 2-4 weeks"
+        elif cur >= 6.0:
+            return "⚠️ Elevated stress -- forced sellers and credit fear creating value opportunities in quality names"
+        elif cur >= 4.5:
+            return "→ Widening toward historical average -- credit pricing in some risk; watch for acceleration"
+        return "→ Near normal range -- credit not flashing a directional macro signal today"
+
+    # ----------------------------------------------------------
+    # LABOR GROUP
+    # ----------------------------------------------------------
 
     elif label == "Unemployment":
-        if cur >= 5.0:   return f"⚠️ Elevated {cur:.1f}% (hist avg ~5.7%) · {dir3}3mo"
-        elif cur <= 4.0: return f"✅ Tight labor market {cur:.1f}% · {dir3}3mo"
-        return f"→ {cur:.1f}% · {dir3}3mo {dir12}12mo"
+        if cur >= 5.5:
+            return "⚠️ Labor loosening materially -- consumer spending risk, but also reduces wage inflation pressure"
+        elif cur >= 4.5 and rising3:
+            return "→ Rising unemployment softens consumer balance sheets -- watch retail and discretionary sectors"
+        elif cur <= 4.0 and falling3:
+            return "→ Very tight labor keeps wage inflation sticky -- good for workers, complicates Fed pivot timing"
+        elif cur <= 4.0:
+            return "→ Tight labor market -- supports consumer spending but keeps services inflation elevated"
+        elif rising3:
+            return "→ Gradual cooling -- reduces wage pressure; Fed may gain more flexibility on cuts"
+        return "→ Near historical norm -- labor not a swing factor for macro direction today"
+
+    # ----------------------------------------------------------
+    # COMMODITIES GROUP
+    # ----------------------------------------------------------
 
     elif label == "WTI Crude Oil":
-        if cur >= 90 and dir3 == "↑":
-            return f"⚠️ HIGH & RISING ${cur:.0f} · inflation pressure + recession risk"
+        if cur >= 100 and rising3:
+            return "⚠️ Above $100 and rising -- stagflation risk: energy tax on consumers, input cost spike for industry"
+        elif cur >= 90 and rising3:
+            return "⚠️ Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
         elif cur >= 90:
-            return f"⚠️ Elevated ${cur:.0f} (avg ~$65) · inflationary · {dir3}3mo"
-        elif cur <= 60:
-            return f"✅ Low ${cur:.0f} · consumer-friendly · {dir3}3mo"
-        return f"${cur:.0f} · {dir3}3mo {dir12}12mo · >$85 = inflation concern"
+            return "⚠️ Elevated energy costs compress margins across industrials, transport, chemicals -- watch pass-through"
+        elif cur <= 60 and falling3:
+            return "✅ Low energy costs -- consumer disposable income rises, input costs ease, disinflation support"
+        elif falling3:
+            return "✅ Easing energy prices -- removes one inflationary pressure; positive for Fed flexibility"
+        return "→ Moderate energy pricing -- not a dominant swing factor for the macro picture today"
 
     elif label == "Gold Price":
         pct12 = round((cur / mo12 - 1) * 100) if mo12 else 0
-        flag  = "⚠️ Stealth fear signal (VIX low, gold surging)" if pct12 > 20 else "→"
-        return f"{flag} ${cur:,.0f} · {pct12:+d}% vs 12mo · {dir3}3mo"
+        if pct12 > 25 and cur > 3000:
+            return f"⚠️ Gold +{pct12}% in 12mo with low VIX -- classic stealth fear signal; smart money hedging"
+        elif pct12 > 15 and rising3:
+            return f"→ Gold surging +{pct12}% yr -- real rates concern or dollar debasement fear; watch DXY correlation"
+        elif falling3 and pct12 < 0:
+            return "✅ Gold retreating -- fear premium fading; risk appetite improving"
+        elif falling3:
+            return "→ Gold cooling -- taking some heat out of the inflation/fear narrative"
+        return f"→ Gold +{pct12:+d}% yr -- modest hedge; not yet a panic signal"
+
+    # ----------------------------------------------------------
+    # CURRENCY GROUP
+    # ----------------------------------------------------------
 
     elif label == "US Dollar (DXY)":
         pct12 = round((cur / mo12 - 1) * 100) if mo12 else 0
-        intl  = "tailwind for intl ADRs" if dir3 == "↓" else "headwind for intl ADRs"
-        return f"DXY {cur:.1f} · {pct12:+d}% vs 12mo · {dir3}3mo · {intl}"
+        if cur >= 110 and rising3:
+            return "⚠️ Strong dollar headwind -- crushes earnings of multinationals and makes intl ADRs cheaper in USD"
+        elif falling3 and pct12 < -3:
+            return f"✅ Dollar weakening {pct12:+d}% yr -- direct tailwind for EQNR, PBR, SNY, NVO, SHEL and other intl ADRs"
+        elif falling3:
+            return "→ Dollar softening -- gradually improving backdrop for international ADR positions"
+        elif rising3 and pct12 > 5:
+            return f"⚠️ Dollar strengthening {pct12:+d}% yr -- headwind for intl ADR earnings translated back to USD"
+        return "→ Dollar stable -- currency not adding incremental tailwind or headwind today"
+
+    # ----------------------------------------------------------
+    # CONSUMER SENTIMENT GROUP
+    # ----------------------------------------------------------
 
     elif label == "Consumer Sentiment":
-        note = "well below avg ~75" if cur < 65 else "below avg" if cur < 72 else "near avg ~75"
-        return f"{cur:.1f}/100 ({note}) · {dir3}3mo {dir12}12mo"
+        if cur < 55:
+            return "⚠️ Consumer deeply pessimistic -- spending contraction risk; watch retail and discretionary sectors"
+        elif cur < 65 and falling3:
+            return "⚠️ Deteriorating consumer confidence -- historically leads spending cuts by 2-3 months"
+        elif cur < 65:
+            return "→ Below-average sentiment -- consumer cautious but not collapsing; watch for inflection"
+        elif cur >= 85:
+            return "⚠️ Euphoric sentiment -- peak optimism historically a contrarian signal for mean reversion investors"
+        elif cur >= 75 and rising3:
+            return "→ Recovering confidence -- consumer spending should support GDP; watch for sentiment-driven momentum"
+        elif rising3:
+            return "→ Improving -- early sign consumers are adjusting to higher rates; reduces recession risk"
+        return "→ Subdued but stable -- consumers cautious; not a crash signal, not a boom signal"
+
+    # ----------------------------------------------------------
+    # VALUATION GROUP
+    # ----------------------------------------------------------
 
     elif label == "Shiller CAPE (US)":
-        pct = round((cur / 17.0 - 1) * 100)
+        pct   = round((cur / 17.0 - 1) * 100)
+        ratio = round(cur / 17.0, 1)
         if cur >= 40:
-            return (f"⚠️ EXTREME {cur:.1f}x · {pct}% above hist avg 17x · "
-                    f"98th pctile since 1881 · only exceeded at dot-com peak 44.2x")
+            return (f"⚠️ {ratio}x the 145yr avg -- only dot-com peak (44x) was higher; "
+                    f"10yr forward returns historically near zero from this level")
+        elif cur >= 35:
+            return (f"⚠️ {pct}% above hist avg -- top decile of all valuations since 1881; "
+                    f"long-term mean reversion case strongly favors ex-US and deep value")
         elif cur >= 30:
-            return f"⚠️ Elevated {cur:.1f}x · {pct}% above hist avg 17x · {dir3}3mo"
+            return f"⚠️ {pct}% above hist avg -- elevated; patience and selectivity essential"
         elif cur >= 20:
-            return f"→ Moderate {cur:.1f}x · {pct}% above hist avg · {dir3}3mo"
-        return f"✅ Reasonable {cur:.1f}x vs hist avg 17x · {dir3}3mo"
+            return f"→ Moderately above avg -- reasonable entry possible with strong Left Leg and MoS"
+        return f"✅ Near or below hist avg 17x -- historically one of the most reliable buy signals"
 
-    return f"{dir3}3mo {dir12}12mo"
+    # Fallback -- should never reach here if all 15 labels are matched above
+    return ""
 
 
 # ============================================================

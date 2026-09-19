@@ -345,8 +345,42 @@ def _wrap_market(cache, routine_data):
         return empty, True
 
 
+def _append_mhs_history(cache, mhs):
+    """
+    Append today's MHS score to the mhs_history array in run_cache.json.
+    Stores one entry per calendar day (today's run overwrites if already present).
+    Keeps up to 252 entries (one trading year).
+    Framework is LOCKED at v1.0 -- do not change component weights or
+    thresholds without creating a new history series.
+    """
+    today_str = datetime.now(MT).strftime("%Y-%m-%d")
+    entry = {
+        "date":  today_str,
+        "score": mhs["score"],
+        "label": (mhs["label"]
+                  .replace("🟢 ", "").replace("🟠 ", "")
+                  .replace("⛔ ", "").replace("🚨 ", "")),
+    }
+    history = cache.get("mhs_history", [])
+    if not isinstance(history, list):
+        history = []
+    # Remove any existing entry for today (idempotent re-runs)
+    history = [h for h in history if h.get("date") != today_str]
+    history.append(entry)
+    # Sort by date ascending, cap at 252 entries
+    history.sort(key=lambda h: h["date"])
+    cache["mhs_history"] = history[-252:]
+    print(f"  ✅ MHS history: {len(cache['mhs_history'])} entries (today={mhs['score']})")
+
+
 def _wrap_screens(cache):
-    """Fetch value screens with per-screen cache fallback."""
+    """
+    Fetch value screens with per-screen cache fallback.
+    Returns:
+      si  -- dict {ticker: count}
+      mf  -- ordered list of (ticker, rank) tuples
+      am  -- ordered list of (ticker, multiple_str) tuples
+    """
     # Superinvestors
     try:
         si = fetch_superinvestor_buys()
@@ -362,48 +396,61 @@ def _wrap_screens(cache):
         else:
             log("Dataroma 13F: failed, no cache", "❌")
 
-    # Magic Formula
+    # Magic Formula -- now returns ordered list of (ticker, rank) tuples
     try:
         mf = fetch_magic_formula()
-        cache_write(cache, "screens_mf", list(mf))
+        # Cache as list of [ticker, rank] pairs
+        cache_write(cache, "screens_mf", [[t, r] for t, r in mf])
         log(f"Magic Formula: {len(mf)} stocks")
     except Exception as e:
         print(f"  ❌ Magic Formula failed: {e}")
         cached_val, cached_date = cache_read(cache, "screens_mf")
-        mf = set(cached_val) if cached_val else set()
         if cached_val:
+            # Support both old (list of strings) and new (list of pairs)
+            if cached_val and isinstance(cached_val[0], list):
+                mf = [tuple(x) for x in cached_val]
+            else:
+                mf = [(t, i + 1) for i, t in enumerate(cached_val)]
             print(f"  ♻️  Using cached Magic Formula from {cached_date}")
             log(f"Magic Formula: cached ({cached_date})", "♻️")
         else:
+            mf = []
             log("Magic Formula: failed, no cache", "❌")
 
-    # Acquirer's Multiple
+    # Acquirer's Multiple -- now returns ordered list of (ticker, multiple_str) tuples
     try:
         am = fetch_acquirers_multiple()
-        cache_write(cache, "screens_am", list(am))
+        cache_write(cache, "screens_am", [[t, m] for t, m in am])
         log(f"Acquirer's Multiple: {len(am)} stocks")
     except Exception as e:
         print(f"  ❌ Acquirer's Multiple failed: {e}")
         cached_val, cached_date = cache_read(cache, "screens_am")
-        am = set(cached_val) if cached_val else set()
         if cached_val:
+            if cached_val and isinstance(cached_val[0], list):
+                am = [tuple(x) for x in cached_val]
+            else:
+                am = [(t, "-") for t in cached_val]
             print(f"  ♻️  Using cached AM from {cached_date}")
             log(f"Acquirer's Multiple: cached ({cached_date})", "♻️")
         else:
+            am = []
             log("Acquirer's Multiple: failed, no cache", "❌")
 
     return si, mf, am
 
 
 def _wrap_news(cache):
-    """Fetch news/email sources with per-source cache fallback."""
-    sources = {
-        "ej":   (scrape_edward_jones,       "Edward Jones"),
-        "cnbc": (fetch_cnbc_email,           "CNBC"),
-        "yahoo":(fetch_yahoo_morning_brief,  "Yahoo Brief"),
-    }
+    """
+    Fetch news/email sources with per-source cache fallback.
+    Yahoo Morning Brief now returns (brief_text, calendar_text) tuple.
+    Returns: ej_text, cnbc_text, yahoo_text, yahoo_calendar_text
+    """
+    # Edward Jones and CNBC: simple string returns
     results = {}
-    for key, (fn, name) in sources.items():
+    for key, fn, name in [
+        ("ej",   scrape_edward_jones, "Edward Jones"),
+        ("cnbc", fetch_cnbc_email,    "CNBC"),
+    ]:
         try:
             text = fn()
             cache_write(cache, f"news_{key}", text)
@@ -419,7 +466,30 @@ def _wrap_news(cache):
             else:
                 log(f"{name}: failed, no cache", "❌")
                 results[key] = ""
-    return results["ej"], results["cnbc"], results["yahoo"]
+
+    # Yahoo Morning Brief: returns (brief_text, calendar_text) tuple
+    try:
+        yahoo_brief, yahoo_calendar = fetch_yahoo_morning_brief()
+        cache_write(cache, "news_yahoo",          yahoo_brief)
+        cache_write(cache, "news_yahoo_calendar", yahoo_calendar)
+        log(f"Yahoo Brief: {len(yahoo_brief)} chars + {len(yahoo_calendar)} chars calendar")
+        results["yahoo"]          = yahoo_brief
+        results["yahoo_calendar"] = yahoo_calendar
+    except Exception as e:
+        print(f"  ❌ Yahoo Brief failed: {e}")
+        cached_brief, cached_date   = cache_read(cache, "news_yahoo")
+        cached_cal, _               = cache_read(cache, "news_yahoo_calendar")
+        if cached_brief:
+            print(f"  ♻️  Using cached Yahoo Brief from {cached_date}")
+            log(f"Yahoo Brief: cached ({cached_date})", "♻️")
+            results["yahoo"]          = cached_brief
+            results["yahoo_calendar"] = cached_cal or ""
+        else:
+            log("Yahoo Brief: failed, no cache", "❌")
+            results["yahoo"]          = ""
+            results["yahoo_calendar"] = ""
+
+    return results["ej"], results["cnbc"], results["yahoo"], results["yahoo_calendar"]
 
 # ============================================================
 # MAIN RUNNER
@@ -453,19 +523,26 @@ if __name__ == "__main__":
     mhs = compute_mhs(fred_data, fg_data, mkt_data)
     log(f"MHS: {mhs['score']}/100 ({mhs['label']})")
 
-    # Steps 5-7: Value screens
-    si_tickers, mf_tickers, am_tickers = _wrap_screens(cache)
+    # Append MHS to history (one entry per day, capped at 252 entries)
+    _append_mhs_history(cache, mhs)
 
-    # Steps 8-10: News & email (McClellan removed Sep 2026)
-    ej_text, cnbc_text, yahoo_text = _wrap_news(cache)
+    # Steps 5-7: Value screens
+    # mf = ordered list of (ticker, rank) tuples
+    # am = ordered list of (ticker, multiple_str) tuples
+    si_tickers, mf_list, am_list = _wrap_screens(cache)
+
+    # Steps 8-10: News & email
+    # yahoo returns (brief_text, calendar_text) -- now split here
+    ej_text, cnbc_text, yahoo_text, yahoo_calendar = _wrap_news(cache)
 
     # Step 11: AI synthesis
     briefing, ai_failed = synthesize_with_ai(
         ej_text, cnbc_text, yahoo_text,
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers,
+        si_tickers, mf_list, am_list,
         routine_data=routine_data,
         routine_fresh=routine_fresh,
+        yahoo_calendar=yahoo_calendar,
     )
     log(f"AI: {'fallback' if ai_failed else 'success'} -- {len(briefing)} chars",
         "❌" if ai_failed else "✅")
@@ -474,10 +551,11 @@ if __name__ == "__main__":
     build_html(
         briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers,
+        si_tickers, mf_list, am_list,
         RUN_LOG, RUN_START, cache,
         routine_data=routine_data,
         routine_fresh=routine_fresh,
+        yahoo_calendar=yahoo_calendar,
     )
     log(f"Dashboard written | Total runtime: {round(time.time() - RUN_START)}s")
 

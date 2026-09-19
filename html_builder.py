@@ -212,31 +212,48 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
 # SI filter: show only tickers with >= 3 superinvestors
 # ============================================================
 
-def _build_screens_html(si_tickers, mf_tickers, am_tickers):
-    all_tickers_set = sorted(set(si_tickers.keys()) | mf_tickers | am_tickers)
-    all3 = []; two3 = []; si_only = []; mf_only = []; am_only = []
+def _build_screens_html(si_tickers, mf_list, am_list):
+    """
+    si_tickers: dict {ticker: count}
+    mf_list:    ordered list of (ticker, rank) tuples -- rank 1 = best
+    am_list:    ordered list of (ticker, multiple_str) tuples -- position 1 = best
+    """
+    mf_dict = {t: r for t, r in mf_list}   # ticker -> rank
+    am_dict = {t: m for t, m in am_list}   # ticker -> multiple_str
+
+    all_tickers_set = sorted(set(si_tickers.keys()) | set(mf_dict.keys()) | set(am_dict.keys()))
+    all3 = []; two3 = []; si_only = []; mf_only_order = []; am_only_order = []
 
     for t in all_tickers_set:
         in_si = si_tickers.get(t, 0) > 0
-        in_mf = t in mf_tickers
-        in_am = t in am_tickers
+        in_mf = t in mf_dict
+        in_am = t in am_dict
         cnt   = (1 if in_si else 0) + (1 if in_mf else 0) + (1 if in_am else 0)
         if   cnt == 3: all3.append(t)
         elif cnt == 2: two3.append(t)
         elif in_si:    si_only.append(t)
-        elif in_mf:    mf_only.append(t)
-        elif in_am:    am_only.append(t)
+        # MF-only and AM-only will be built in rank order separately below
+
+    # MF-only in rank order (those not in SI or AM)
+    mf_only_order = [(t, r) for t, r in mf_list
+                     if t not in set(si_tickers.keys()) and t not in am_dict]
+
+    # AM-only in position order (those not in SI or MF)
+    am_only_order = [(t, m) for t, m in am_list
+                     if t not in set(si_tickers.keys()) and t not in mf_dict]
 
     si_only_filtered = [t for t in si_only if si_tickers.get(t, 0) >= 3]
     si_only_excluded = len(si_only) - len(si_only_filtered)
 
-    def chip(t, style="one"):
+    def chip(t, style="one", extra_label=""):
+        """extra_label: rank or multiple string to show in chip."""
         tags = []
         cnt  = si_tickers.get(t, 0)
-        if cnt > 0:    tags.append(f"{cnt}SI")
-        if t in mf_tickers: tags.append("MF")
-        if t in am_tickers: tags.append("AM")
+        if cnt > 0:       tags.append(f"{cnt}SI")
+        if t in mf_dict:  tags.append("MF")
+        if t in am_dict:  tags.append("AM")
         tag_str = ",".join(tags)
+        detail  = f" {extra_label}" if extra_label and extra_label != "-" else ""
         if style == "all3":
             return (f'<div style="background:#1a56db;border-radius:6px;padding:5px 9px;'
                     f'white-space:nowrap;display:inline-block;margin:2px;">'
@@ -249,6 +266,18 @@ def _build_screens_html(si_tickers, mf_tickers, am_tickers):
                     f'<span style="font-weight:800;font-size:.82rem;color:white;">{t}</span>'
                     f'<span style="color:rgba(255,255,255,.7);font-size:.65rem;margin-left:3px;">'
                     f'({tag_str})</span></div>')
+        elif style == "am":
+            return (f'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;'
+                    f'padding:4px 8px;white-space:nowrap;display:inline-block;margin:2px;">'
+                    f'<span style="font-weight:700;font-size:.78rem;color:#374151;">{t}</span>'
+                    f'<span style="color:#059669;font-size:.63rem;font-weight:600;margin-left:3px;">'
+                    f'{detail}</span></div>')
+        elif style == "mf":
+            return (f'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;'
+                    f'padding:4px 8px;white-space:nowrap;display:inline-block;margin:2px;">'
+                    f'<span style="font-weight:700;font-size:.78rem;color:#374151;">{t}</span>'
+                    f'<span style="color:#6366f1;font-size:.63rem;margin-left:3px;">'
+                    f'{detail}</span></div>')
         return (f'<div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;'
                 f'padding:4px 8px;white-space:nowrap;display:inline-block;margin:2px;">'
                 f'<span style="font-weight:700;font-size:.78rem;color:#374151;">{t}</span>'
@@ -269,6 +298,9 @@ def _build_screens_html(si_tickers, mf_tickers, am_tickers):
                    f"with 1-2 SI managers hidden."
                    if si_only_excluded > 0 else "")
 
+    mf_footnote = "Rank = Greenblatt composite score (earnings yield + ROIC) -- no raw number published."
+    am_footnote = "Rank order = lowest Acquirer's Multiple (EV/EBIT-style) = highest conviction."
+
     html = (
         screen_row("🔵 All 3 Screens -- SI + MF + AM (highest conviction)",
                    "".join(chip(t, "all3") for t in all3), len(all3))
@@ -277,22 +309,30 @@ def _build_screens_html(si_tickers, mf_tickers, am_tickers):
         + screen_row("⭐ Superinvestors only (13F, 3+ managers)",
                      "".join(chip(t, "one") for t in si_only_filtered),
                      len(si_only_filtered), si_footnote)
-        + screen_row("🔮 Magic Formula only (Greenblatt, daily)",
-                     "".join(chip(t, "one") for t in mf_only[:25]), len(mf_only))
-        + screen_row("📐 Acquirer's Multiple only (Carlisle, daily)",
-                     "".join(chip(t, "one") for t in am_only[:25]), len(am_only))
+        + screen_row(
+            "🔮 Magic Formula only (Greenblatt, daily) -- rank order shown",
+            "".join(chip(t, "mf", f"#{r}") for t, r in mf_only_order[:25]),
+            len(mf_only_order), mf_footnote)
+        + screen_row(
+            "📐 Acquirer's Multiple only (Carlisle, daily) -- lowest multiple first",
+            "".join(chip(t, "am", f"({m}x)" if m != "-" else "") for t, m in am_only_order[:25]),
+            len(am_only_order), am_footnote)
     )
-    return html, all3, two3, si_only_filtered, mf_only, am_only
+    return html, all3, two3, si_only_filtered, mf_only_order, am_only_order
 
 # ============================================================
 # MARKET CONTEXT STRING (hidden div for Chrome extension)
 # ============================================================
 
 def _build_market_context(fred_data, fg_data, mkt_data, mhs,
-                           si_tickers, mf_tickers, am_tickers,
-                           all3, two3, si_only, mf_only, am_only,
+                           si_tickers, mf_only, am_only,
+                           all3, two3, si_only,
                            cape_val, urth_disp, efa_disp,
                            erp, cape_yield, ten_y_rate):
+    """
+    mf_only: list of (ticker, rank) tuples
+    am_only: list of (ticker, multiple_str) tuples
+    """
     def _ctx(lbl, short):
         r = next((x for x in fred_data if x["label"] == lbl), None)
         if not r or r["current"] == "N/A": return f"{short}=N/A"
@@ -308,8 +348,10 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
 
     def tlist(lst, si_d=None):
         if not lst: return "none"
-        if si_d: return "|".join(f"{t}({si_d.get(t,0)}SI)" for t in lst)
-        return "|".join(lst)
+        if si_d:
+            return "|".join(f"{t}({si_d.get(t,0)}SI)" for t in lst)
+        # Handle both plain strings and tuples
+        return "|".join(t if isinstance(t, str) else t[0] for t in lst)
 
     fg_score = fg_data.get("score", 50); fg_lbl = fg_data.get("label", "N/A")
     erp_ctx  = (f"|ERP={erp:+.2f}%(CAPEyield{cape_yield:.2f}%-10Y{ten_y_rate:.2f}%)"
@@ -342,14 +384,205 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
     )
 
 # ============================================================
+# WEEK AHEAD CALENDAR CARD
+# ============================================================
+
+def _build_calendar_card(calendar_text):
+    """
+    Render the Yahoo Morning Brief earnings/economic calendar as a
+    collapsible card. Monday has full week Mon-Fri. Other days partial.
+    Returns empty string if no calendar text available.
+    """
+    if not calendar_text or len(calendar_text.strip()) < 50:
+        return ""
+
+    # Format calendar text as HTML -- preserve day headers and bullet structure
+    lines = calendar_text.strip().splitlines()
+    html_lines = []
+    for line in lines:
+        stripped = line.strip()
+        if not stripped:
+            html_lines.append("")
+            continue
+        # Day headers (Monday, Tuesday, etc.)
+        if re.match(r"^(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)$",
+                    stripped, re.IGNORECASE):
+            html_lines.append(
+                f'<div style="font-weight:700;font-size:.8rem;color:#1a56db;'
+                f'margin-top:8px;margin-bottom:3px;border-bottom:1px solid #e5e7eb;'
+                f'padding-bottom:2px;">{stripped}</div>')
+        elif stripped.startswith(("Economic data:", "Earnings calendar:")):
+            label, _, rest = stripped.partition(":")
+            rest = rest.strip()
+            html_lines.append(
+                f'<div style="font-size:.75rem;margin-bottom:2px;">'
+                f'<span style="font-weight:600;color:#374151;">{label}:</span>'
+                f'<span style="color:#6b7280;"> {rest}</span></div>')
+        elif stripped.startswith(("•", "-", "*")):
+            item = re.sub(r"^[•\-\*]\s*", "", stripped)
+            html_lines.append(
+                f'<div style="font-size:.75rem;color:#374151;padding-left:10px;'
+                f'margin-bottom:1px;">▸ {item}</div>')
+        else:
+            html_lines.append(
+                f'<div style="font-size:.75rem;color:#6b7280;margin-bottom:1px;">'
+                f'{stripped}</div>')
+
+    content = "\n".join(html_lines)
+    return f"""
+<div class="card" style="margin-bottom:12px;border-left:4px solid #059669;">
+  <button onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'block':'none';"
+          style="background:none;border:none;cursor:pointer;width:100%;text-align:left;padding:0;">
+    <h2 style="margin-bottom:0;">📅 Week Ahead
+      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
+        Yahoo Finance Morning Brief · Mon=full week · click to expand
+      </span>
+    </h2>
+  </button>
+  <div style="display:none;margin-top:10px;">
+    {content}
+    <div style="font-size:.6rem;color:#9ca3af;margin-top:8px;padding-top:6px;
+                border-top:1px solid #f3f4f6;">
+      Source: Yahoo Finance Morning Brief · Monday brief has full Mon-Fri calendar
+    </div>
+  </div>
+</div>"""
+
+
+# ============================================================
+# MHS HISTORY CHART
+# ============================================================
+
+def _build_mhs_history_chart(cache):
+    """
+    Build an inline SVG chart of the MHS score over time.
+    Reads mhs_history from run_cache.json (appended each weekday run).
+    Shows:
+      - Daily score line
+      - 20-day simple moving average overlay
+      - Zone bands (DEPLOY/SELECTIVE/OVERHEATED/EXTREME)
+      - Last 60 data points max (3 trading months)
+    Returns HTML string with embedded SVG, or empty string if <3 data points.
+    MHS framework locked at v1.0 -- do not change thresholds without version bump.
+    """
+    history = cache.get("mhs_history", [])
+    if not isinstance(history, list) or len(history) < 3:
+        return ""
+
+    # Use last 60 entries
+    history = sorted(history, key=lambda h: h["date"])[-60:]
+    scores  = [h["score"] for h in history]
+    dates   = [h["date"] for h in history]
+    n       = len(scores)
+
+    # Chart dimensions
+    W = 560; H = 160; PAD_L = 36; PAD_R = 10; PAD_T = 10; PAD_B = 24
+    chart_w = W - PAD_L - PAD_R
+    chart_h = H - PAD_T - PAD_B
+
+    def sx(i):    return PAD_L + i / max(n - 1, 1) * chart_w
+    def sy(v):    return PAD_T + (1 - v / 100) * chart_h
+
+    # Zone bands
+    zones = [
+        (0,  33, "#dcfce7", "DEPLOY"),
+        (34, 65, "#fef9c3", "SELECTIVE"),
+        (66, 85, "#fee2e2", "OVERHEATED"),
+        (86, 100, "#7f1d1d22", "EXTREME"),
+    ]
+    band_svg = ""
+    for lo, hi, col, _ in zones:
+        y1 = sy(hi); y2 = sy(lo)
+        band_svg += (f'<rect x="{PAD_L}" y="{y1:.1f}" width="{chart_w}" '
+                     f'height="{y2-y1:.1f}" fill="{col}" opacity="0.5"/>')
+
+    # Threshold lines
+    thresh_svg = ""
+    for v, col in [(86, "#7f1d1d"), (66, "#c81e1e"), (34, "#b45309"), (33, "#057a55")]:
+        y = sy(v)
+        thresh_svg += (f'<line x1="{PAD_L}" y1="{y:.1f}" x2="{W-PAD_R}" y2="{y:.1f}" '
+                       f'stroke="{col}" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.7"/>')
+
+    # Daily score polyline
+    pts = " ".join(f"{sx(i):.1f},{sy(s):.1f}" for i, s in enumerate(scores))
+    line_svg = (f'<polyline points="{pts}" fill="none" stroke="#1a56db" '
+                f'stroke-width="1.5" stroke-linejoin="round" opacity="0.8"/>')
+
+    # 20-day SMA
+    sma_pts = []
+    for i in range(n):
+        if i >= 19:
+            avg = sum(scores[i-19:i+1]) / 20
+            sma_pts.append(f"{sx(i):.1f},{sy(avg):.1f}")
+    if len(sma_pts) >= 2:
+        sma_svg = (f'<polyline points="{" ".join(sma_pts)}" fill="none" '
+                   f'stroke="#b45309" stroke-width="2" stroke-linejoin="round"/>')
+    else:
+        sma_svg = ""
+
+    # Dot for latest point
+    latest_x = sx(n - 1); latest_y = sy(scores[-1])
+    latest_col = "#7f1d1d" if scores[-1] >= 86 else "#c81e1e" if scores[-1] >= 66 else "#b45309" if scores[-1] >= 34 else "#057a55"
+    dot_svg = (f'<circle cx="{latest_x:.1f}" cy="{latest_y:.1f}" r="4" '
+               f'fill="{latest_col}" stroke="white" stroke-width="1.5"/>')
+
+    # Y axis labels
+    yaxis_svg = ""
+    for v in [0, 33, 66, 86, 100]:
+        y = sy(v)
+        yaxis_svg += (f'<text x="{PAD_L-4}" y="{y+4:.1f}" text-anchor="end" '
+                      f'font-size="8" fill="#9ca3af">{v}</text>')
+
+    # X axis date labels (show first, middle, last)
+    xaxis_svg = ""
+    for idx in [0, n // 2, n - 1]:
+        if idx < n:
+            label = dates[idx][5:]  # MM-DD
+            x     = sx(idx)
+            xaxis_svg += (f'<text x="{x:.1f}" y="{H-4}" text-anchor="middle" '
+                          f'font-size="8" fill="#9ca3af">{label}</text>')
+
+    latest_score = scores[-1]
+    latest_date  = dates[-1][5:]  # MM-DD
+    days_shown   = n
+
+    return f"""
+<div style="margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;">
+  <div style="font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+              color:#6b7280;margin-bottom:4px;">
+    MHS TREND ({days_shown}d) &nbsp;·&nbsp;
+    <span style="color:#b45309;">orange = 20-day avg</span> &nbsp;·&nbsp;
+    <span style="color:#1a56db;">blue = daily</span>
+  </div>
+  <svg width="{W}" height="{H}" viewBox="0 0 {W} {H}"
+       style="width:100%;max-width:{W}px;height:auto;display:block;"
+       xmlns="http://www.w3.org/2000/svg">
+    {band_svg}
+    {thresh_svg}
+    {line_svg}
+    {sma_svg}
+    {dot_svg}
+    {yaxis_svg}
+    {xaxis_svg}
+    <text x="{latest_x:.1f}" y="{latest_y-8:.1f}" text-anchor="middle"
+          font-size="9" font-weight="bold" fill="{latest_col}">{latest_score}</text>
+  </svg>
+  <div style="font-size:.58rem;color:#9ca3af;margin-top:2px;">
+    Framework v1.0 locked · zone thresholds fixed · comparable across all dates shown
+  </div>
+</div>"""
+
+
+# ============================================================
 # MAIN BUILD FUNCTION
 # ============================================================
 
 def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
                fred_data, fg_data, mkt_data, mhs,
-               si_tickers, mf_tickers, am_tickers,
+               si_tickers, mf_list, am_list,
                run_log, run_start, cache=None,
-               routine_data=None, routine_fresh=False):
+               routine_data=None, routine_fresh=False,
+               yahoo_calendar=""):
 
     from fred    import trend_color as _trend_color
     from market  import PE_LAST_UPDATED, compute_erp
@@ -811,9 +1044,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
   </div>
 </div>"""
 
-    # Value screens
+    # Value screens -- mf_list and am_list are ordered lists of tuples
     screens_html, all3, two3, si_only, mf_only, am_only = _build_screens_html(
-        si_tickers, mf_tickers, am_tickers)
+        si_tickers, mf_list, am_list)
 
     # FRED table
     fred_rows = _build_fred_rows(fred_data, _trend_color, cache)
@@ -831,8 +1064,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     # Market context for Chrome extension
     mctx = _build_market_context(
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_tickers, am_tickers,
-        all3, two3, si_only, mf_only, am_only,
+        si_tickers, mf_only, am_only,
+        all3, two3, si_only,
         cape_val, urth_disp, efa_disp, erp, cape_yield, ten_y_rate,
     )
 
@@ -866,6 +1099,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         "⛔ OVERHEATED (66-85): Build cash, trim winners &nbsp;·&nbsp; "
         "🚨 EXTREME (86-100): Most stretched since dot-com -- quality and patience above all."
     )
+    mhs_chart_html = _build_mhs_history_chart(cache)
 
     # ============================================================
     # FULL HTML
@@ -964,6 +1198,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
       {mhs_scale}
       Base=50. Components adjust up (overheated signals) or down (fear/opportunity signals).
     </div>
+    {mhs_chart_html}
   </div>
 
   <div class="grid-2" style="margin-bottom:12px;">
@@ -982,16 +1217,17 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 
   {valuation_block}
 
-  <div class="grid-2" style="margin-bottom:12px;">
-    <div class="card ab">
-      <h2>📊 Market &amp; Macro</h2>
-      <ul>{fmt_bullets(secs.get("MARKET AND MACRO",""))}</ul>
-    </div>
-    <div class="card ag">
-      <h2>💰 Earnings &amp; Events</h2>
-      <ul>{fmt_bullets(secs.get("EARNINGS AND EVENTS",""))}</ul>
-    </div>
+  <div class="card ab" style="margin-bottom:12px;">
+    <h2>📊 Market &amp; Macro</h2>
+    <ul>{fmt_bullets(secs.get("MARKET AND MACRO",""))}</ul>
   </div>
+
+  <div class="card ag" style="margin-bottom:12px;">
+    <h2>🔭 What to Watch</h2>
+    <ul>{fmt_bullets(secs.get("WHAT TO WATCH",""))}</ul>
+  </div>
+
+  {_build_calendar_card(yahoo_calendar)}
 
   <div class="card ab" style="margin-bottom:12px;">
     <h2>📋 Value Screens

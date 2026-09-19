@@ -184,8 +184,9 @@ ETF PE (routine source): URTH={urth_pe}x | EFA={efa_pe}x"""
 
 def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                        fred_data, fg_data, mkt_data, mhs,
-                       si_tickers, mf_tickers, am_tickers,
-                       routine_data=None, routine_fresh=False):
+                       si_tickers, mf_list, am_list,
+                       routine_data=None, routine_fresh=False,
+                       yahoo_calendar=""):
     """
     Build prompt from all fetched data and call AI models in fallback order.
     routine_data: parsed clauderoutinedata.json (or {} if unavailable)
@@ -203,13 +204,18 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
         for r in fred_data if r["current"] != "N/A"
     ])
 
-    all_tickers = sorted(set(si_tickers.keys()) | mf_tickers | am_tickers)
+    # mf_list: [(ticker, rank), ...] -- convert to set for membership tests
+    # am_list: [(ticker, multiple_str), ...] -- convert to dict for lookup
+    mf_set = {t for t, _ in mf_list}
+    am_dict = dict(am_list)  # ticker -> multiple_str
+
+    all_tickers = sorted(set(si_tickers.keys()) | mf_set | set(am_dict.keys()))
     overlap = []
     for t in all_tickers:
         tags = []
         if si_tickers.get(t, 0) > 0: tags.append(f"{si_tickers[t]}SI")
-        if t in mf_tickers:           tags.append("MF")
-        if t in am_tickers:           tags.append("AM")
+        if t in mf_set:               tags.append("MF")
+        if t in am_dict:              tags.append("AM")
         if len(tags) >= 2:
             overlap.append(f"{t}({','.join(tags)})")
 
@@ -220,14 +226,18 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
 
     routine_block = _format_routine_block(routine_data, routine_fresh)
 
+    # Calendar block for prompt
+    calendar_block = ""
+    if yahoo_calendar and len(yahoo_calendar.strip()) > 50:
+        calendar_block = f"\nWEEK AHEAD (from Yahoo Morning Brief -- use specific dates):\n{yahoo_calendar[:2000]}"
+
     prompt = f"""You are a sharp financial analyst writing a morning briefing for a
 deep-value mean reversion investor (Greenblatt, Carlisle, Howard Marks, Burry, Pabrai
 style). US-focused but holds international ADRs. Long-term holder, not a trader.
 
-STRICT OUTPUT FORMAT -- use EXACTLY these 5 headers, nothing else:
+STRICT OUTPUT FORMAT -- use EXACTLY these 4 headers, nothing else:
 
 MARKET AND MACRO
-EARNINGS AND EVENTS
 WHAT TO WATCH
 AI FUN FACT
 AI LEARNING
@@ -235,42 +245,38 @@ AI LEARNING
 CRITICAL RULES -- READ CAREFULLY:
 
 1. DO NOT restate raw indicator numbers. VIX, SPX %, CAPE, MHS score, F&G score --
-   these are all already shown in the dashboard tables. The investor sees them before
+   these are already shown in the dashboard tables. The investor sees them before
    reading your briefing. Repeating them is noise.
 
 2. INTERPRET, do not describe. Instead of "VIX is 15 indicating calm markets",
    say what that calm means for a value investor today given everything else --
    e.g. "Low volatility with negative ERP is an unusual combination -- cheap
-   protection is available while stocks price in perfection."
+   protection available while stocks price in perfection."
 
 3. Look for TENSIONS and CONFIRMATIONS between signals. When two indicators
    point different directions (e.g. credit spreads tight but gold rising),
    name the tension and what it might mean. When multiple signals align
-   (e.g. CAPE extreme AND ERP negative AND F&G greed), say what that
+   (e.g. CAPE extreme AND ERP negative AND F&G fear), say what that
    combination historically implies.
 
-4. MARKET AND MACRO: This is your primary section. Synthesize the FRED/MHS
-   macro picture WITH the pre-market intelligence below (futures direction,
-   sector rotation, global moves, open focus). Surface what the combination
-   means -- not what each piece says individually. 5-8 bullets.
+4. MARKET AND MACRO: Your primary section. 6-8 bullets. Synthesize the
+   FRED/MHS macro picture WITH the pre-market intelligence (futures, sectors,
+   global moves, open focus). Surface what the COMBINATION means.
+   If there is a key macro event this week (Fed decision, CPI, jobs),
+   mention it here with the date and its implications.
 
-5. WHAT TO WATCH: Focus on actionable mean reversion setups. Reference specific
-   tickers from high-conviction screens if relevant. Ask what would need to be
-   true for the macro to shift -- what are the trip wires.
+5. WHAT TO WATCH: 3-4 bullets. Actionable mean reversion lens.
+   Reference specific tickers from high-conviction screens where relevant.
+   Name the macro trip wires -- what data prints or events would shift
+   the MHS meaningfully up or down?
 
-6. EARNINGS AND EVENTS: STRICT RULE -- only reference events with a specific
-   company name AND date found in today's news sources below. If no specific
-   dated events appear in the news text, write one bullet saying so rather
-   than inventing filler or recycling generic context. Do NOT use headlines
-   that have appeared for more than one day.
+6. AI FUN FACT: 1 surprising fact about AI, markets, or investing history.
+   Max 25 words. Not about the current data.
 
-7. AI FUN FACT: 1 surprising fact about AI, markets, or investing history
-   that is genuinely interesting. Max 25 words. Not about the current data.
+7. AI LEARNING: 1 AI/ML concept in plain English, relevant to investing
+   or data analysis. Max 30 words.
 
-8. AI LEARNING: 1 AI/ML concept explained in plain English, relevant to
-   investing or data analysis. Max 30 words.
-
-9. Each bullet: dash (-) prefix, max 20 words, no bold, no markdown headers.
+8. Each bullet: dash (-) prefix, max 20 words, no bold, no markdown headers.
 
 DATA (for interpretation -- do NOT repeat these numbers verbatim):
 
@@ -286,7 +292,10 @@ HIGH CONVICTION SCREENS (2+ screens overlap):
 
 {routine_block}
 
-NEWS SOURCES (today only -- use specific names and dates from these):
+{routine_block}
+{calendar_block}
+
+NEWS SOURCES (for macro context -- no stock-specific stories):
 EDWARD JONES: {ej_text[:800]}
 CNBC SQUAWK: {cnbc_text[:600]}
 YAHOO BRIEF: {yahoo_text[:600]}
@@ -349,11 +358,10 @@ def parse_sections(text):
     Returns dict {section_name: raw_content_str}.
     """
     secs = {
-        "MARKET AND MACRO":    "",
-        "EARNINGS AND EVENTS": "",
-        "WHAT TO WATCH":       "",
-        "AI FUN FACT":         "",
-        "AI LEARNING":         "",
+        "MARKET AND MACRO": "",
+        "WHAT TO WATCH":    "",
+        "AI FUN FACT":      "",
+        "AI LEARNING":      "",
     }
     current = None
     for line in text.splitlines():
@@ -363,14 +371,11 @@ def parse_sections(text):
         cln = re.sub(r"^\*+\s*",       "", cln)
         cln = cln.encode("ascii", "ignore").decode().strip()
 
-        if   "MARKET AND MACRO"    in cln: current = "MARKET AND MACRO";    continue
-        elif "EARNINGS AND EVENTS" in cln: current = "EARNINGS AND EVENTS"; continue
-        elif "WHAT TO WATCH"       in cln: current = "WHAT TO WATCH";       continue
-        elif "AI FUN FACT"         in cln: current = "AI FUN FACT";         continue
-        elif "AI LEARNING"         in cln: current = "AI LEARNING";         continue
-        elif "MARKET SUMMARY" in cln or ("KEY MOVES" in cln and "MACRO" not in cln):
-            current = "MARKET AND MACRO"; continue
-        elif "EARNINGS CALENDAR"   in cln: current = "EARNINGS AND EVENTS"; continue
+        if   "MARKET AND MACRO"  in cln: current = "MARKET AND MACRO"; continue
+        elif "WHAT TO WATCH"     in cln: current = "WHAT TO WATCH";    continue
+        elif "AI FUN FACT"       in cln: current = "AI FUN FACT";      continue
+        elif "AI LEARNING"       in cln: current = "AI LEARNING";      continue
+        elif "MARKET SUMMARY"    in cln: current = "MARKET AND MACRO"; continue
         elif "FUN FACT" in cln and "AI" not in cln: current = "AI FUN FACT"; continue
 
         if current and line.strip():

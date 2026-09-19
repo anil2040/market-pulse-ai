@@ -5,18 +5,28 @@
 #
 # PUBLIC FUNCTIONS (called by main.py):
 #   fetch_superinvestor_buys() -> dict  {ticker: count}
-#   fetch_magic_formula()      -> set   {ticker, ...}
-#   fetch_acquirers_multiple() -> set   {ticker, ...}
+#   fetch_magic_formula()      -> list  [(ticker, rank_int), ...]
+#   fetch_acquirers_multiple() -> list  [(ticker, multiple_str), ...]
 #
-# WHAT THIS COVERS:
-#   - Dataroma 13F superinvestor buys (cache-first, 20hr TTL)
-#   - Magic Formula (Greenblatt) -- ASP.NET 4-step auth scrape
-#   - Acquirer's Multiple (Carlisle) -- RCP WordPress login + table
-#     Cache: am_cache.json, 48hr TTL, written on success, read on failure
+# RETURN TYPE CHANGE (Sep 2026):
+#   fetch_magic_formula() now returns an ORDERED LIST of (ticker, rank)
+#   tuples rather than a set. Rank 1 = highest conviction per Greenblatt.
+#   fetch_acquirers_multiple() now returns an ORDERED LIST of
+#   (ticker, multiple_str) tuples. Position 1 = lowest multiple =
+#   highest conviction. multiple_str is the raw EV/EBIT-style value
+#   from the table, e.g. "4.2" or "-" if not available.
+#   Both lists preserve the site's rank order (set destroyed it).
+#
+# IMPORTANT for main.py / html_builder.py:
+#   - mf_tickers: use set(t for t,_ in mf_list) for membership tests
+#   - am_tickers: use dict(am_list) for multiple lookup, set() for membership
+#   - SI tickers dict is unchanged: {ticker: count}
 #
 # CACHE FILES (committed to repo, persist across ephemeral GH Actions runners):
 #   dataroma_cache.json -- written by fetch_cache.py, read here
 #   am_cache.json       -- written here on success, read on timeout/fail
+#                          Now stores list of [ticker, multiple] pairs
+#                          to preserve order and multiple values.
 # ============================================================
 
 import os
@@ -125,10 +135,12 @@ def fetch_superinvestor_buys():
 
 def fetch_magic_formula():
     """
-    Fetch Magic Formula top 30 stocks from magicformulainvesting.com.
-    Uses ASP.NET 4-step auth: GET login page -> extract CSRF token ->
-    POST credentials -> GET screener page -> extract CSRF -> POST screen.
-    Returns set of ticker strings.
+    Fetch Magic Formula top stocks from magicformulainvesting.com.
+    Uses ASP.NET 4-step auth: GET login -> extract CSRF -> POST creds
+    -> GET screener -> extract CSRF -> POST screen.
+    Returns ORDERED LIST of (ticker, rank) tuples.
+    Rank 1 = highest conviction (Greenblatt's composite score of
+    earnings yield + ROIC; no raw score published, rank is the signal).
     """
     print("\n🔮 Fetching Magic Formula top 30 stocks...")
     try:
@@ -170,7 +182,7 @@ def fetch_magic_formula():
             raise Exception("Screener token not found")
         screen_token = st_input.get("value", "")
 
-        # Step 4: POST screen parameters
+        # Step 4: POST screen parameters (30 stocks, $2B+ market cap)
         resp   = sess.post(screener_url, data={
             "MinimumMarketCap":            "2000",
             "NumberOfStocks":              "30",
@@ -210,15 +222,24 @@ def fetch_magic_formula():
                             tickers.append(clean)
                 break
 
-        tickers = list(dict.fromkeys(tickers))
-        print(f"   ✅ Magic Formula: {len(tickers)} tickers")
-        if tickers:
-            print(f"   Sample: {tickers[:8]}")
-        return set(tickers)
+        # Dedupe preserving order
+        seen = set()
+        ordered = []
+        for t in tickers:
+            if t not in seen:
+                seen.add(t)
+                ordered.append(t)
+
+        # Return as (ticker, rank) tuples -- rank = position in list (1-based)
+        result = [(t, i + 1) for i, t in enumerate(ordered)]
+        print(f"   ✅ Magic Formula: {len(result)} tickers (ranked)")
+        if result:
+            print(f"   Sample: {result[:5]}")
+        return result
 
     except Exception as e:
         print(f"   ❌ Magic Formula failed: {e}")
-        return set()
+        return []
 
 
 # ============================================================
@@ -230,7 +251,9 @@ def fetch_acquirers_multiple():
     Fetch Acquirer's Multiple large-cap screen from acquirersmultiple.com.
     Uses RCP WordPress login flow. Writes am_cache.json on success.
     Falls back to am_cache.json on failure (48hr TTL).
-    Returns set of ticker strings.
+    Returns ORDERED LIST of (ticker, multiple_str) tuples.
+    Position 1 = lowest EV/EBIT-style multiple = highest conviction.
+    multiple_str is the raw value from the table (e.g. "4.2") or "-".
     """
     AM_CACHE_FILE    = "am_cache.json"
     AM_CACHE_TTL_HRS = 48
@@ -238,26 +261,37 @@ def fetch_acquirers_multiple():
     print("\n📐 Fetching Acquirer's Multiple large-cap stocks...")
 
     def _read_am_cache():
+        """Returns (ordered_list_of_tuples, age_hours) or (None, None)."""
         try:
             with open(AM_CACHE_FILE, "r") as f:
                 cached = json.load(f)
             fetched_at = datetime.fromisoformat(
                 cached.get("fetched_at", "2000-01-01T00:00:00"))
             age_hours = (datetime.now() - fetched_at).total_seconds() / 3600
-            if age_hours < AM_CACHE_TTL_HRS and cached.get("tickers"):
-                return set(cached["tickers"]), age_hours
+            if age_hours < AM_CACHE_TTL_HRS:
+                # Support both old format (list of strings) and new (list of pairs)
+                raw = cached.get("tickers_with_multiples") or cached.get("tickers")
+                if raw:
+                    if raw and isinstance(raw[0], list):
+                        return [tuple(x) for x in raw], age_hours
+                    else:
+                        # Old format: list of strings, no multiples
+                        return [(t, "-") for t in raw], age_hours
         except Exception:
             pass
         return None, None
 
-    def _write_am_cache(tickers_set):
+    def _write_am_cache(ordered_pairs):
+        """ordered_pairs: list of (ticker, multiple_str) tuples."""
         try:
             with open(AM_CACHE_FILE, "w") as f:
                 json.dump({
-                    "fetched_at": datetime.now().isoformat(),
-                    "tickers":    sorted(tickers_set),
+                    "fetched_at":            datetime.now().isoformat(),
+                    "tickers_with_multiples": [list(p) for p in ordered_pairs],
+                    # Legacy key for any old readers
+                    "tickers":               [t for t, _ in ordered_pairs],
                 }, f, indent=2)
-            print(f"   ✅ AM cache written ({len(tickers_set)} tickers)")
+            print(f"   ✅ AM cache written ({len(ordered_pairs)} tickers with multiples)")
         except Exception as e:
             print(f"   ⚠️ Could not write AM cache: {e}")
 
@@ -301,39 +335,75 @@ def fetch_acquirers_multiple():
         print(f"   Screener: {r2.status_code} | Title: "
               f"{title.get_text(strip=True)[:50] if title else 'none'}")
 
-        tickers = []
+        ordered_pairs = []
         for t in soup2.find_all("table"):
             rows = t.find_all("tr")
             if len(rows) < 3:
                 continue
             hdrs = [c.get_text(strip=True) for c in rows[0].find_all(["th", "td"])]
-            print(f"   Table: {len(rows)} rows | headers: {hdrs[:4]}")
-            if hdrs and hdrs[0].strip().lower() == "ticker":
+            print(f"   Table: {len(rows)} rows | headers: {hdrs[:6]}")
+
+            # Find ticker column and multiple column
+            ticker_col   = None
+            multiple_col = None
+            for ci, h in enumerate(hdrs):
+                hl = h.lower()
+                if hl == "ticker" or hl == "symbol":
+                    ticker_col = ci
+                # Look for the multiple value column -- typically "Acquirer's Multiple"
+                # or just "Multiple" or "EV/EBIT" style header
+                if any(k in hl for k in ["multiple", "ev/ebit", "ev / ebit",
+                                          "acquirer", "value"]):
+                    multiple_col = ci
+
+            if ticker_col is None and hdrs and hdrs[0].strip().lower() == "ticker":
+                ticker_col = 0
+
+            print(f"   ticker_col={ticker_col}, multiple_col={multiple_col}")
+
+            if ticker_col is not None:
+                seen = set()
                 for row in rows[1:]:
                     cells = row.find_all("td")
-                    if cells:
-                        ticker = re.sub(r"[^A-Z.]", "",
-                                        cells[0].get_text(strip=True).upper())
-                        if re.match(r"^[A-Z]{1,5}$", ticker):
-                            tickers.append(ticker)
+                    if len(cells) <= ticker_col:
+                        continue
+                    ticker = re.sub(r"[^A-Z.]", "",
+                                    cells[ticker_col].get_text(strip=True).upper())
+                    if not re.match(r"^[A-Z]{1,5}$", ticker):
+                        continue
+                    if ticker in seen:
+                        continue
+                    seen.add(ticker)
+
+                    # Try to extract the multiple value
+                    multiple_str = "-"
+                    if multiple_col is not None and multiple_col < len(cells):
+                        raw_val = cells[multiple_col].get_text(strip=True)
+                        # Clean to numeric
+                        cleaned = re.sub(r"[^0-9.\-]", "", raw_val)
+                        if cleaned and cleaned not in ("", "-", "."):
+                            try:
+                                float(cleaned)
+                                multiple_str = cleaned
+                            except ValueError:
+                                pass
+
+                    ordered_pairs.append((ticker, multiple_str))
                 break
 
-        tickers = list(dict.fromkeys(tickers))
-
-        if tickers:
-            print(f"   ✅ Acquirer's Multiple: {len(tickers)} tickers (live)")
-            if tickers:
-                print(f"   Sample: {tickers[:8]}")
-            _write_am_cache(set(tickers))
-            return set(tickers)
+        if ordered_pairs:
+            print(f"   ✅ Acquirer's Multiple: {len(ordered_pairs)} tickers (ranked, with multiples)")
+            print(f"   Top 5: {ordered_pairs[:5]}")
+            _write_am_cache(ordered_pairs)
+            return ordered_pairs
         else:
             raise Exception("Live scrape returned 0 tickers")
 
     except Exception as e:
         print(f"   ❌ Acquirer's Multiple live fetch failed: {e}")
-        cached_set, age_h = _read_am_cache()
-        if cached_set:
-            print(f"   ⚠️ Using AM cache fallback ({age_h:.1f}h old, {len(cached_set)} stocks)")
-            return cached_set
+        cached_list, age_h = _read_am_cache()
+        if cached_list:
+            print(f"   ⚠️ Using AM cache fallback ({age_h:.1f}h old, {len(cached_list)} stocks)")
+            return cached_list
         print("   ❌ No AM cache available")
-        return set()
+        return []
