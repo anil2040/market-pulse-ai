@@ -1,23 +1,39 @@
 {
-  "date": "2026-09-18",
-  "time_collected_utc": "00:27",
+  "date": "2026-09-19",
+  "time_collected_utc": "16:37",
   "futures": {
-    "sp500": {"change_pct": 0.30, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.50, "direction": "up"},
-    "dow": {"change_pct": 0.20, "direction": "up"}
+    "sp500": {"change_pct": 0.05, "direction": "down"},
+    "nasdaq100": {"change_pct": 0.08, "direction": "down"},
+    "dow": {"change_pct": 0.04, "direction": "up"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 22.44, "proxy_for": "MSCI World", "source": "Yahoo Finance"},
+    "URTH": {"pe_ttm": 22.61, "proxy_for": "MSCI World", "source": "Yahoo Finance"},
     "EFA": {"pe_ttm": 18.24, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.93,
-    "crude_oil_usd": 100.50,
+    "treasury_10yr_pct": 4.23,
+    "crude_oil_usd": 99.53,
     "crude_oil_type": "WTI"
   },
-  "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.50},
-    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 0.33}
+  "macro_events": [
+    "Oil's geopolitical risk premium is deflating after Saudi Arabia said its damaged East-West pipeline will restore about half its throughput within days",
+    "Markets are pricing meaningful odds of another Fed rate move in October following this week's bond-yield rise",
+    "Traders are watching for signals from an upcoming Trump-Xi meeting on trade, AI, and semiconductor policy"
+  ],
+  "sector_movers": {
+    "leading": [
+      {"sector": "Technology", "change_pct": 0.4, "reason": "AI-driven rally continues, led by chipmakers"},
+      {"sector": "Financials", "change_pct": 0.3, "reason": "rising bond yields support bank margins"}
+    ],
+    "lagging": [
+      {"sector": "Utilities", "change_pct": -0.5, "reason": "rate-sensitive sector pressured by rising yields"},
+      {"sector": "Real Estate", "change_pct": -0.4, "reason": "higher borrowing costs weigh on REITs"}
+    ]
   },
-  "macro_note": "The Fed hiked rates 25bp to 3.75%-4% on Sept 16 (first hike since 2023), while oil eased after Saudi Arabia signaled a damaged Hormuz-area pipeline would resume operations shortly."
+  "global_markets": {
+    "europe": {"index": "FTSE 100", "direction": "down", "change_pct": -0.8},
+    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 0.4}
+  },
+  "open_focus": "Traders are focused on the upcoming Trump-Xi meeting for signals on trade, AI, and semiconductor policy, against a backdrop of easing oil prices and shifting Fed rate expectations."
 }
