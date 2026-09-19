@@ -7,13 +7,15 @@
 #   scrape_edward_jones()      -> str
 #   fetch_cnbc_email()         -> str
 #   fetch_yahoo_morning_brief()-> str
-#   fetch_mcoscillator_email() -> str
 #
 # WHAT THIS COVERS:
 #   - Edward Jones daily market recap (web scrape)
 #   - CNBC Morning Squawk (Yahoo IMAP SSL)
 #   - Yahoo Finance Morning Brief (Yahoo IMAP SSL)
-#   - McClellan Oscillator weekly (Yahoo IMAP SSL)
+#
+# NOTE: McClellan Oscillator removed -- email is a paid article
+#   teaser with no usable data. Card was already removed from
+#   html_builder.py. Dead code cleanup Sep 2026.
 #
 # All IMAP fetches use Yahoo Mail (imap.mail.yahoo.com:993).
 # Credentials from env: YAHOO_EMAIL, YAHOO_APP_PASSWORD.
@@ -145,12 +147,4 @@ def fetch_yahoo_morning_brief():
         "finance-morning-brief@newsletters.yahoo.net",
         "Yahoo Morning Brief",
         char_limit=2000,
-    )
-
-
-def fetch_mcoscillator_email():
-    return _fetch_email(
-        "admin@mcoscillator.com",
-        "McClellan Oscillator",
-        char_limit=1500,
     )

@@ -5,18 +5,25 @@
 #
 # PUBLIC FUNCTION (called by main.py):
 #   build_html(briefing, ai_failed, ej_text, cnbc_text,
-#              yahoo_text, mcoscillator_text,
+#              yahoo_text,
 #              fred_data, fg_data, mkt_data, mhs,
 #              si_tickers, mf_tickers, am_tickers,
-#              run_log, run_start, cache) -> None (writes index.html)
+#              run_log, run_start, cache,
+#              routine_data={}, routine_fresh=False) -> None
 #
-# CHANGES IN THIS VERSION:
+# CHANGES IN THIS VERSION (Sep 2026):
+#   - Claude Routine JSON integrated:
+#       ETF PE source label shows "Claude Routine (HH:MM UTC)" when fresh
+#       Amber staleness banner in valuation block when routine is stale
+#       Routine source note replaces "approx, Sep 2026"
+#   - Hero: "Anil Abraham" removed from sub line (keep just the date)
+#   - MHS EXTREME OVERHEATED posture text trimmed to macro observation only
+#   - McClellan Oscillator: parameter removed (card was already gone)
 #   - Market Performance: exact Chrome extension style
 #     (SELLOFF/DOWN/FLAT/UP/RALLY bands, gradient bar, no "closed" language)
 #   - Dir column REMOVED from FRED table (redundant with Trend sparkline)
-#   - McClellan Breadth card REMOVED (email is a paid article teaser, no value)
 #   - Cache badge: stale indicators show amber "cached [date]" pill
-#   - MHS scale: EXTREME OVERHEATED threshold lowered to 86 (from 90)
+#   - MHS scale: EXTREME OVERHEATED threshold at 86
 #   - AI briefing: 2-column grid (Market & Macro + Earnings & Events)
 #   - SI-only filter: >= 3 managers
 # ============================================================
@@ -102,7 +109,6 @@ def _gauge_row(name, value_str, chg_str, signal_lbl, signal_col, note=""):
     chg_str is the raw pct change string (e.g. "+0.58%" or "-1.04%").
     No "prev close" or "last close" language -- just the number and signal.
     """
-    # Map signal to position 0-100 on the bar
     gauge_map = {"SELLOFF": 5, "DOWN": 25, "FLAT": 50, "UP": 75, "RALLY": 95,
                  "CLOSED": 50, "PRE-MKT": 50}
     pct = gauge_map.get(signal_lbl, 50)
@@ -119,7 +125,6 @@ def _gauge_row(name, value_str, chg_str, signal_lbl, signal_col, note=""):
     note_html = (f'<div style="font-size:.58rem;color:#9ca3af;margin-top:1px;">{note}</div>'
                  if note else "")
 
-    # Band labels above the bar (matching Chrome extension)
     band_labels = (
         '<div style="display:flex;justify-content:space-between;'
         'font-size:.55rem;color:#9ca3af;margin-bottom:2px;">'
@@ -179,7 +184,6 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
             tc    = trend_color_fn(r["label"], g, r["trend"])
             spark = _sparkline_svg(r["current"], r["mo3"], r["mo12"])
 
-            # Cache badge if this row came from cache
             is_cached   = r.get("cached", False)
             cached_date = r.get("cached_date", "")
             cache_html  = _cache_badge(cached_date) if is_cached else ""
@@ -328,8 +332,8 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
         f"SENTIMENT_CONSUMER:{_ctx('Consumer Sentiment','ConsSent')}(avg~75,<60=stress)\n"
         f"SENTIMENT_MARKET:FG={fg_score}/100({fg_lbl})\n"
         f"VALUATION:CAPE={cape_val}(USonly,histAvg17x,98thPctileSince1881,src:multpl.com)"
-        f"|URTH_PE={urth_disp}(MSCIWorldInclUS,approx)"
-        f"|EFA_PE={efa_disp}(ExUSdeveloped,approx){erp_ctx}\n"
+        f"|URTH_PE={urth_disp}(MSCIWorldInclUS)"
+        f"|EFA_PE={efa_disp}(ExUSdeveloped){erp_ctx}\n"
         f"SCREENS_ALL3(highest_conviction):{tlist(all3)}\n"
         f"SCREENS_2OF3(strong_convergence):{tlist(two3)}\n"
         f"SCREENS_SI_ONLY(13F_3plus_managers):{tlist(si_only, si_tickers)}\n"
@@ -341,10 +345,11 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
 # MAIN BUILD FUNCTION
 # ============================================================
 
-def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
+def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
                fred_data, fg_data, mkt_data, mhs,
                si_tickers, mf_tickers, am_tickers,
-               run_log, run_start, cache=None):
+               run_log, run_start, cache=None,
+               routine_data=None, routine_fresh=False):
 
     from fred    import trend_color as _trend_color
     from market  import PE_LAST_UPDATED, compute_erp
@@ -352,6 +357,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 
     if cache is None:
         cache = {}
+    if routine_data is None:
+        routine_data = {}
 
     print("\n🎨 Building HTML dashboard...")
 
@@ -445,8 +452,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                     'Gemini resets at midnight UTC (6 PM MT).</div></div></div>')
 
     # Gauge market performance -- Chrome extension style
-    # Live JS refresh: on page load + every 60s, fetches Yahoo v8 from browser
-    # (browser fetch works; GitHub Actions server-side fetch is what fails for market state)
     gauge_section = f"""
 <div class="card ar" style="margin-bottom:12px;" id="market-perf-card">
   <h2>📈 Market Performance
@@ -533,6 +538,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
 // Live market refresh -- calls Yahoo Finance v8 directly from browser.
 // Works because the browser is not blocked (only GitHub Actions IPs are).
 // Refreshes on page load and every 60 seconds while market is open.
+// chg computed manually as (price - prev) / prev to avoid Yahoo's
+// regularMarketChangePercent which resets to 0 at open/close/pre-market.
 // ============================================================
 (function() {{
   var BANDS = {{SELLOFF:5, DOWN:25, FLAT:50, UP:75, RALLY:95}};
@@ -584,6 +591,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
         var meta = d.chart.result[0].meta;
         var p    = parseFloat(meta.regularMarketPrice || 0);
         var pv   = parseFloat(meta.previousClose || p);
+        // Always compute manually -- never trust regularMarketChangePercent
         var chg  = pv ? (p - pv) / pv * 100 : 0;
         var state = meta.marketState || "UNKNOWN";
         callback(null, {{price:p, prev:pv, chg:chg, state:state}});
@@ -592,7 +600,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
   }}
 
   function refresh() {{
-    // Fetch SPX (state source), RUT, VIX in parallel
     var results = {{}};
     var done = 0;
     var tickers = ["%5EGSPC", "%5ERUT", "%5EVIX"];
@@ -611,7 +618,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     var spx = r.spx; var rut = r.rut; var vix = r.vix;
     if (!spx || !rut || !vix) return;
 
-    // Market state from SPX
     var stateMap = {{REGULAR:"OPEN", PRE:"PRE", POST:"POST", CLOSED:"CLOSED"}};
     var state = stateMap[spx.state] || "OPEN";
 
@@ -629,26 +635,22 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     var vixLbl = classifyVix(vix.price);
     var vixCol = COLORS[vixLbl] || "#6b7280";
 
-    // Update SPX
     var el;
     el = document.getElementById("spx-val");  if(el) el.textContent = spx.price.toLocaleString("en-US", {{maximumFractionDigits:0}});
     el = document.getElementById("spx-chg");  if(el) {{ el.textContent = spxChgStr; el.style.color = spxCol; }}
     el = document.getElementById("spx-pill"); if(el) {{ el.textContent = spxLbl; el.style.background = spxCol; }}
     updateDot("spx-dot", spxLbl, spxCol);
 
-    // Update RUT
     el = document.getElementById("rut-val");  if(el) el.textContent = rut.price.toLocaleString("en-US", {{maximumFractionDigits:0}});
     el = document.getElementById("rut-chg");  if(el) {{ el.textContent = rutChgStr; el.style.color = rutCol; }}
     el = document.getElementById("rut-pill"); if(el) {{ el.textContent = rutLbl; el.style.background = rutCol; }}
     updateDot("rut-dot", rutLbl, rutCol);
 
-    // Update VIX
     el = document.getElementById("vix-val");  if(el) el.textContent = vix.price.toFixed(2);
     el = document.getElementById("vix-prev"); if(el) {{ el.textContent = "prev " + vix.prev.toFixed(2); el.style.color = vixCol; }}
     el = document.getElementById("vix-pill"); if(el) {{ el.textContent = vixLbl; el.style.background = vixCol; }}
     el = document.getElementById("vix-sig");  if(el) el.textContent = vixSig(vix.price);
 
-    // Pulse line
     var tone = "";
     if (state === "PRE") {{
       tone = "Pre-Market · S&P last close " + spx.price.toLocaleString("en-US",{{maximumFractionDigits:0}}) +
@@ -664,31 +666,28 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     }}
     el = document.getElementById("pulse-line"); if(el) el.textContent = "⚡ " + tone;
 
-    // Timestamp
     var now = new Date();
     var hh = now.getHours(); var mm = now.getMinutes();
     var ampm = hh >= 12 ? "PM" : "AM"; hh = hh % 12 || 12;
     var ts = "refreshed " + hh + ":" + (mm < 10 ? "0" : "") + mm + " " + ampm;
     el = document.getElementById("mkt-refresh-ts"); if(el) el.textContent = ts;
 
-    // Auto-refresh every 60s only when market likely open (Mon-Fri, 7:30-16:05 MT)
-    var day = now.getDay(); // 0=Sun,6=Sat
+    var day = now.getDay();
     var minOfDay = now.getHours() * 60 + now.getMinutes();
-    var mktOpen  = 7 * 60 + 30;   // 7:30 AM MT
-    var mktClose = 16 * 60 + 5;   // 4:05 PM MT
+    var mktOpen  = 7 * 60 + 30;
+    var mktClose = 16 * 60 + 5;
     if (day >= 1 && day <= 5 && minOfDay >= mktOpen && minOfDay < mktClose) {{
       setTimeout(refresh, 60000);
     }}
   }}
 
-  // Run on page load
   refresh();
 }})();
 </script>"""
 
-    # Sentiment table (F&G + Consumer Sentiment -- VIX now in gauge block)
-    fg_cache_html   = _cache_badge(fg_cdate) if fg_cached else ""
-    umich_cache_html= _cache_badge(umich.get("cached_date","")) if (umich and umich.get("cached")) else ""
+    # Sentiment table
+    fg_cache_html    = _cache_badge(fg_cdate) if fg_cached else ""
+    umich_cache_html = _cache_badge(umich.get("cached_date","")) if (umich and umich.get("cached")) else ""
 
     def sr(name, val, hist, rl, rc, sig, note="", extra_badge=""):
         nh = f'<div style="font-size:.6rem;color:#9ca3af;">{note}</div>' if note else ""
@@ -713,9 +712,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
              extra_badge=umich_cache_html)
     )
 
-    # Valuation block
+    # ============================================================
+    # VALUATION BLOCK -- ETF PE source note from Claude Routine
+    # ============================================================
     cape_color  = "#c81e1e" if cape_num >= 35 else "#b45309" if cape_num >= 25 else "#057a55"
-    pe_updated  = PE_LAST_UPDATED.strftime("%b %Y")
     urth_disp   = f"{urth_pe:.1f}x" if urth_pe else "N/A"
     efa_disp    = f"{efa_pe:.1f}x"  if efa_pe  else "N/A"
     cape_times  = round(cape_num / 17, 1) if cape_num else "?"
@@ -725,9 +725,25 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
                    if urth_stale else "")
     efa_note    = (' <span style="color:#b45309;font-size:.55rem;font-weight:700;">UPDATE NEEDED</span>'
                    if efa_stale else "")
-    pe_src_note = (f"source: {urth_src}"
-                   if urth_src and "Yahoo Finance" in urth_src
-                   else f"approx, {pe_updated}")
+
+    # PE source note: Claude Routine > iShares CSV > PE_CONFIG fallback
+    if urth_src and "Claude Routine" in urth_src:
+        pe_src_note = urth_src  # e.g. "Claude Routine (07:45 UTC)"
+    elif urth_src and "iShares CSV" in urth_src:
+        pe_src_note = "iShares CSV (live)"
+    else:
+        pe_updated  = PE_LAST_UPDATED.strftime("%b %Y")
+        pe_src_note = f"PE_CONFIG fallback ({pe_updated})"
+
+    # Routine staleness banner for valuation block
+    routine_stale_banner = ""
+    if routine_data and not routine_fresh:
+        routine_date = routine_data.get("date", "unknown")
+        routine_stale_banner = (
+            f'<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;'
+            f'padding:4px 8px;margin-bottom:8px;font-size:.72rem;color:#b45309;">'
+            f'Pre-market data from {routine_date} -- today\'s routine may not have run yet</div>'
+        )
 
     if erp is not None:
         erp_col   = "#c81e1e" if erp < 0 else "#b45309" if erp < 1.0 else "#057a55"
@@ -760,6 +776,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
       Shiller CAPE (US) = 10yr smoothed (multpl.com) · URTH/EFA PE: {pe_src_note}
     </span>
   </h2>
+  {routine_stale_banner}
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
     <div style="text-align:center;padding:10px;background:#fdf4ff;border-radius:8px;border:1px solid #e9d5ff;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
@@ -798,7 +815,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator
     screens_html, all3, two3, si_only, mf_only, am_only = _build_screens_html(
         si_tickers, mf_tickers, am_tickers)
 
-    # FRED table -- Dir column removed
+    # FRED table
     fred_rows = _build_fred_rows(fred_data, _trend_color, cache)
 
     # AI fun fact / learning
@@ -893,7 +910,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 
 <div class="hero">
   <h1>📈 MEAN REVERSION MACRO INSIGHTS</h1>
-  <div class="sub">Anil Abraham &nbsp;·&nbsp; {today}</div>
+  <div class="sub">{today}</div>
   <div class="ts">Updated {now_str} MT · anil2040.github.io/market-pulse-ai</div>
 </div>
 
@@ -1037,7 +1054,6 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   {run_log_html}
 
   <div class="footer" style="margin-top:20px;">
-    Built by <strong>Anil Abraham</strong> &nbsp;·&nbsp;
     <a href="https://fred.stlouisfed.org" target="_blank">FRED API</a> &nbsp;·&nbsp;
     <a href="https://www.cnn.com/markets/fear-and-greed" target="_blank">CNN Fear &amp; Greed</a> &nbsp;·&nbsp;
     <a href="https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/daily-market-recap"

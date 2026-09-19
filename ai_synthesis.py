@@ -14,6 +14,17 @@
 #   and surface non-obvious implications for a value investor.
 #   Regurgitation = failure.
 #
+#   EARNINGS AND EVENTS rule: only reference events with a
+#   specific date from today's news sources. No filler, no
+#   generic context, no recycled headlines.
+#
+# CLAUDE ROUTINE INTEGRATION:
+#   Pre-market intelligence (futures, sentiment, rates, sector
+#   movers, global markets, macro events, open_focus) from the
+#   4am Claude Routine is injected into the prompt. When fresh,
+#   this provides today's context. When stale, it is included
+#   with a staleness note so the AI can weight it accordingly.
+#
 # FALLBACK CHAIN:
 #   1. gemini-3.6-flash  (free, 20 RPD -- resets midnight UTC = 6 PM MT)
 #   2. gemini-1.5-flash  (free, separate quota pool)
@@ -72,18 +83,120 @@ def _call_haiku(prompt):
         return resp.json()["content"][0]["text"]
 
 # ============================================================
+# ROUTINE DATA FORMATTER
+# ============================================================
+
+def _format_routine_block(routine_data, routine_fresh):
+    """
+    Format clauderoutinedata.json into a clean prompt block.
+    Always included when routine_data is non-empty.
+    Staleness note added when not fresh so AI can weight accordingly.
+    """
+    if not routine_data:
+        return ""
+
+    freshness_note = (
+        "" if routine_fresh
+        else f"  NOTE: This data is from {routine_data.get('date', 'unknown')} -- "
+             f"NOT today. Weight accordingly but do not ignore.\n"
+    )
+
+    # Futures
+    futures = routine_data.get("futures", {})
+    sp5   = futures.get("sp500",    {})
+    nq    = futures.get("nasdaq100",{})
+    dw    = futures.get("dow",      {})
+    sent  = futures.get("sentiment", "N/A")
+
+    def fmt_future(d):
+        if not d:
+            return "N/A"
+        chg = d.get("change_pct", 0)
+        direction = d.get("direction", "")
+        return f"{chg:+.2f}% ({direction})" if isinstance(chg, (int, float)) else f"{chg} ({direction})"
+
+    futures_str = (f"S&P {fmt_future(sp5)} | Nasdaq {fmt_future(nq)} | "
+                   f"Dow {fmt_future(dw)} | Sentiment: {sent.upper()}")
+
+    # Rates & commodities
+    rc    = routine_data.get("rates_commodities", {})
+    t10y  = rc.get("treasury_10yr_pct", "N/A")
+    crude = rc.get("crude_oil_usd", "N/A")
+    ctype = rc.get("crude_oil_type", "WTI")
+
+    # Macro events
+    events = routine_data.get("macro_events", [])
+    events_str = " / ".join(events) if events else "None reported"
+
+    # Sector movers
+    sm      = routine_data.get("sector_movers", {})
+    leaders = sm.get("leading", [])
+    laggers = sm.get("lagging", [])
+
+    def fmt_sector(lst):
+        parts = []
+        for s in lst:
+            name   = s.get("sector", "")
+            chg    = s.get("change_pct", 0)
+            reason = s.get("reason", "")
+            chg_str = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else str(chg)
+            parts.append(f"{name} {chg_str} ({reason})")
+        return " | ".join(parts) if parts else "N/A"
+
+    # Global markets
+    gm     = routine_data.get("global_markets", {})
+    europe = gm.get("europe", {})
+    asia   = gm.get("asia",   {})
+
+    def fmt_global(d):
+        if not d:
+            return "N/A"
+        idx = d.get("index", "")
+        chg = d.get("change_pct", 0)
+        direction = d.get("direction", "")
+        chg_str = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else str(chg)
+        return f"{idx} {chg_str} ({direction})"
+
+    # Open focus
+    open_focus = routine_data.get("open_focus", "")
+
+    # ETF PE (for reference -- market.py already consumed these)
+    etf_pe  = routine_data.get("etf_pe", {})
+    urth_pe = etf_pe.get("URTH", {}).get("pe_ttm", "N/A")
+    efa_pe  = etf_pe.get("EFA",  {}).get("pe_ttm", "N/A")
+
+    block = f"""
+PRE-MARKET INTELLIGENCE (Claude Routine, collected {routine_data.get('time_collected_utc','?')} UTC):
+{freshness_note}FUTURES: {futures_str}
+10Y TREASURY: {t10y}% | CRUDE: ${crude} ({ctype})
+GLOBAL: Europe {fmt_global(europe)} | Asia {fmt_global(asia)}
+SECTOR LEADERS: {fmt_sector(leaders)}
+SECTOR LAGGARDS: {fmt_sector(laggers)}
+MACRO EVENTS TODAY: {events_str}
+OPEN FOCUS: {open_focus}
+ETF PE (routine source): URTH={urth_pe}x | EFA={efa_pe}x"""
+
+    return block.strip()
+
+# ============================================================
 # MAIN SYNTHESIS
 # ============================================================
 
-def synthesize_with_ai(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
+def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                        fred_data, fg_data, mkt_data, mhs,
-                       si_tickers, mf_tickers, am_tickers):
+                       si_tickers, mf_tickers, am_tickers,
+                       routine_data=None, routine_fresh=False):
     """
     Build prompt from all fetched data and call AI models in fallback order.
+    routine_data: parsed clauderoutinedata.json (or {} if unavailable)
+    routine_fresh: True if routine date matches today MT
     Returns (briefing_str, ai_failed_bool).
     ai_failed=True means structured fallback was used (no AI narrative).
     """
     print("\n🤖 Sending to AI synthesis...")
+
+    if routine_data is None:
+        routine_data = {}
 
     fred_summary = "\n".join([
         f"- {r['label']}: {r['current']} (3mo:{r['mo3']} 12mo:{r['mo12']} trend:{r['trend']})"
@@ -104,6 +217,8 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text, mcoscillator_text,
         (r["current"] for r in fred_data if r["label"] == "Shiller CAPE (US)"), "N/A")
     urth_str = f"URTH(MSCI World incl US) PE: {mkt_data.get('urth_pe', 'N/A')}x"
     efa_str  = f"EFA(MSCI EAFE ex-US) PE: {mkt_data.get('efa_pe', 'N/A')}x"
+
+    routine_block = _format_routine_block(routine_data, routine_fresh)
 
     prompt = f"""You are a sharp financial analyst writing a morning briefing for a
 deep-value mean reversion investor (Greenblatt, Carlisle, Howard Marks, Burry, Pabrai
@@ -134,20 +249,28 @@ CRITICAL RULES -- READ CAREFULLY:
    (e.g. CAPE extreme AND ERP negative AND F&G greed), say what that
    combination historically implies.
 
-4. WHAT TO WATCH: Focus on actionable mean reversion setups. Reference specific
+4. MARKET AND MACRO: This is your primary section. Synthesize the FRED/MHS
+   macro picture WITH the pre-market intelligence below (futures direction,
+   sector rotation, global moves, open focus). Surface what the combination
+   means -- not what each piece says individually. 5-8 bullets.
+
+5. WHAT TO WATCH: Focus on actionable mean reversion setups. Reference specific
    tickers from high-conviction screens if relevant. Ask what would need to be
    true for the macro to shift -- what are the trip wires.
 
-5. EARNINGS AND EVENTS: Use specific company names, dates, and data points
-   from the news sources provided. No generic filler.
+6. EARNINGS AND EVENTS: STRICT RULE -- only reference events with a specific
+   company name AND date found in today's news sources below. If no specific
+   dated events appear in the news text, write one bullet saying so rather
+   than inventing filler or recycling generic context. Do NOT use headlines
+   that have appeared for more than one day.
 
-6. AI FUN FACT: 1 surprising fact about AI, markets, or investing history
+7. AI FUN FACT: 1 surprising fact about AI, markets, or investing history
    that is genuinely interesting. Max 25 words. Not about the current data.
 
-7. AI LEARNING: 1 AI/ML concept explained in plain English, relevant to
+8. AI LEARNING: 1 AI/ML concept explained in plain English, relevant to
    investing or data analysis. Max 30 words.
 
-8. Each bullet: dash (-) prefix, max 20 words, no bold, no markdown headers.
+9. Each bullet: dash (-) prefix, max 20 words, no bold, no markdown headers.
 
 DATA (for interpretation -- do NOT repeat these numbers verbatim):
 
@@ -161,7 +284,9 @@ MACRO INDICATORS:
 HIGH CONVICTION SCREENS (2+ screens overlap):
 {', '.join(overlap[:15]) if overlap else 'None today'}
 
-NEWS SOURCES:
+{routine_block}
+
+NEWS SOURCES (today only -- use specific names and dates from these):
 EDWARD JONES: {ej_text[:800]}
 CNBC SQUAWK: {cnbc_text[:600]}
 YAHOO BRIEF: {yahoo_text[:600]}

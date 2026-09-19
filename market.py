@@ -4,11 +4,13 @@
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py):
-#   fetch_market_indicators() -> dict
+#   fetch_market_indicators(routine_data={}) -> dict
 #   compute_mhs(fred_data, fg_data, mkt_data) -> dict
 #   compute_erp(fred_data, cape_val_str) -> (erp, cape_yield, ten_y) | (None,None,None)
 #
 # ETF PE SOURCING STRATEGY (in priority order):
+#   0. Claude Routine JSON (clauderoutinedata.json, fresh = today's date)
+#      Written by the 4am Claude Routine, read before pipeline runs.
 #   1. iShares fund characteristics CSV (free, no auth, updated daily)
 #      Parses "P/E Ratio" row from the same CSV iShares uses for their pages.
 #   2. PE_CONFIG fallback (hardcoded quarterly from iShares.com)
@@ -20,12 +22,17 @@
 # Playwright: overkill for quarterly PE (adds 45-60s per run).
 # See debug_etf_pe.py for full source audit history.
 #
+# _yq() CHG FIX (Sep 2026):
+#   Yahoo's regularMarketChangePercent resets to 0.00 in three windows:
+#   pre-market, first minutes after open, and after close.
+#   Fix: always compute chg = (price - previousClose) / previousClose * 100
+#   manually. Yahoo reliably returns price and previousClose at all times.
+#
 # MHS SCALE:
 #   0-33:  DEPLOY   -- panic/dislocation, deploy aggressively
 #   34-65: SELECTIVE -- best setups only, Left Leg <4, MoS >25%
 #   66-85: OVERHEATED -- build cash, trim winners
-#   86-100: EXTREME OVERHEATED -- most stretched macro since dot-com,
-#           keep bar very high, stay disciplined
+#   86-100: EXTREME OVERHEATED -- most stretched macro since dot-com
 #
 # MARKET STATE DETECTION:
 #   marketState from SPX (%5EGSPC) is the authoritative source.
@@ -40,9 +47,10 @@ from datetime import date
 import requests
 
 # ============================================================
-# ETF PE CONFIG -- quarterly fallback
+# ETF PE CONFIG -- quarterly fallback (last resort)
 # ============================================================
-# Update manually each quarter if iShares CSV fetch fails.
+# Update manually each quarter if iShares CSV fetch fails AND
+# Claude Routine is unavailable.
 # Check: iShares product page > Fund Characteristics > P/E Ratio
 # URTH: https://www.ishares.com/us/products/239696
 # EFA:  https://www.ishares.com/us/products/239727
@@ -79,7 +87,7 @@ def _classify_vix(v):
     return "PANIC", "#7f1d1d"
 
 def _classify_idx(c):
-    if c >  1.0: return "RALLY",   "#059669"
+    if c >  1.0: return "RALLY",   "#057a55"
     if c >  0.1: return "UP",      "#86c440"
     if c > -0.1: return "FLAT",    "#6b7280"
     if c > -1.0: return "DOWN",    "#e97316"
@@ -93,7 +101,34 @@ def _vix_sig(v):
     return "✅ Calm · low fear · complacency = less opportunity for value investors"
 
 # ============================================================
-# ISHARES PE FETCHERS
+# ETF PE FETCHERS -- priority 0: Claude Routine
+# ============================================================
+
+def _routine_pe(ticker, routine_data):
+    """
+    Extract PE from clauderoutinedata.json if present and fresh.
+    Returns (pe_float, source_str) or (None, reason_str).
+    routine_data is the loaded dict; freshness already checked in main.py.
+    """
+    if not routine_data:
+        return None, "no routine data"
+    etf_pe = routine_data.get("etf_pe", {})
+    entry  = etf_pe.get(ticker, {})
+    pe_val = entry.get("pe_ttm")
+    if pe_val is None:
+        return None, f"no {ticker} in routine etf_pe"
+    try:
+        pe = float(pe_val)
+        if pe <= 0:
+            return None, f"routine {ticker} PE is zero or negative"
+        time_utc = routine_data.get("time_collected_utc", "")
+        src = f"Claude Routine ({time_utc} UTC)" if time_utc else "Claude Routine"
+        return pe, src
+    except (ValueError, TypeError) as e:
+        return None, f"routine {ticker} PE parse error: {e}"
+
+# ============================================================
+# ISHARES PE FETCHERS -- priority 1
 # ============================================================
 
 def _parse_ishares_csv_pe(csv_text):
@@ -138,16 +173,29 @@ def _fetch_ishares_pe(ticker):
     except Exception as e:
         return None, str(e)[:60]
 
-def _yq_pe(ticker):
+def _yq_pe(ticker, routine_data=None):
     """
     Return (pe_float, is_stale_bool, source_str) for URTH and EFA.
-    Tries iShares CSV first, falls back to PE_CONFIG.
+    Priority 0: Claude Routine JSON (fresh = today)
+    Priority 1: iShares CSV (live)
+    Priority 2: PE_CONFIG (hardcoded quarterly fallback)
     is_stale only applies to the PE_CONFIG fallback path.
     """
+    # Priority 0: Claude Routine
+    if routine_data:
+        pe_routine, src_routine = _routine_pe(ticker, routine_data)
+        if pe_routine is not None:
+            print(f"  ✅ {ticker} PE from Claude Routine: {pe_routine:.2f}x ({src_routine})")
+            return pe_routine, False, src_routine
+        else:
+            print(f"  ℹ️ {ticker} PE routine miss ({src_routine}) -- trying iShares CSV")
+
+    # Priority 1: iShares CSV
     pe_live, source = _fetch_ishares_pe(ticker)
     if pe_live is not None:
         return pe_live, False, source
 
+    # Priority 2: PE_CONFIG hardcoded fallback
     print(f"  ⚠️ {ticker} PE live fetch failed ({source}) -- using PE_CONFIG fallback")
     cfg = PE_CONFIG.get(ticker)
     if not cfg:
@@ -160,7 +208,13 @@ def _yq_pe(ticker):
 # ============================================================
 
 def _yq(ticker):
-    """Fetch price, prev close, % change, market state from Yahoo Finance v8."""
+    """
+    Fetch price, prev close, % change, market state from Yahoo Finance v8.
+    CHG is always computed manually as (price - previousClose) / previousClose * 100.
+    Yahoo's regularMarketChangePercent resets to 0.00 in three windows:
+    pre-market, first minutes after open, and after market close.
+    Yahoo reliably returns regularMarketPrice and previousClose at all times.
+    """
     url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=2d"
     hdrs = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
@@ -170,6 +224,7 @@ def _yq(ticker):
     meta = resp.json()["chart"]["result"][0]["meta"]
     p    = float(meta.get("regularMarketPrice", 0))
     pv   = float(meta.get("previousClose", p))
+    # Always compute manually -- never trust regularMarketChangePercent
     chg  = ((p - pv) / pv * 100) if pv else 0
     return p, pv, chg, meta.get("marketState", "UNKNOWN")
 
@@ -177,12 +232,16 @@ def _yq(ticker):
 # MARKET INDICATORS
 # ============================================================
 
-def fetch_market_indicators():
+def fetch_market_indicators(routine_data=None):
     """
     Fetch SPX, RUT, VIX in parallel via Yahoo Finance v8.
     Market state is taken from SPX (authoritative), NOT VIX.
-    PE: iShares CSV first, PE_CONFIG fallback.
+    PE priority: Claude Routine -> iShares CSV -> PE_CONFIG fallback.
+    routine_data: loaded clauderoutinedata.json dict (or None/empty if unavailable).
     """
+    if routine_data is None:
+        routine_data = {}
+
     print("\n📊 Fetching Market Performance (SPX, RUT, VIX, URTH PE, EFA PE)...")
 
     res = {
@@ -207,19 +266,19 @@ def fetch_market_indicators():
         sp, spr, sc, ss  = fs.result(timeout=15)  # ss = SPX market state (authoritative)
         rp, rpr, rc, _   = fr.result(timeout=15)
 
-        urth_pe, urth_stale, urth_src = _yq_pe("URTH")
-        efa_pe,  efa_stale,  efa_src  = _yq_pe("EFA")
+        urth_pe, urth_stale, urth_src = _yq_pe("URTH", routine_data)
+        efa_pe,  efa_stale,  efa_src  = _yq_pe("EFA",  routine_data)
 
-        res["urth_pe"]       = urth_pe
-        res["urth_pe_stale"] = urth_stale
-        res["urth_pe_source"]= urth_src
-        res["efa_pe"]        = efa_pe
-        res["efa_pe_stale"]  = efa_stale
-        res["efa_pe_source"] = efa_src
+        res["urth_pe"]        = urth_pe
+        res["urth_pe_stale"]  = urth_stale
+        res["urth_pe_source"] = urth_src
+        res["efa_pe"]         = efa_pe
+        res["efa_pe_stale"]   = efa_stale
+        res["efa_pe_source"]  = efa_src
 
         # Use SPX marketState as the single source of truth
-        state_map  = {"REGULAR": "OPEN", "PRE": "PRE", "POST": "POST", "CLOSED": "CLOSED"}
-        mkt_state  = state_map.get(ss, "OPEN")   # default OPEN if unrecognised
+        state_map    = {"REGULAR": "OPEN", "PRE": "PRE", "POST": "POST", "CLOSED": "CLOSED"}
+        mkt_state    = state_map.get(ss, "OPEN")   # default OPEN if unrecognised
         status_label = {
             "OPEN":   "",
             "PRE":    "Pre-Market",
@@ -230,7 +289,7 @@ def fetch_market_indicators():
         res["market_state"]        = mkt_state
         res["market_status_label"] = status_label
 
-        vl, vc  = _classify_vix(vp)
+        vl, vc = _classify_vix(vp)
 
         # Classify SPX / RUT -- label and colour depend on market state
         if mkt_state == "PRE":
@@ -239,7 +298,7 @@ def fetch_market_indicators():
             scs      = "Pre-Market"
             rcs      = "Pre-Market"
         elif mkt_state in ("POST", "CLOSED"):
-            sl,  sc2 = _classify_idx(sc)   # still show the day's move
+            sl,  sc2 = _classify_idx(sc)
             rl,  rc2 = _classify_idx(rc)
             scs      = f"{sc:+.2f}%"
             rcs      = f"{rc:+.2f}%"
@@ -260,7 +319,7 @@ def fetch_market_indicators():
         if mkt_state == "OPEN":
             if vp >= 30 or sl == "SELLOFF":
                 tone = "broad stress -- mean reversion entries emerging"
-            elif sl in ("UP","RALLY") and rl in ("UP","RALLY"):
+            elif sl in ("UP", "RALLY") and rl in ("UP", "RALLY"):
                 tone = "broad strength -- be selective"
             elif sl == "FLAT":
                 tone = "indecisive -- focus on individual catalysts"
@@ -272,7 +331,8 @@ def fetch_market_indicators():
             res["pulse"] = (f"Pre-Market · S&P last close {sp:,.0f} "
                             f"· Russell {rp:,.0f} · VIX {vp:.1f} ({vl})")
         else:
-            res["pulse"] = f"S&P {sp:,.0f} ({scs}) · Russell {rp:,.0f} ({rcs}) · VIX {vp:.1f} ({vl})"
+            res["pulse"] = (f"S&P {sp:,.0f} ({scs}) · Russell {rp:,.0f} "
+                            f"({rcs}) · VIX {vp:.1f} ({vl})")
 
         urth_str = f"URTH PE: {urth_pe:.1f}x ({urth_src})" if urth_pe else "URTH PE: N/A"
         efa_str  = f"EFA PE: {efa_pe:.1f}x ({efa_src})"   if efa_pe  else "EFA PE: N/A"
@@ -406,15 +466,11 @@ def compute_mhs(fred_data, fg_data, mkt_data):
 
     score = max(0, min(100, round(raw)))
 
+    # MHS posture text: macro observation only, no stock-picking prescription
     if score >= 86:
         lbl    = "🚨 EXTREME OVERHEATED"
         col    = "#7f1d1d"
-        action = (
-            "Macro is at its most stretched since dot-com. "
-            "Only the highest-quality names at genuine margins of safety -- "
-            "Left Leg 0-2, margin of safety above 30%, top-tier businesses only. "
-            "Stay patient and disciplined. Not a signal to panic."
-        )
+        action = "Macro is at its most stretched since dot-com."
     elif score >= 66:
         lbl    = "⛔ OVERHEATED"
         col    = "#c81e1e"

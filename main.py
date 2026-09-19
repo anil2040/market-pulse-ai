@@ -4,7 +4,7 @@
 # ============================================================
 #
 # WHAT THIS DOES:
-#   Runs every weekday at 6:55 AM MT via GitHub Actions.
+#   Runs every weekday at 7:50 AM MT via GitHub Actions.
 #   Fetches macro data, sentiment, value screens, news emails,
 #   synthesizes with AI, and publishes an HTML dashboard to
 #   GitHub Pages. A Chrome extension reads the hidden
@@ -12,13 +12,14 @@
 #   reversion analysis.
 #
 # MODULE RESPONSIBILITY MAP (which file to edit for which bug):
-#   Gold/CAPE/FRED data issues    -> fred.py
-#   VIX/SPX/PE/MHS/ERP issues     -> market.py
-#   Dataroma/MF/AM/cache issues   -> screens.py
-#   Email/Edward Jones issues     -> news.py
-#   Gemini/Haiku/AI output issues -> ai_synthesis.py
-#   Dashboard display issues      -> html_builder.py
-#   Pipeline order/imports issues -> main.py (this file)
+#   Gold/CAPE/FRED data issues        -> fred.py
+#   VIX/SPX/PE/MHS/ERP issues         -> market.py
+#   Dataroma/MF/AM/cache issues       -> screens.py
+#   Email/Edward Jones issues         -> news.py
+#   Gemini/Haiku/AI output issues     -> ai_synthesis.py
+#   Dashboard display issues          -> html_builder.py
+#   Pipeline order/imports issues     -> main.py (this file)
+#   Claude Routine JSON issues        -> clauderoutinedata.json (root)
 #
 # RUN CACHE (run_cache.json):
 #   Persistent per-indicator fallback. Lives in repo root.
@@ -29,9 +30,11 @@
 #   First-ever run with no cache: failed fetches show N/A.
 #
 # PIPELINE (in execution order):
+#   0.  Claude Routine JSON (clauderoutinedata.json, written 4am MT)
 #   1.  FRED macro indicators (fred.py)
 #   2.  CNN Fear & Greed (main.py -- inline)
 #   3.  Market data: SPX, RUT, VIX, ETF PE (market.py)
+#       ETF PE priority: Claude Routine -> iShares CSV -> PE_CONFIG
 #   4.  MHS Macro Heat Score (market.py)
 #   5.  Dataroma 13F superinvestor buys (screens.py)
 #   6.  Magic Formula top 30 (screens.py)
@@ -39,16 +42,19 @@
 #   8.  Edward Jones daily recap (news.py)
 #   9.  CNBC Morning Squawk email (news.py)
 #   10. Yahoo Morning Brief email (news.py)
-#   11. McClellan Oscillator email (news.py)
-#   12. AI synthesis -- Gemini -> Haiku -> fallback text (ai_synthesis.py)
-#   13. Build HTML dashboard (html_builder.py)
-#   14. Save + commit run_cache.json (main.py)
+#   11. AI synthesis -- Gemini -> Haiku -> fallback text (ai_synthesis.py)
+#   12. Build HTML dashboard (html_builder.py)
+#   13. Save + commit run_cache.json (main.py)
+#
+# NOTE: McClellan Oscillator removed Sep 2026 -- email is a paid
+#   article teaser with no usable data. Card already removed from
+#   html_builder.py.
 #
 # MHS SCALE (updated Sep 2026):
 #   0-33:  GREEN  DEPLOY          -- Panic/dislocation. Deploy aggressively.
 #   34-65: AMBER  SELECTIVE       -- Best setups only. Left Leg <4, MoS >25%.
 #   66-85: RED    OVERHEATED      -- Build cash. Trim winners.
-#   86-100: DARK  EXTREME OVERH.  -- Quality and patience only.
+#   86-100: DARK  EXTREME OVERH.  -- Most stretched since dot-com.
 #
 # NOTE: AAII removed -- aaii.com blocks GitHub Actions IPs via Incapsula CDN.
 #   Check manually at aaii.com/sentimentsurvey every Thursday.
@@ -58,7 +64,7 @@ import os
 import json
 import time
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 import requests
 
 # Local modules
@@ -67,7 +73,7 @@ from market  import fetch_market_indicators, compute_mhs
 from screens import (fetch_superinvestor_buys, fetch_magic_formula,
                      fetch_acquirers_multiple)
 from news    import (scrape_edward_jones, fetch_cnbc_email,
-                     fetch_yahoo_morning_brief, fetch_mcoscillator_email)
+                     fetch_yahoo_morning_brief)
 from ai_synthesis import synthesize_with_ai
 from html_builder import build_html
 
@@ -80,7 +86,11 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 YAHOO_EMAIL       = os.environ.get("YAHOO_EMAIL")
 FRED_API_KEY      = os.environ.get("FRED_API_KEY")
 
-CACHE_FILE = "run_cache.json"
+CACHE_FILE   = "run_cache.json"
+ROUTINE_FILE = "clauderoutinedata.json"
+
+# Boise MDT = UTC-6 summer
+MT = timezone(timedelta(hours=-6))
 
 # Global run log -- every step appends here, shown collapsed in dashboard
 RUN_LOG  = []
@@ -89,6 +99,60 @@ RUN_START = time.time()
 def log(msg, status="✅"):
     elapsed = round(time.time() - RUN_START)
     RUN_LOG.append(f"{status} [{elapsed}s] {msg}")
+
+# ============================================================
+# STEP 0: CLAUDE ROUTINE JSON LOADER
+# ============================================================
+
+def load_claude_routine():
+    """
+    Load clauderoutinedata.json from repo root.
+    Written by the 4am Claude Routine before the 7:50am pipeline runs.
+
+    Returns (routine_data_dict, is_fresh_bool, status_str).
+    - routine_data_dict: full parsed JSON (or {} on failure)
+    - is_fresh_bool: True if date field matches today MT
+    - status_str: human-readable status for run log
+
+    When stale, data is still returned so AI synthesis can use it
+    with a staleness note rather than getting nothing.
+    """
+    print("\n📋 Loading Claude Routine data (clauderoutinedata.json)...")
+    today_mt = datetime.now(MT).strftime("%Y-%m-%d")
+
+    if not os.path.exists(ROUTINE_FILE):
+        print(f"  ⚠️ {ROUTINE_FILE} not found -- routine may not have run yet")
+        return {}, False, "clauderoutinedata.json not found"
+
+    try:
+        with open(ROUTINE_FILE, "r", encoding="utf-8") as f:
+            data = json.load(f)
+
+        routine_date = data.get("date", "")
+        time_utc     = data.get("time_collected_utc", "")
+        is_fresh     = (routine_date == today_mt)
+
+        if is_fresh:
+            etf_pe = data.get("etf_pe", {})
+            urth   = etf_pe.get("URTH", {}).get("pe_ttm", "N/A")
+            efa    = etf_pe.get("EFA",  {}).get("pe_ttm", "N/A")
+            futures_sent = data.get("futures", {}).get("sentiment", "N/A")
+            print(f"  ✅ Routine data: {routine_date} {time_utc} UTC | "
+                  f"URTH PE={urth} EFA PE={efa} | sentiment={futures_sent}")
+            status = f"Claude Routine: fresh ({routine_date} {time_utc} UTC)"
+        else:
+            print(f"  ⚠️ Routine data is from {routine_date} (today is {today_mt}) -- stale")
+            print(f"  ℹ️ Passing stale data to AI with staleness note")
+            status = f"Claude Routine: stale ({routine_date}, today={today_mt})"
+
+        return data, is_fresh, status
+
+    except json.JSONDecodeError as e:
+        print(f"  ❌ Routine JSON parse error: {e}")
+        return {}, False, f"Claude Routine: JSON parse error ({e})"
+    except Exception as e:
+        print(f"  ❌ Routine load failed: {e}")
+        return {}, False, f"Claude Routine: load failed ({e})"
 
 # ============================================================
 # RUN CACHE -- per-indicator persistent fallback
@@ -246,10 +310,10 @@ def _wrap_fred(cache):
         return rebuilt
 
 
-def _wrap_market(cache):
+def _wrap_market(cache, routine_data):
     """Fetch market indicators with cache fallback per field."""
     try:
-        data = fetch_market_indicators()
+        data = fetch_market_indicators(routine_data=routine_data)
         # Cache the whole block -- it's atomic (SPX/RUT/VIX fetched together)
         cache_write(cache, "market_indicators", data)
         log(f"Market: SPX {data['spx']['value']} RUT {data['rut']['value']} "
@@ -334,10 +398,9 @@ def _wrap_screens(cache):
 def _wrap_news(cache):
     """Fetch news/email sources with per-source cache fallback."""
     sources = {
-        "ej":           (scrape_edward_jones,       "Edward Jones"),
-        "cnbc":         (fetch_cnbc_email,           "CNBC"),
-        "yahoo":        (fetch_yahoo_morning_brief,  "Yahoo Brief"),
-        "mcoscillator": (fetch_mcoscillator_email,   "McClellan"),
+        "ej":   (scrape_edward_jones,       "Edward Jones"),
+        "cnbc": (fetch_cnbc_email,           "CNBC"),
+        "yahoo":(fetch_yahoo_morning_brief,  "Yahoo Brief"),
     }
     results = {}
     for key, (fn, name) in sources.items():
@@ -356,8 +419,7 @@ def _wrap_news(cache):
             else:
                 log(f"{name}: failed, no cache", "❌")
                 results[key] = ""
-    return (results["ej"], results["cnbc"],
-            results["yahoo"], results["mcoscillator"])
+    return results["ej"], results["cnbc"], results["yahoo"]
 
 # ============================================================
 # MAIN RUNNER
@@ -375,42 +437,51 @@ if __name__ == "__main__":
     print(f"  ℹ️ Cache loaded: {len(cache)} entries")
     log("Run started")
 
+    # Step 0: Claude Routine JSON (written at 4am MT by Claude Routine)
+    routine_data, routine_fresh, routine_status = load_claude_routine()
+    log(routine_status, "✅" if routine_fresh else "⚠️")
+
     # Step 1: FRED macro data
     fred_data = _wrap_fred(cache)
 
     # Step 2: Fear & Greed
     fg_data = fetch_fear_greed(cache)
 
-    # Step 3 & 4: Market data + MHS
-    mkt_data, mkt_cached = _wrap_market(cache)
+    # Steps 3 & 4: Market data + MHS
+    # routine_data passed so market.py can use Routine PE as priority 0
+    mkt_data, mkt_cached = _wrap_market(cache, routine_data)
     mhs = compute_mhs(fred_data, fg_data, mkt_data)
     log(f"MHS: {mhs['score']}/100 ({mhs['label']})")
 
-    # Step 5-7: Value screens
+    # Steps 5-7: Value screens
     si_tickers, mf_tickers, am_tickers = _wrap_screens(cache)
 
-    # Steps 8-11: News & email
-    ej_text, cnbc_text, yahoo_text, mcoscillator_text = _wrap_news(cache)
+    # Steps 8-10: News & email (McClellan removed Sep 2026)
+    ej_text, cnbc_text, yahoo_text = _wrap_news(cache)
 
-    # Step 12: AI synthesis
+    # Step 11: AI synthesis
     briefing, ai_failed = synthesize_with_ai(
-        ej_text, cnbc_text, yahoo_text, mcoscillator_text,
+        ej_text, cnbc_text, yahoo_text,
         fred_data, fg_data, mkt_data, mhs,
         si_tickers, mf_tickers, am_tickers,
+        routine_data=routine_data,
+        routine_fresh=routine_fresh,
     )
     log(f"AI: {'fallback' if ai_failed else 'success'} -- {len(briefing)} chars",
         "❌" if ai_failed else "✅")
 
-    # Step 13: Build HTML
+    # Step 12: Build HTML
     build_html(
-        briefing, ai_failed, ej_text, cnbc_text, yahoo_text, mcoscillator_text,
+        briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         fred_data, fg_data, mkt_data, mhs,
         si_tickers, mf_tickers, am_tickers,
         RUN_LOG, RUN_START, cache,
+        routine_data=routine_data,
+        routine_fresh=routine_fresh,
     )
     log(f"Dashboard written | Total runtime: {round(time.time() - RUN_START)}s")
 
-    # Step 14: Save + commit cache
+    # Step 13: Save + commit cache
     _save_cache(cache)
     _commit_cache()
 
