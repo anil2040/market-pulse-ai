@@ -45,11 +45,16 @@ def fmt_bullets(raw):
     for line in raw.strip().splitlines():
         stripped = line.strip()
         # Divider sentinel inserted by _merge_macro_sections
-        if stripped == "---":
+        # Check before AND after stripping bullet prefix
+        if stripped in ("---", "- ---", "* ---", "• ---"):
             items += ('    <li style="list-style:none;border-top:1px solid #e5e7eb;'
-                      'margin:4px 0 4px -13px;padding:0;"></li>\n')
+                      'margin:4px 0 4px -13px;padding:0;height:1px;"></li>\n')
             continue
         stripped = re.sub(r"^[-•*]\s*", "", stripped)
+        if stripped == "---":
+            items += ('    <li style="list-style:none;border-top:1px solid #e5e7eb;'
+                      'margin:4px 0 4px -13px;padding:0;height:1px;"></li>\n')
+            continue
         stripped = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", stripped)
         if stripped:
             items += f"    <li>{stripped}</li>\n"
