@@ -11,7 +11,7 @@
       "mo12": "3.9%",
       "trend": "\u25bc",
       "date": "Aug 01 2026",
-      "sig": "\ud83d\udcc9 Cooling \u00b7 \u21933mo \u219312mo"
+      "sig": "\u2192 Above avg but decelerating -- progress toward 2% but not there yet"
     },
     "fetched": "2026-09-19"
   },
@@ -27,7 +27,7 @@
       "mo12": "2.6%",
       "trend": "\u25b2",
       "date": "Aug 01 2026",
-      "sig": "\u26a0\ufe0f Heating \u00b7 \u21913mo \u219112mo"
+      "sig": "\u26a0\ufe0f Re-heating -- service sector inflation erodes real returns and PE expansion"
     },
     "fetched": "2026-09-19"
   },
@@ -43,7 +43,7 @@
       "mo12": "3.3%",
       "trend": "\u25b2",
       "date": "Jul 01 2026",
-      "sig": "\u26a0\ufe0f Heating \u00b7 \u21913mo \u219112mo"
+      "sig": "\u26a0\ufe0f Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
     },
     "fetched": "2026-09-19"
   },
@@ -59,7 +59,7 @@
       "mo12": "2.8%",
       "trend": "\u25b2",
       "date": "Jul 01 2026",
-      "sig": "\u26a0\ufe0f SUSTAINED RISE \u00b7 65% above 2% target \u00b7 rates stay elevated"
+      "sig": "\u26a0\ufe0f Re-accelerating at 65% above Fed target -- hike risk rising, PE compression ahead"
     },
     "fetched": "2026-09-19"
   },
@@ -75,7 +75,7 @@
       "mo12": "4.26%",
       "trend": "\u25b2",
       "date": "Aug 01 2026",
-      "sig": "\u21913mo \u219112mo \u00b7 rising = headwind, falling = tailwind for all equities"
+      "sig": "\u26a0\ufe0f Approaching levels where bonds compete with equities on yield -- watch spread compression"
     },
     "fetched": "2026-09-19"
   },
@@ -91,7 +91,7 @@
       "mo12": "3.70%",
       "trend": "\u25b2",
       "date": "Aug 01 2026",
-      "sig": "\u2192 4.22% \u00b7 \u21913mo \u00b7 Fed expectations proxy"
+      "sig": "\u26a0\ufe0f Higher 2Y locks in restrictive financial conditions -- reduces room for P/E expansion"
     },
     "fetched": "2026-09-19"
   },
@@ -107,7 +107,7 @@
       "mo12": "0.58%",
       "trend": "\u25bc",
       "date": "Sep 18 2026",
-      "sig": "\u2192 Nearly flat 0.25% \u00b7 \u21933mo \u00b7 watch for re-inversion"
+      "sig": "\u2192 Nearly flat -- disinversion underway but not yet a steepening growth signal; watch direction"
     },
     "fetched": "2026-09-19"
   },
@@ -123,7 +123,7 @@
       "mo12": "4.33%",
       "trend": "\u2192",
       "date": "Aug 01 2026",
-      "sig": "\u2192 On hold at 3.63% \u00b7 \u219312mo"
+      "sig": "\u2192 On hold -- Fed is watching; next move direction matters more than current level"
     },
     "fetched": "2026-09-19"
   },
@@ -139,7 +139,7 @@
       "mo12": "2.69%",
       "trend": "\u2192",
       "date": "Sep 17 2026",
-      "sig": "\u2192 Tight 2.70% (normal ~4-5%) \u00b7 \u21923mo"
+      "sig": "\u2192 Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
     "fetched": "2026-09-19"
   },
@@ -155,7 +155,7 @@
       "mo12": "4.30%",
       "trend": "\u25bc",
       "date": "Aug 01 2026",
-      "sig": "\u2192 4.1% \u00b7 \u21933mo \u219312mo"
+      "sig": "\u2192 Near historical norm -- labor not a swing factor for macro direction today"
     },
     "fetched": "2026-09-19"
   },
@@ -172,7 +172,7 @@
       "mo12": "$65.0",
       "trend": "\u25b2",
       "date": "Sep 15 2026",
-      "sig": "\u26a0\ufe0f HIGH & RISING $107 \u00b7 inflation pressure + recession risk"
+      "sig": "\u26a0\ufe0f Above $100 and rising -- stagflation risk: energy tax on consumers, input cost spike for industry"
     },
     "fetched": "2026-09-19"
   },
@@ -185,12 +185,12 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,416",
+      "current": "$4,425",
       "mo3": "$4,381",
       "mo12": "$3,677",
       "trend": "\u25b2",
       "date": "Sep 18 2026",
-      "sig": "\u2192 $4,416 \u00b7 +20% vs 12mo \u00b7 \u21913mo"
+      "sig": "\u2192 Gold surging +20% yr -- real rates concern or dollar debasement fear; watch DXY correlation"
     },
     "fetched": "2026-09-19"
   },
@@ -207,7 +207,7 @@
       "mo12": "120.7",
       "trend": "\u25bc",
       "date": "Sep 11 2026",
-      "sig": "DXY 118.2 \u00b7 -2% vs 12mo \u00b7 \u21933mo \u00b7 tailwind for intl ADRs"
+      "sig": "\u2192 Dollar softening -- gradually improving backdrop for international ADR positions"
     },
     "fetched": "2026-09-19"
   },
@@ -224,7 +224,7 @@
       "mo12": "61.7",
       "trend": "\u25b2",
       "date": "Jul 01 2026",
-      "sig": "55.2/100 (well below avg ~75) \u00b7 \u21913mo \u219312mo"
+      "sig": "\u2192 Below-average sentiment -- consumer cautious but not collapsing; watch for inflection"
     },
     "fetched": "2026-09-19"
   },
@@ -241,7 +241,7 @@
       "mo12": "40.9",
       "trend": "\u2192",
       "date": "Sep 19 2026",
-      "sig": "\u26a0\ufe0f EXTREME 40.9x \u00b7 141% above hist avg 17x \u00b7 98th pctile since 1881 \u00b7 only exceeded at dot-com peak 44.2x"
+      "sig": "\u26a0\ufe0f 2.4x the 145yr avg -- only dot-com peak (44x) was higher; 10yr forward returns historically near zero from this level"
     },
     "fetched": "2026-09-19"
   },
@@ -401,111 +401,411 @@
   },
   "screens_mf": {
     "value": [
-      "DOX",
-      "EPAM",
-      "CTSH",
-      "WLY",
-      "MD",
-      "CARG",
-      "GIB",
-      "TDC",
-      "BCRX",
-      "CI",
-      "DBD",
-      "ANF",
-      "CROX",
-      "PBI",
-      "VNT",
-      "ADBE",
-      "PTC",
-      "GDDY",
-      "KBR",
-      "CVS",
-      "VSNT",
-      "HRB",
-      "WDOFF",
-      "PTON",
-      "OTEX",
-      "TNET",
-      "HRMY",
-      "WH",
-      "FOXA",
-      "BBWI",
-      "BMY",
-      "PRDO",
-      "MO",
-      "DECK",
-      "LOPE",
-      "BHC",
-      "BKE",
-      "HPQ",
-      "SIRI",
-      "LULU",
-      "OMC",
-      "GRGDF",
-      "SGHC",
-      "HAS",
-      "PNR",
-      "LRN",
-      "TPR",
-      "IT",
-      "KFY",
-      "ZD"
+      [
+        "ANF",
+        1
+      ],
+      [
+        "ADBE",
+        2
+      ],
+      [
+        "MO",
+        3
+      ],
+      [
+        "DOX",
+        4
+      ],
+      [
+        "BBWI",
+        5
+      ],
+      [
+        "BHC",
+        6
+      ],
+      [
+        "BCRX",
+        7
+      ],
+      [
+        "BMY",
+        8
+      ],
+      [
+        "BKE",
+        9
+      ],
+      [
+        "CARG",
+        10
+      ],
+      [
+        "GIB",
+        11
+      ],
+      [
+        "CTSH",
+        12
+      ],
+      [
+        "CROX",
+        13
+      ],
+      [
+        "CVS",
+        14
+      ],
+      [
+        "DECK",
+        15
+      ],
+      [
+        "DBD",
+        16
+      ],
+      [
+        "EPAM",
+        17
+      ],
+      [
+        "FOXA",
+        18
+      ],
+      [
+        "IT",
+        19
+      ],
+      [
+        "GEN",
+        20
+      ],
+      [
+        "GDDY",
+        21
+      ],
+      [
+        "LOPE",
+        22
+      ],
+      [
+        "GRGDF",
+        23
+      ],
+      [
+        "HRB",
+        24
+      ],
+      [
+        "HRMY",
+        25
+      ],
+      [
+        "HAS",
+        26
+      ],
+      [
+        "HPQ",
+        27
+      ],
+      [
+        "WLY",
+        28
+      ],
+      [
+        "KBR",
+        29
+      ],
+      [
+        "KFY",
+        30
+      ],
+      [
+        "LDOS",
+        31
+      ],
+      [
+        "LULU",
+        32
+      ],
+      [
+        "OMC",
+        33
+      ],
+      [
+        "OTEX",
+        34
+      ],
+      [
+        "MD",
+        35
+      ],
+      [
+        "PNR",
+        36
+      ],
+      [
+        "PRDO",
+        37
+      ],
+      [
+        "PBI",
+        38
+      ],
+      [
+        "SIRI",
+        39
+      ],
+      [
+        "LRN",
+        40
+      ],
+      [
+        "SGHC",
+        41
+      ],
+      [
+        "TPR",
+        42
+      ],
+      [
+        "TDC",
+        43
+      ],
+      [
+        "CI",
+        44
+      ],
+      [
+        "TNET",
+        45
+      ],
+      [
+        "VSNT",
+        46
+      ],
+      [
+        "VNT",
+        47
+      ],
+      [
+        "WDOFF",
+        48
+      ],
+      [
+        "WH",
+        49
+      ],
+      [
+        "ZD",
+        50
+      ]
     ],
     "fetched": "2026-09-19"
   },
   "screens_am": {
     "value": [
-      "CTSH",
-      "UL",
-      "VZ",
-      "FDX",
-      "GIB",
-      "LOGI",
-      "CQP",
-      "CI",
-      "APA",
-      "PHM",
-      "KVUE",
-      "FMX",
-      "LOW",
-      "SNY",
-      "CVS",
-      "BP",
-      "DINO",
-      "SONY",
-      "BBY",
-      "EQNR",
-      "UPS",
-      "PBR",
-      "CF",
-      "FOXA",
-      "RYAAY",
-      "YPF",
-      "BMY",
-      "BTI",
-      "MO",
-      "FIS",
-      "CHTR",
-      "SYF",
-      "LDOS",
-      "EXEL",
-      "HPQ",
-      "SKHY",
-      "OTIS",
-      "ERIC",
-      "SHEL",
-      "CMCSA",
-      "SBS",
-      "ZTS",
-      "KR",
-      "SQM",
-      "VICI",
-      "NVO",
-      "FSLR",
-      "EIX",
-      "LNG",
-      "SSNC"
+      [
+        "SYF",
+        "2.50"
+      ],
+      [
+        "EQNR",
+        "3.40"
+      ],
+      [
+        "PBR",
+        "5.20"
+      ],
+      [
+        "APA",
+        "5.60"
+      ],
+      [
+        "BP",
+        "7.10"
+      ],
+      [
+        "YPF",
+        "7.50"
+      ],
+      [
+        "CF",
+        "7.60"
+      ],
+      [
+        "SHEL",
+        "7.60"
+      ],
+      [
+        "CTSH",
+        "8.00"
+      ],
+      [
+        "FOXA",
+        "8.30"
+      ],
+      [
+        "DINO",
+        "8.40"
+      ],
+      [
+        "SNY",
+        "8.40"
+      ],
+      [
+        "GIB",
+        "8.40"
+      ],
+      [
+        "SQM",
+        "8.60"
+      ],
+      [
+        "NVO",
+        "8.70"
+      ],
+      [
+        "CMCSA",
+        "8.90"
+      ],
+      [
+        "CI",
+        "9.00"
+      ],
+      [
+        "HPQ",
+        "9.20"
+      ],
+      [
+        "CHTR",
+        "9.40"
+      ],
+      [
+        "PHM",
+        "9.40"
+      ],
+      [
+        "MO",
+        "9.50"
+      ],
+      [
+        "RYAAY",
+        "9.70"
+      ],
+      [
+        "FMX",
+        "9.80"
+      ],
+      [
+        "ERIC",
+        "9.80"
+      ],
+      [
+        "BMY",
+        "10.20"
+      ],
+      [
+        "ZTS",
+        "10.30"
+      ],
+      [
+        "FSLR",
+        "10.40"
+      ],
+      [
+        "SBS",
+        "10.50"
+      ],
+      [
+        "LDOS",
+        "10.50"
+      ],
+      [
+        "SKHY",
+        "10.80"
+      ],
+      [
+        "BBY",
+        "11.40"
+      ],
+      [
+        "EIX",
+        "11.40"
+      ],
+      [
+        "CQP",
+        "11.70"
+      ],
+      [
+        "VICI",
+        "11.90"
+      ],
+      [
+        "CVS",
+        "11.90"
+      ],
+      [
+        "VZ",
+        "12.40"
+      ],
+      [
+        "KR",
+        "12.50"
+      ],
+      [
+        "BTI",
+        "12.50"
+      ],
+      [
+        "SONY",
+        "12.60"
+      ],
+      [
+        "LNG",
+        "12.80"
+      ],
+      [
+        "UPS",
+        "12.90"
+      ],
+      [
+        "FIS",
+        "13.90"
+      ],
+      [
+        "KVUE",
+        "14.10"
+      ],
+      [
+        "LOGI",
+        "14.30"
+      ],
+      [
+        "LOW",
+        "14.40"
+      ],
+      [
+        "EXEL",
+        "14.60"
+      ],
+      [
+        "SSNC",
+        "15.00"
+      ],
+      [
+        "OTIS",
+        "15.00"
+      ],
+      [
+        "FDX",
+        "15.20"
+      ],
+      [
+        "UL",
+        "15.40"
+      ]
     ],
     "fetched": "2026-09-19"
   },
@@ -518,11 +818,22 @@
     "fetched": "2026-09-19"
   },
   "news_yahoo": {
-    "value": "Subject Line: Morning Brief: OpenAI keeps admitting 'concerning' incidents\r\nPreheader: Plus: Analysts fear the Fed hike won\u2019t fix anything amid a 'hot mess' in oil markets.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBNS8NAEED3t8y5afar2Z2elCKIaDyoFy9hmp22gWSL2egi4n-XWoOnnt-8ecPcUOz6hrYjHWhoKL1ffdLheDxFxeYLhi7AGpTz6PTKGY-ryiIHkpUkbTUsoJ1gDb9OETmnnqeJx0J6o9EEtSXlrAwed6G1yKg9B96xKRQsYAyzesrBt3iZf_HRcV7-r0vL81TkqRw4JdpzKi8eVY6UxdPrbRPPdlPXz9e1ROW11FWrjfSVdeI-9krs6U0-PGZxN-PNH_4ZAA6kce085e9d\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to unsubscribe:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBPS8NAEMX3s8y5afZfs7s9KUUQ0XhQL17CJDttA8kWM4lBxO8utQZPnt-83294N5jarsJ6wCP2FfJ09YHH0-ksFbtP6NsIW1DOB6c3zviwKWygiLKQqK2GFTQjbOGnkyWauaNxpCGT3uhgoqpROSujD_vY2EBBe4q0J5MpWMEQl-pZB1_iZdnivaV5_Yfj9eUq0Zj3xIwH4vzfp_Ip8VRzM7Q1iafX2ypdKFVZPl-XMiivpS4abaQvrBP3qVPigG_y4XEWd0u8-42_BwAck58a7eda9",
+    "value": "Subject Line: Morning Brief: The Buffett era ends\r\nPreheader: Plus: A new Buffett era begins.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDBSsNAEED3W-bcNDu72STTk1IEEQmIevESJtlJG0i2mI0GEf9dag2ePL9584a54dAPNTcTH3msOb5dffDxdDpH1f4Txt7DDrAoqUSD6MhleeHItdyWRlvYQDvDDn6cJMgSB5lnmRLDBbkmM03XeZuRpa7ROWdWrPZdIZQgbGDyq3rOwZd6Xn_x3suy_VsXt5epIHM6Sox8kJj-e1Q68aIeX27rcLHrqnq6rjQhGW3y1lhEQqfuw4DqwK_Ohwd1t-L9L_4eAA8s507fcfdd\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to unsubscribe:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBBS_NAEIb3t8y5aTK72STT0_dRBBEJiHrxEmazkzaQbDGbWET871Jr8OT5nfd5hveGQz807CY-8thwXP698_F0ukjV_gPG3sMOsKyoQo1oyeZFacm23FY6M7CBdoYdfHeSIOc4yDzLlGguybpcu67zJidDncsKzo2YzHelUIKwgcmv1YsOPtXzusVbL-ftLy5ur1dB5nSUGPkgMf3zqXQJcXGxnXon6vHltglXSlPXT__rjJB0potWG0RCq-7DgOrAr9aHB3W3xvuf-GsA3t4dc3b6f5",
     "fetched": "2026-09-19"
   },
   "news_mcoscillator": {
     "value": "There has just been an improvement in the US trucking fleet data, according to the folks at Cass Information Systems, and it has bullish\r\n\r\nhttps://www.mcoscillator.com/market_reports/?utm_source=McClellan+Chart+In+Focus&utm_campaign=943c502092-email_cif_2026-09-18_cass_trucking_data_shift_posi&utm_medium=email&utm_term=0_9e79f8200f-943c502092-151652241\r\nChart In Focus\r\nCass Trucking Data Shift Positive (https://www.mcoscillator.com/learning_center/weekly_chart/cass_trucking_data_shift_positive/?utm_source=McClellan+Chart+In+Focus&utm_campaign=943c502092-email_cif_2026-09-18_cass_trucking_data_shift_posi&utm_medium=email&utm_term=0_9e79f8200f-943c502092-151652241)\r\nEnable Images to see chart or view in browser\r\n\r\nSeptember 18, 2026\r\n\r\nThere has just been an improvement in the US trucking fleet data, according to the folks at Cass Information Systems, and it has bullish implications for the stock market.\r\n\r\nCass publishes data (https://www.cassinfo.com/freight-audit-payment/cass-transportation-indexes?utm_source=McClellan+Chart+In+Focus&utm_campaign=943c502092-email_cif_2026-09-18_cass_trucking_data_shift_posi&utm_medium=email&utm_term=0_9e79f8200f-943c502092-151652241) each month on several categories of trucking data.  The chart above shows the 12-month rate of change (12ROC) for the Cass Freight Shipments and Expenditures Indices.  When both of these are positive, it carries a strong positive message for the stock market.  If both are negative, that carries a big negative m",
     "fetched": "2026-09-18"
+  },
+  "mhs_history": [
+    {
+      "date": "2026-09-19",
+      "score": 91,
+      "label": "EXTREME OVERHEATED"
+    }
+  ],
+  "news_yahoo_calendar": {
+    "value": "",
+    "fetched": "2026-09-19"
   }
 }
