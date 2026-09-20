@@ -181,6 +181,15 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
     rn   = 1
     today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
+    # Build a lookup of cache fetched dates by label so we can detect stale entries.
+    # main.py writes cache as: cache["fred_<label>"] = {"value": {...}, "fetched": "YYYY-MM-DD"}
+    # The indicator dict itself has no "cached" field -- we compare fetched date to today.
+    fred_fetched = {}
+    for key, val in cache.items():
+        if key.startswith("fred_") and isinstance(val, dict):
+            label = key[5:]  # strip "fred_" prefix
+            fred_fetched[label] = val.get("fetched", "")
+
     for g in group_order:
         gm    = GROUP_META.get(g, {"icon": "", "color": "#374151", "label": g})
         items = [r for r in fred_data if r.get("group") == g]
@@ -195,9 +204,10 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
             tc    = trend_color_fn(r["label"], g, r["trend"])
             spark = _sparkline_svg(r["current"], r["mo3"], r["mo12"])
 
-            is_cached   = r.get("cached", False)
-            cached_date = r.get("cached_date", "")
-            cache_html  = _cache_badge(cached_date) if is_cached else ""
+            # Amber badge: show when cached fetched date is not today (i.e. live fetch failed)
+            fetched_date = fred_fetched.get(r["label"], "")
+            is_stale     = bool(fetched_date and fetched_date != today_str)
+            cache_html   = _cache_badge(fetched_date) if is_stale else ""
 
             rows += (
                 f'<tr style="border-bottom:1px solid #f3f4f6;">'
@@ -233,7 +243,7 @@ def _build_screens_html(si_tickers, mf_list, am_list):
     am_dict = {t: m for t, m in am_list}   # ticker -> multiple_str
 
     all_tickers_set = sorted(set(si_tickers.keys()) | set(mf_dict.keys()) | set(am_dict.keys()))
-    all3 = []; two3 = []; si_only = []; mf_only_order = []; am_only_order = []
+    all3 = []; two3_raw = []; si_only = []; mf_only_order = []; am_only_order = []
 
     for t in all_tickers_set:
         in_si = si_tickers.get(t, 0) > 0
@@ -241,8 +251,18 @@ def _build_screens_html(si_tickers, mf_list, am_list):
         in_am = t in am_dict
         cnt   = (1 if in_si else 0) + (1 if in_mf else 0) + (1 if in_am else 0)
         if   cnt == 3: all3.append(t)
-        elif cnt == 2: two3.append(t)
+        elif cnt == 2: two3_raw.append(t)
         elif in_si:    si_only.append(t)
+
+    # Sort two3 by conviction: MF rank asc (lower=better), then AM multiple asc, then SI count desc
+    def _two3_sort_key(t):
+        mf_rank = mf_dict.get(t, 9999)
+        try:    am_mult = float(str(am_dict.get(t, "9999")).replace("x", ""))
+        except: am_mult = 9999.0
+        si_cnt  = si_tickers.get(t, 0)
+        return (mf_rank, am_mult, -si_cnt, t)
+
+    two3 = sorted(two3_raw, key=_two3_sort_key)
         # MF-only and AM-only will be built in rank order separately below
 
     # MF-only in rank order (those not in SI or AM)
@@ -501,9 +521,16 @@ def _build_weekly_calendar(cache, yahoo_calendar):
     where week_of is the Monday date of the current week (ISO format).
     """
     # Determine this week's Monday
-    now         = datetime.now(MT)
+    now               = datetime.now(MT)
     days_since_monday = now.weekday()  # 0=Mon, 6=Sun
-    this_monday = (now - timedelta(days=days_since_monday)).strftime("%Y-%m-%d")
+    this_monday       = (now - timedelta(days=days_since_monday)).strftime("%Y-%m-%d")
+
+    # Compute actual calendar dates for Mon-Fri of this week for day labels
+    monday_dt = now - timedelta(days=days_since_monday)
+    week_dates = {}
+    for i, day in enumerate(_WEEKDAYS):
+        dt = monday_dt + timedelta(days=i)
+        week_dates[day] = dt.strftime("%-m/%-d")  # e.g. "9/15"
 
     # On Monday (weekday==0): store fresh calendar from Yahoo Brief
     if now.weekday() == 0 and yahoo_calendar and len(yahoo_calendar.strip()) > 100:
@@ -513,18 +540,14 @@ def _build_weekly_calendar(cache, yahoo_calendar):
         }
         print(f"  📅 Weekly calendar stored for week of {this_monday}")
         calendar_text = yahoo_calendar
-        source_note   = "Yahoo Finance Morning Brief (today)"
     else:
         # Tue-Fri: try cache first
         stored = cache.get("weekly_calendar", {})
         if stored.get("week_of") == this_monday and stored.get("text"):
             calendar_text = stored["text"]
-            source_note   = f"Yahoo Morning Brief (Mon {this_monday})"
             print(f"  📅 Using cached weekly calendar for week of {this_monday}")
         elif yahoo_calendar and len(yahoo_calendar.strip()) > 50:
-            # Fallback: use today's partial calendar
             calendar_text = yahoo_calendar
-            source_note   = "Yahoo Finance Morning Brief (partial -- no Monday cache)"
         else:
             return ""  # Nothing to show
 
@@ -533,49 +556,60 @@ def _build_weekly_calendar(cache, yahoo_calendar):
     # Build 5-day box layout
     today_name = now.strftime("%A")  # e.g. "Tuesday"
 
+    def _bullet_items(raw_items, color):
+        """Split semicolon-joined items into individual bullets."""
+        bullets = []
+        for raw in raw_items:
+            # Items may be semicolon-separated (Yahoo format) or already split
+            for part in raw.split(";"):
+                part = part.strip()
+                if part:
+                    bullets.append(part)
+        return "".join(
+            f'<div style="display:flex;gap:4px;padding:2px 0;border-bottom:1px solid #f3f4f6;">'
+            f'<span style="color:{color};font-size:.65rem;flex-shrink:0;">▸</span>'
+            f'<span style="font-size:.62rem;color:#374151;line-height:1.4;">{b}</span></div>'
+            for b in bullets
+        )
+
     day_boxes = ""
     for day in _WEEKDAYS:
         data      = days_data[day]
         is_today  = (day == today_name)
-        has_data  = data["eco"] or data["earn"]
         border    = "#1a56db" if is_today else "#e5e7eb"
         bg        = "#f0f6ff" if is_today else "#ffffff"
         hdr_col   = "#1a56db" if is_today else "#374151"
-        today_tag = (' <span style="background:#1a56db;color:white;font-size:.5rem;'
+        date_str  = week_dates.get(day, "")
+        today_tag = (' <span style="background:#1a56db;color:white;font-size:.48rem;'
                      'padding:1px 4px;border-radius:3px;font-weight:700;">TODAY</span>'
                      if is_today else "")
 
-        eco_html  = ""
+        eco_html = ""
         if data["eco"]:
-            items = "".join(
-                f'<div style="font-size:.63rem;color:#374151;padding:1px 0;'
-                f'border-bottom:1px solid #f3f4f6;">{e}</div>'
-                for e in data["eco"]
+            eco_html = (
+                f'<div style="font-size:.53rem;font-weight:700;color:#b45309;'
+                f'text-transform:uppercase;letter-spacing:.5px;margin:5px 0 2px;">Economic</div>'
+                + _bullet_items(data["eco"], "#b45309")
             )
-            eco_html = (f'<div style="font-size:.55rem;font-weight:700;color:#b45309;'
-                        f'text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;'
-                        f'margin-top:5px;">Economic</div>{items}')
         else:
-            eco_html = '<div style="font-size:.62rem;color:#9ca3af;">No key data</div>'
+            eco_html = '<div style="font-size:.6rem;color:#9ca3af;margin-top:4px;">No key data</div>'
 
         earn_html = ""
         if data["earn"]:
-            items = "".join(
-                f'<div style="font-size:.63rem;color:#057a55;padding:1px 0;">{e}</div>'
-                for e in data["earn"]
+            earn_html = (
+                f'<div style="font-size:.53rem;font-weight:700;color:#059669;'
+                f'text-transform:uppercase;letter-spacing:.5px;margin:5px 0 2px;">Earnings</div>'
+                + _bullet_items(data["earn"], "#059669")
             )
-            earn_html = (f'<div style="font-size:.55rem;font-weight:700;color:#059669;'
-                         f'text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;'
-                         f'margin-top:5px;">Earnings</div>{items}')
         else:
-            earn_html = '<div style="font-size:.62rem;color:#9ca3af;margin-top:4px;">No notable earnings</div>'
+            earn_html = '<div style="font-size:.6rem;color:#9ca3af;margin-top:4px;">No notable earnings</div>'
 
         day_boxes += f"""
 <div style="background:{bg};border:1px solid {border};border-radius:8px;
             padding:8px 10px;min-width:0;overflow:hidden;">
-  <div style="font-weight:700;font-size:.75rem;color:{hdr_col};
+  <div style="font-weight:700;font-size:.73rem;color:{hdr_col};
               border-bottom:1px solid {border};padding-bottom:4px;margin-bottom:4px;">
-    {day[:3].upper()}{today_tag}
+    {day[:3].upper()} <span style="font-weight:400;font-size:.62rem;color:#9ca3af;">{date_str}</span>{today_tag}
   </div>
   {eco_html}
   {earn_html}
@@ -586,16 +620,12 @@ def _build_weekly_calendar(cache, yahoo_calendar):
 
     return f"""
 <div class="card" style="margin-bottom:12px;border-left:4px solid #059669;">
-  <h2>📅 Week Ahead
-    <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      {source_note} · stored Mon, shown all week
-    </span>
-  </h2>
+  <h2>📅 Earnings &amp; Economic Calendar for the Week</h2>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
     {day_boxes}
   </div>
   <div style="font-size:.58rem;color:#9ca3af;margin-top:6px;">
-    Monday's brief has full Mon-Fri calendar · cached each Monday · refreshes next Monday
+    Cached from Monday's brief · refreshes each Monday · economic events and notable earnings only
   </div>
 </div>"""
 
@@ -1303,6 +1333,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 <div class="container">
   {ai_alert}
 
+  <!-- 1. AI Fun Fact + AI Learning -- quick daily orientation -->
   <div class="grid-2" style="margin-bottom:12px;">
     <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;
                 padding:11px 16px;display:flex;align-items:center;gap:12px;">
@@ -1324,6 +1355,10 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     </div>
   </div>
 
+  <!-- 2. Weekly Calendar -- what events matter this week, read before anything else -->
+  {_build_weekly_calendar(cache, yahoo_calendar)}
+
+  <!-- 3. MHS -- macro posture, sets the decision framework -->
   <div class="card" style="margin-bottom:12px;border-left:4px solid {mhs_col};">
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div style="flex-shrink:0;">
@@ -1353,6 +1388,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     {mhs_chart_html}
   </div>
 
+  <!-- 4. Market Performance + Sentiment -- where are we right now -->
   <div class="grid-2" style="margin-bottom:12px;">
     {gauge_section}
     <div class="card aa">
@@ -1367,25 +1403,35 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     </div>
   </div>
 
+  <!-- 5. Global Valuation -- the structural backdrop -->
   {valuation_block}
 
+  <!-- 6. Market & Macro + What to Watch -- AI interpretation, true 2-column -->
   <div class="card ab" style="margin-bottom:12px;">
     <h2>📊 Market &amp; Macro
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
         · macro interpretation + what to watch
       </span>
     </h2>
-    <div style="columns:2;column-gap:20px;column-rule:1px solid #f3f4f6;">
-      <ul style="margin:0;break-inside:avoid-column;">
-        {fmt_bullets(_merge_macro_sections(
-            secs.get("MARKET AND MACRO",""),
-            secs.get("WHAT TO WATCH","")))}
-      </ul>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <div style="font-size:.53rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+                    color:var(--blue);margin-bottom:6px;">Macro Interpretation</div>
+        <ul style="margin:0;">
+          {fmt_bullets(secs.get("MARKET AND MACRO",""))}
+        </ul>
+      </div>
+      <div>
+        <div style="font-size:.53rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
+                    color:#059669;margin-bottom:6px;">What to Watch</div>
+        <ul style="margin:0;">
+          {fmt_bullets(secs.get("WHAT TO WATCH",""))}
+        </ul>
+      </div>
     </div>
   </div>
 
-  {_build_weekly_calendar(cache, yahoo_calendar)}
-
+  <!-- 7. Value Screens -- who to look at -->
   <div class="card ab" style="margin-bottom:12px;">
     <h2>📋 Value Screens
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
@@ -1398,18 +1444,19 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <div style="font-size:.67rem;color:#6b7280;background:#f0f9ff;border-radius:5px;
                 padding:6px 10px;line-height:1.6;margin-top:8px;">
       <strong>How to use:</strong> Blue (All 3) = highest conviction.
-      Green (2 of 3) = strong convergence.
+      Green (2 of 3) = strong convergence. Sorted by MF rank then AM multiple.
       Cross-reference with Finviz. Left Leg &lt;4 + MoS &gt;25% = strong setup.
       13F lag: ~45 days after quarter end. MF and AM update daily.
     </div>
   </div>
 
+  <!-- 8. Macro Indicators -- detailed reference table -->
   <div class="card" style="margin-bottom:12px;">
     <h2>🏦 Macro Indicators
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
         FRED API · Gold via Yahoo GC=F · CAPE via multpl.com ·
         sparkline = 12mo to 3mo to today · green=good / red=bad for equities ·
-        amber badge = cached value (live fetch failed)
+        amber badge = value from prior run (today's fetch used cache)
       </span>
     </h2>
     <div style="overflow-x:auto;">
