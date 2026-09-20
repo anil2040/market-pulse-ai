@@ -190,6 +190,15 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
             label = key[5:]  # strip "fred_" prefix
             fred_fetched[label] = val.get("fetched", "")
 
+    # Amber badge staleness threshold:
+    # Pipeline and FRED don't update on weekends, so never flag stale on Sat/Sun.
+    # On weekdays, only flag if data is strictly older than yesterday (i.e. 2+ days old).
+    # This handles Mon correctly: Friday's data is 3 days old and should be flagged.
+    now_utc    = datetime.now(timezone.utc)
+    is_weekday = now_utc.weekday() < 5  # 0=Mon...4=Fri
+    # Stale = fetched date is earlier than yesterday (gives 1 day grace for lag)
+    stale_before = (now_utc - timedelta(days=1)).strftime("%Y-%m-%d")
+
     for g in group_order:
         gm    = GROUP_META.get(g, {"icon": "", "color": "#374151", "label": g})
         items = [r for r in fred_data if r.get("group") == g]
@@ -204,9 +213,11 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
             tc    = trend_color_fn(r["label"], g, r["trend"])
             spark = _sparkline_svg(r["current"], r["mo3"], r["mo12"])
 
-            # Amber badge: show when cached fetched date is not today (i.e. live fetch failed)
+            # Amber badge: only on weekdays, only when data is 2+ days old
             fetched_date = fred_fetched.get(r["label"], "")
-            is_stale     = bool(fetched_date and fetched_date != today_str)
+            is_stale     = bool(
+                is_weekday and fetched_date and fetched_date < stale_before
+            )
             cache_html   = _cache_badge(fetched_date) if is_stale else ""
 
             rows += (
@@ -623,9 +634,6 @@ def _build_weekly_calendar(cache, yahoo_calendar):
   <h2>📅 Earnings &amp; Economic Calendar for the Week</h2>
   <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;">
     {day_boxes}
-  </div>
-  <div style="font-size:.58rem;color:#9ca3af;margin-top:6px;">
-    Cached from Monday's brief · refreshes each Monday · economic events and notable earnings only
   </div>
 </div>"""
 
@@ -1306,7 +1314,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 .grid-2{{display:grid;grid-template-columns:1fr 1fr;gap:12px;}}
 .grid-3{{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}}
 .card{{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;box-shadow:0 1px 3px rgba(0,0,0,.04);}}
-.card h2{{font-size:.62rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);margin-bottom:9px;padding-bottom:7px;border-bottom:2px solid var(--border);}}
+.card h2{{font-size:.76rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--blue);margin-bottom:9px;padding-bottom:7px;border-bottom:2px solid var(--border);}}
 .card.ag{{border-left:4px solid var(--green);}} .card.ab{{border-left:4px solid var(--blue);}}
 .card.aa{{border-left:4px solid var(--amber);}} .card.ar{{border-left:4px solid var(--red);}}
 .card ul{{list-style:none;padding:0;margin:0;}}
@@ -1360,10 +1368,11 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 
   <!-- 3. MHS -- macro posture, sets the decision framework -->
   <div class="card" style="margin-bottom:12px;border-left:4px solid {mhs_col};">
+    <h2>🌡 MHS · Macro Heat Score</h2>
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div style="flex-shrink:0;">
         <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-                    color:var(--muted);margin-bottom:3px;">MHS · Macro Heat Score</div>
+                    color:var(--muted);margin-bottom:3px;">Score</div>
         <div style="font-size:2rem;font-weight:800;color:{mhs_col};line-height:1;">
           {mhs_score}<span style="font-size:.85rem;color:var(--muted);">/100</span></div>
       </div>
@@ -1454,9 +1463,8 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   <div class="card" style="margin-bottom:12px;">
     <h2>🏦 Macro Indicators
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-        FRED API · Gold via Yahoo GC=F · CAPE via multpl.com ·
-        sparkline = 12mo to 3mo to today · green=good / red=bad for equities ·
-        amber badge = value from prior run (today's fetch used cache)
+        sparkline = 12mo → 3mo → today · green=good / red=bad for equities ·
+        amber badge = prior run data (live fetch failed)
       </span>
     </h2>
     <div style="overflow-x:auto;">
