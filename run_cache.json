@@ -13,7 +13,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 Above avg but decelerating -- progress toward 2% but not there yet"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Core CPI": {
     "value": {
@@ -29,7 +29,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Re-heating -- service sector inflation erodes real returns and PE expansion"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_PCE Inflation": {
     "value": {
@@ -45,7 +45,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Core PCE": {
     "value": {
@@ -61,7 +61,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Re-accelerating at 65% above Fed target -- hike risk rising, PE compression ahead"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_10Y Treasury": {
     "value": {
@@ -77,7 +77,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Approaching levels where bonds compete with equities on yield -- watch spread compression"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_2Y Treasury": {
     "value": {
@@ -93,7 +93,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Higher 2Y locks in restrictive financial conditions -- reduces room for P/E expansion"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Yield Curve (10Y-2Y)": {
     "value": {
@@ -109,7 +109,7 @@
       "date": "Sep 18 2026",
       "sig": "\u2192 Nearly flat -- disinversion underway but not yet a steepening growth signal; watch direction"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Fed Funds Rate": {
     "value": {
@@ -125,7 +125,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 On hold -- Fed is watching; next move direction matters more than current level"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_HY Credit Spread": {
     "value": {
@@ -141,7 +141,7 @@
       "date": "Sep 17 2026",
       "sig": "\u2192 Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Unemployment": {
     "value": {
@@ -157,7 +157,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 Near historical norm -- labor not a swing factor for macro direction today"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_WTI Crude Oil": {
     "value": {
@@ -174,7 +174,7 @@
       "date": "Sep 15 2026",
       "sig": "\u26a0\ufe0f Above $100 and rising -- stagflation risk: energy tax on consumers, input cost spike for industry"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Gold Price": {
     "value": {
@@ -185,14 +185,14 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,425",
-      "mo3": "$4,381",
-      "mo12": "$3,677",
+      "current": "$4,417",
+      "mo3": "$4,246",
+      "mo12": "$3,682",
       "trend": "\u25b2",
-      "date": "Sep 18 2026",
+      "date": "Sep 20 2026",
       "sig": "\u2192 Gold surging +20% yr -- real rates concern or dollar debasement fear; watch DXY correlation"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_US Dollar (DXY)": {
     "value": {
@@ -209,7 +209,7 @@
       "date": "Sep 11 2026",
       "sig": "\u2192 Dollar softening -- gradually improving backdrop for international ADR positions"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Consumer Sentiment": {
     "value": {
@@ -226,7 +226,7 @@
       "date": "Jul 01 2026",
       "sig": "\u2192 Below-average sentiment -- consumer cautious but not collapsing; watch for inflection"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fred_Shiller CAPE (US)": {
     "value": {
@@ -240,10 +240,10 @@
       "mo3": "40.9",
       "mo12": "40.9",
       "trend": "\u2192",
-      "date": "Sep 19 2026",
+      "date": "Sep 20 2026",
       "sig": "\u26a0\ufe0f 2.4x the 145yr avg -- only dot-com peak (44x) was higher; 10yr forward returns historically near zero from this level"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "fear_greed": {
     "value": {
@@ -257,7 +257,7 @@
       "prev_year": 67,
       "cached": false
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "market_indicators": {
     "value": {
@@ -292,116 +292,216 @@
       "market_status_label": "",
       "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 14.8 (CALM) -- indecisive -- focus on individual catalysts"
     },
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "screens_si": {
-    "value": {
-      "ASH": 2,
-      "META": 14,
-      "EGO": 1,
-      "MSFT": 18,
-      "SPGI": 9,
-      "MA": 7,
-      "PDD": 3,
-      "WBD": 3,
-      "AMZN": 11,
-      "V": 14,
-      "BRK.B": 11,
-      "BDX": 5,
-      "UBER": 5,
-      "AIIR": 1,
-      "GPI": 2,
-      "AJG": 4,
-      "TSM": 7,
-      "ORLAOL": 2,
-      "GOOGL": 4,
-      "NFLX": 6,
-      "ACN": 5,
-      "AMAT": 2,
-      "XRAY": 2,
-      "FRPT": 1,
-      "KHC": 3,
-      "GOOG": 9,
-      "CR": 1,
-      "HD": 6,
-      "YNDX": 1,
-      "STX": 3,
-      "MDLN": 2,
-      "GEHC": 5,
-      "APP": 2,
-      "MCO": 2,
-      "SPOT": 2,
-      "PVH": 3,
-      "IEP": 1,
-      "APH": 4,
-      "SPUU": 1,
-      "BKNG": 4,
-      "GEV": 5,
-      "DASH": 2,
-      "DVN": 5,
-      "TTMI": 3,
-      "SUNB": 4,
-      "BABA": 4,
-      "AAL": 2,
-      "VGNT": 2,
-      "GPGI": 1,
-      "GPC": 3,
-      "APTV": 2,
-      "LIN": 2,
-      "COF": 8,
-      "KEYS": 2,
-      "XYZ": 2,
-      "ROP": 3,
-      "ABT": 3,
-      "TJX": 3,
-      "TMO": 8,
-      "PFGC": 4,
-      "BFAM": 2,
-      "ICLR": 5,
-      "AZN": 1,
-      "INTU": 5,
-      "MAIR": 1,
-      "TEL": 6,
-      "RKT": 2,
-      "VMC": 3,
-      "TWLO": 2,
-      "FLEX": 2,
-      "LYV": 3,
-      "CRH": 3,
-      "VEEV": 5,
-      "ADP": 4,
-      "BLDR": 4,
-      "NSC": 1,
-      "HHH": 1,
-      "CME": 4,
-      "AMD": 4,
-      "FBIN": 3,
-      "ZTS": 3,
-      "KKR": 3,
-      "Z": 1,
-      "ELV": 6,
-      "UNP": 4,
-      "STRL": 1,
-      "SNOW": 2,
-      "ONON": 2,
-      "DHR": 8,
-      "FERG": 6,
-      "APD": 5,
-      "EFX": 4,
-      "CBRS": 1,
-      "BA": 4,
-      "SAP": 5,
-      "WHK": 1,
-      "GXO": 1,
-      "GPN": 4,
-      "CTSH": 4,
-      "GDS": 2
-    },
-    "fetched": "2026-09-19"
+    "value": {},
+    "fetched": "2026-09-20"
   },
   "screens_mf": {
-    "value": [],
-    "fetched": "2026-09-19"
+    "value": [
+      [
+        "ANF",
+        1
+      ],
+      [
+        "ADBE",
+        2
+      ],
+      [
+        "MO",
+        3
+      ],
+      [
+        "DOX",
+        4
+      ],
+      [
+        "BBWI",
+        5
+      ],
+      [
+        "BHC",
+        6
+      ],
+      [
+        "BCRX",
+        7
+      ],
+      [
+        "BMY",
+        8
+      ],
+      [
+        "BKE",
+        9
+      ],
+      [
+        "CARG",
+        10
+      ],
+      [
+        "GIB",
+        11
+      ],
+      [
+        "CTSH",
+        12
+      ],
+      [
+        "CROX",
+        13
+      ],
+      [
+        "CVS",
+        14
+      ],
+      [
+        "DECK",
+        15
+      ],
+      [
+        "DBD",
+        16
+      ],
+      [
+        "EPAM",
+        17
+      ],
+      [
+        "FOXA",
+        18
+      ],
+      [
+        "IT",
+        19
+      ],
+      [
+        "GEN",
+        20
+      ],
+      [
+        "GDDY",
+        21
+      ],
+      [
+        "LOPE",
+        22
+      ],
+      [
+        "GRGDF",
+        23
+      ],
+      [
+        "HRB",
+        24
+      ],
+      [
+        "HRMY",
+        25
+      ],
+      [
+        "HAS",
+        26
+      ],
+      [
+        "HPQ",
+        27
+      ],
+      [
+        "WLY",
+        28
+      ],
+      [
+        "KBR",
+        29
+      ],
+      [
+        "KFY",
+        30
+      ],
+      [
+        "LDOS",
+        31
+      ],
+      [
+        "LULU",
+        32
+      ],
+      [
+        "OMC",
+        33
+      ],
+      [
+        "OTEX",
+        34
+      ],
+      [
+        "MD",
+        35
+      ],
+      [
+        "PNR",
+        36
+      ],
+      [
+        "PRDO",
+        37
+      ],
+      [
+        "PBI",
+        38
+      ],
+      [
+        "SIRI",
+        39
+      ],
+      [
+        "LRN",
+        40
+      ],
+      [
+        "SGHC",
+        41
+      ],
+      [
+        "TPR",
+        42
+      ],
+      [
+        "TDC",
+        43
+      ],
+      [
+        "CI",
+        44
+      ],
+      [
+        "TNET",
+        45
+      ],
+      [
+        "VSNT",
+        46
+      ],
+      [
+        "VNT",
+        47
+      ],
+      [
+        "WDOFF",
+        48
+      ],
+      [
+        "WH",
+        49
+      ],
+      [
+        "ZD",
+        50
+      ]
+    ],
+    "fetched": "2026-09-20"
   },
   "screens_am": {
     "value": [
@@ -606,23 +706,23 @@
         "15.40"
       ]
     ],
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "news_ej": {
     "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nFriday 9/18/2026 p.m.\nStocks mixed following yesterday's gains\n- The Nasdaq finished higher, led by semiconductor stocks, while the Dow ended slightly lower following the post-Fed rally. Oil prices fell for the third consecutive day, but that didn\u2019t stop bond yields from rising. On the macroeconomic front, the biggest development was the Bank of Japan's decision to raise interest rates by a quarter point to 1.25%, as expected, marking the highest policy rate since 1995. However, the yen weakened against the U.S. dollar as the vote included two dissents, fueling some skepticism about the pace of future policy tightening. The S&P 500 was little changed for the week, as strength in communication services, healthcare, and technology stocks was offset by weakness in the utilities and financials sectors.\nLong-term yields little changed after Fed hike\n- After a busy week for central banks, bond prices stabilized somewhat this week, though with yields remaining near multi-year highs. The Fed hiked interest rates this month for the first time since 2023, and officials are pointing to one more hike before the end of the year. With consumer spending resilient, the AI buildout continuing, and the labor market solid, the Fed was running out of reasons to stay on the sidelines after more than five years of above-target inflation. While the latest move by the Fed isn't likely one-and-done, it also doesn't look to us like the start of an aggressive rate-hiking cycle. In our view, the Fed isn't as far behind the curve as it was in 2022. A mid-cycle adjustment that potentially unwinds the rate cuts delivered last year, while leaving the 2024 cuts in place, is our base case. We believe equities responded positively and long-term bond yields declined following the hike because the move reinforced the Fed's inflation-fighting credibility and independence. As a result, long-term market-based inflation expectations eased and remain consistent with the Fed achieving its inflation target over time.\nOil prices and geopolitics in focus next week\n\u2013 Despite today's divergence, the positive relationship between oil prices and bond yields has strengthened to its highest level since 2020, as ongoing tensions in the Middle East have become a key driver of inflation this year. As a result, developments in energy markets will remain important for both central bank policy and global trade. Looking ahead to next week, the main event will be the September 24 meeting between President Trump and Chinese President Xi Jinping, marking Xi's first trip to the United States since 2023. Expectations are that the meeting will lead to an extension of the U.S.-China trade truce, which is currently set to expire in November. Trump is also expected to meet with Gulf state leaders to discuss the conflict involving Iran. On the economic calendar, it will be a relatively quiet week, with the preliminary U.S. Purchasing Managers' Index (PMI) scheduled for release on Wednesday.\nAngelo Kourkafas, CFA\n;\nInvestment Strategy\nSource for all data: Bloomberg.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "news_cnbc": {
     "value": "5 things to know before the market opens Thursday\nVIEW IN BROWSER\n|\nCNBC NEWSLETTERS\nTHU, SEP 03, 2026\nDOW\nFUTURES\n+0.42%\nS&P 500 FUTURES\n+0.19%\nNASDAQ 100 FUTURES\n+0.02%\nData as of 8:30 a.m. ET\nThink a friend or colleague should be getting this newsletter? Share\nthis link\nwith them to sign up.\nAlex Harring\nCNBC Reporter & Morning Squawk Writer\nHappy Thursday. Breaking news this morning:\u00a0Nvidia\u00a0has agreed to buy open-source artificial intelligence platform Hugging Face\nfor nearly $13 billion.\nStock futures\nare mixed this morning after a\nwinning day\non Wall Street.\nHere are five key things investors need to know to start the trading day:\n1. Summit up\nThe G20 wrapped up its two-day Innovation Ministerial yesterday, where technology leaders and government representatives talked artificial intelligence, data centers and tariffs.\nHere are some of the biggest headlines out of the gathering:\nNvidia CEO Jensen Huang said that AI will \u201cdemocratize intelligence\u201d for G20 countries and called the technology \u201cthe great equalizer.\u201d\nOpenAI CEO Sam Altman, meanwhile, said using AI is a \u201cnon-negotiable\u201d for countries, comparing the adoption of AI to the adoption of electricity.\nPalantir\u00a0CEO Alex Karp acknowledged that there are \u201chuge dangers\u201d to the technology but pushed back on what he called the \u201cdoom message\u201d around AI. He appeared to allude to Anthropic and its CEO, who have warned about the technology\u2019s risks.\nOn the data center front, Anthropic co-founder Tom Brown said he \u201creally loved\u201d President Donald Trump\u2019s Monday Truth Social post, in which the president said communities who opposed data centers \u201cwant to end up being backwards and poor.\u201d\nCommerce Secretary Howard Lutnick said that data centers will \u201cbring prosperity\u201d and are \u201cgetting a bad rap.\u201d He also downplayed the facilities\u2019 water consumption.\nCatch up on all the biggest moments here.\n2. Bond, John Bond\nAfter hitting its\nhighest level since 2023\n, the\u00a010-year U.S. Treasury\u00a0yield pulled back in Wednesday\u2019s session, providing relief for other corners of the market.\nNew York Federal Reserve President John Williams\u00a0told CNBC yesterday\u00a0that the recent yield jumps should be seen as\na sign of a strong economy\nrather than as market dysfunction. Williams also said he would have to \u201cwait and see\u201d before deciding whether an interest rate hike would be necessary to calm inflation.\nThe three major averages snapped three-day losing streaks yesterday.\nFollow live market updates here.\n3. Snow forecast\nSnowflake\u00a0soared 24%",
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "news_yahoo": {
-    "value": "Subject Line: Morning Brief: The Buffett era ends\r\nPreheader: Plus: A new Buffett era begins.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDBSsNAEED3W-bcNDu72STTk1IEEQmIevESJtlJG0i2mI0GEf9dag2ePL9584a54dAPNTcTH3msOb5dffDxdDpH1f4Txt7DDrAoqUSD6MhleeHItdyWRlvYQDvDDn6cJMgSB5lnmRLDBbkmM03XeZuRpa7ROWdWrPZdIZQgbGDyq3rOwZd6Xn_x3suy_VsXt5epIHM6Sox8kJj-e1Q68aIeX27rcLHrqnq6rjQhGW3y1lhEQqfuw4DqwK_Ohwd1t-L9L_4eAA8s507fcfdd\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to unsubscribe:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBBS_NAEIb3t8y5aTK72STT0_dRBBEJiHrxEmazkzaQbDGbWET871Jr8OT5nfd5hveGQz807CY-8thwXP698_F0ukjV_gPG3sMOsKyoQo1oyeZFacm23FY6M7CBdoYdfHeSIOc4yDzLlGguybpcu67zJidDncsKzo2YzHelUIKwgcmv1YsOPtXzusVbL-ftLy5ur1dB5nSUGPkgMf3zqXQJcXGxnXon6vHltglXSlPXT__rjJB0potWG0RCq-7DgOrAr9aHB3W3xvuf-GsA3t4dc3b6f5",
-    "fetched": "2026-09-19"
+    "value": "Subject Line: Morning Brief: 3 notable business takes that flew under the radar\r\nPreheader: A note from our Executive Editor's desk.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJBNT8MwDEDzW3xeVyfrR7ITaAIhhHoBLlwqJ3W2Sm0mmrIIIf47GqPitPPz87N8R6EfWrITHWhsKX7cfNLheDxHxe4Lxr6DLchaG210YbRCJO-RC5TeWgsrcDNs4dfJAqc48DzzlMmKu7JUqiqRS2O1p42t0fm6IFewc5mEFUzdop5z8C1el1-cek7r_3VxfZkKPOcjx0h7jvnVo_KJknh-e2jDxW6b5uW2QaNQoaqc2khpZC2ewiDFnt6z030Sjwve_eGfAQA0kbf438c42\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to unsubscribe:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDNTsMwEIT9LHtumrWbH7snUAVCCOUCXLhEa2fdRkpcESeNEOLdUQkRJ86z832ruaPQdjXZgU7U1xSnmw86nc9XqTh8Qt82sAdZaqONzoxWiOQ9cobSW2thA26EPfx0ksBz7HgceUhkwU2eK1XkyLmx2tPOluh8mZHL2LlEwgaGZq1edfAlXtctLi3P2z9c3C5Xgce05xjpyDH996l0CnGy0Q2tZfH89lCHhVJX1ctthUahQlU4tZPSyFI8hU6KI70nl_tZPK7x4Tf-HgA2l9930b4f7",
+    "fetched": "2026-09-20"
   },
   "news_yahoo_calendar": {
     "value": "",
-    "fetched": "2026-09-19"
+    "fetched": "2026-09-20"
   },
   "weekly_calendar": {
     "week_of": "2026-09-14",
@@ -661,6 +761,11 @@
     },
     {
       "date": "2026-09-19",
+      "score": 91,
+      "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-20",
       "score": 91,
       "label": "EXTREME OVERHEATED"
     }
