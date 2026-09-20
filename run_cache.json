@@ -624,6 +624,10 @@
     "value": "",
     "fetched": "2026-09-19"
   },
+  "weekly_calendar": {
+    "week_of": "2026-09-14",
+    "text": "Monday\nEconomic data: No notable economic data.\nEarnings calendar: AnaptysBio (ANAB); Kestra Medical Technologies (KMTS); Dave & Buster's Entertainment (PLAY)\nTuesday\nEconomic data: ADP weekly employment change, week ended Aug. 29 (+12,000 previously); Empire manufacturing, September (14.1 expected, 20.6 previously)\nEarnings calendar: Forgent Power Solutions (FPS); Vera Bradley (VRA)\nWednesday\nEconomic data: FOMC rate decision; MBA mortgage applications, week ended Sept. 11 (-2.7% previously); New York Fed services business activity, September (0.5 previously); Retail sales advance, month-on-month, August (+0.9% expected, -0.6% previously); Retail sales ex auto and gas, month-on-month, August (+0.4% expected, -0.2% previously); Import price index, year-on-year, August (+5.9% previously); Export price index, year-on-year, August (+8.2% previously); Business inventories, July (+0.2% expected, +0% previously); NAHB housing market index, September (34 expected, 35 previously)\nEarnings calendar: Lennar Corporation (LEN)\nThursday\nEconomic data: Philadelphia Fed business outlook, September (28.6 expected, 47.4 previously); Initial jobless claims, week ended Sept. 12 (206,000 previously); Continuing claims, week ended Sept. 5 (1.774 million previously); Housing starts, month-on-month, August (1.315 million expected, 1.239 million previously); Building permits, month-on-month, August preliminary reading (-0.9% expected, +4.3% previously)\nEarnings calendar: No notable earnings.\nFriday\nEconomic data: Industrial production, month-on-month, August (+0.3% expected, +0.2% previously); Manufacturing production, month-on-month, August (+0.3% expected, +0.2% previously); Capacity utilization, August (76.4% expected, 76.3% previously)\nEarnings calendar: No notable earnings."
+  },
   "mhs_history": [
     {
       "date": "2026-09-12",
