@@ -692,7 +692,8 @@ def _build_mhs_history_chart(cache):
     n       = len(scores)
 
     # Chart dimensions -- no separate right panel, legend lives inside chart bands
-    W = 560; H = 160; PAD_L = 36; PAD_R = 10; PAD_T = 10; PAD_B = 24
+    # W=680 gives the inline zone labels enough room on the right without blank space
+    W = 680; H = 160; PAD_L = 36; PAD_R = 10; PAD_T = 10; PAD_B = 24
     chart_w = W - PAD_L - PAD_R
     chart_h = H - PAD_T - PAD_B
 
@@ -1061,6 +1062,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
   }}
 
   function fetchTicker(sym, callback) {{
+    // range=1d&interval=1m gives intraday bars so we can compute real chg vs prev close.
+    // regularMarketChangePercent from meta is also reliable and used as primary source.
     var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + sym +
               "?interval=1d&range=2d&cors=true";
     fetch(url, {{headers: {{"Accept": "application/json"}}}})
@@ -1069,10 +1072,16 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         var meta = d.chart.result[0].meta;
         var p    = parseFloat(meta.regularMarketPrice || 0);
         var pv   = parseFloat(meta.previousClose || p);
-        // Always compute manually -- never trust regularMarketChangePercent
-        var chg  = pv ? (p - pv) / pv * 100 : 0;
+        // Use regularMarketChangePercent as primary -- Yahoo populates this correctly
+        // both during trading and after close. Manual calc from range=2d fails after
+        // close because regularMarketPrice == previousClose in the meta response.
+        var chgPct = parseFloat(meta.regularMarketChangePercent || 0);
+        // Cross-check: if Yahoo gives 0 but prices differ, compute manually
+        if (chgPct === 0 && pv && Math.abs(p - pv) > 0.01) {{
+          chgPct = (p - pv) / pv * 100;
+        }}
         var state = meta.marketState || "UNKNOWN";
-        callback(null, {{price:p, prev:pv, chg:chg, state:state}});
+        callback(null, {{price:p, prev:pv, chg:chgPct, state:state}});
       }})
       .catch(function(e) {{ callback(e, null); }});
   }}

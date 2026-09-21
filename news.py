@@ -222,6 +222,15 @@ def _extract_calendar(body_text):
                 end_idx = candidate
 
     calendar_text = body_text[start_idx:end_idx].strip()
+
+    # BeautifulSoup get_text() inserts newlines inside hyperlinks, so Yahoo's
+    # "THOR Industries (THO), KB Home (KBH)" becomes:
+    #   "THOR Industries\n(\nTHO\n), KB Home\n(\nKBH\n)"
+    # Collapse those fragments back into "Name (TICKER)" on one line.
+    calendar_text = re.sub(r"([A-Za-z0-9][^\n]*?)\n\(\n([A-Z]{1,5})\n\)", r"\1 (\2)", calendar_text)
+    # Also collapse any remaining lone "(" or ")" lines left over
+    calendar_text = re.sub(r"\n\(\s*\n", " (", calendar_text)
+    calendar_text = re.sub(r"\n\)\s*", ") ", calendar_text)
     calendar_text = re.sub(r"\n{3,}", "\n\n", calendar_text)
     print(f"   📅 Calendar extracted: {len(calendar_text)} chars")
     if len(calendar_text) < 80:
