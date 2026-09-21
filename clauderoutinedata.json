@@ -1,23 +1,39 @@
 {
-  "date": "2026-09-18",
-  "time_collected_utc": "00:27",
+  "date": "2026-09-21",
+  "time_collected_utc": "10:10",
   "futures": {
-    "sp500": {"change_pct": 0.30, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.50, "direction": "up"},
-    "dow": {"change_pct": 0.20, "direction": "up"}
+    "sp500": {"change_pct": 0.4, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.8, "direction": "up"},
+    "dow": {"change_pct": 0.35, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 22.44, "proxy_for": "MSCI World", "source": "Yahoo Finance"},
-    "EFA": {"pe_ttm": 18.24, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance"}
+    "URTH": {"pe_ttm": 22.61, "proxy_for": "MSCI World", "source": "stockanalysis.com (fallback: general web search)"},
+    "EFA": {"pe_ttm": 18.24, "proxy_for": "MSCI EAFE ex-US Developed", "source": "stockanalysis.com (fallback: general web search)"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.93,
-    "crude_oil_usd": 100.50,
+    "treasury_10yr_pct": 4.23,
+    "crude_oil_usd": 96.04,
     "crude_oil_type": "WTI"
   },
-  "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.50},
-    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 0.33}
+  "macro_events": [
+    "Trump-Xi summit anticipation builds ahead of Xi's Sept 23-25 state visit, with tariff truce and AI cooperation on the agenda",
+    "Crude oil slides as Saudi supply flows ease and hopes rise for renewed US-Iran diplomatic talks",
+    "Treasury yields and Fed rate expectations remain in focus following the recent hawkish rate hike"
+  ],
+  "sector_movers": {
+    "leading": [
+      {"sector": "Technology", "change_pct": 0.8, "reason": "chipmakers rally on strong AI/data-center demand as Nasdaq futures lead gains"},
+      {"sector": "Consumer Discretionary", "change_pct": 0.4, "reason": "risk-on tone from easing oil prices and Trump-Xi trade optimism"}
+    ],
+    "lagging": [
+      {"sector": "Energy", "change_pct": -0.6, "reason": "crude oil retreats as Saudi supply concerns ease and Iran diplomacy hopes build"},
+      {"sector": "Financials", "change_pct": -0.3, "reason": "regional banks pressured by elevated Treasury yields"}
+    ]
   },
-  "macro_note": "The Fed hiked rates 25bp to 3.75%-4% on Sept 16 (first hike since 2023), while oil eased after Saudi Arabia signaled a damaged Hormuz-area pipeline would resume operations shortly."
+  "global_markets": {
+    "europe": {"index": "FTSE 100", "direction": "up", "change_pct": 0.3},
+    "asia": {"index": "Kospi", "direction": "up", "change_pct": 1.83}
+  },
+  "open_focus": "Traders are focused on Thursday's Trump-Xi summit and its potential to extend the US-China tariff truce, with easing oil prices adding to the risk-on tone at the open."
 }
