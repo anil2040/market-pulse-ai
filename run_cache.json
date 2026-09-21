@@ -134,11 +134,11 @@
       "is_index": false,
       "group": "CREDIT",
       "insight": "Junk bond premium \u00b7 <3%=calm \u00b7 >6%=credit fear/stress",
-      "current": "2.70%",
+      "current": "2.68%",
       "mo3": "2.66%",
-      "mo12": "2.69%",
+      "mo12": "2.71%",
       "trend": "\u2192",
-      "date": "Sep 17 2026",
+      "date": "Sep 18 2026",
       "sig": "\u2192 Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
     "fetched": "2026-09-21"
@@ -185,7 +185,7 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,390",
+      "current": "$4,378",
       "mo3": "$4,246",
       "mo12": "$3,682",
       "trend": "\u25b2",
@@ -202,12 +202,12 @@
       "group": "CURRENCY",
       "no_pct": true,
       "insight": "Dollar strength \u00b7 weak dollar = tailwind for intl ADRs (EQNR,PBR,SNY etc)",
-      "current": "118.2",
-      "mo3": "120.0",
-      "mo12": "120.7",
-      "trend": "\u25bc",
-      "date": "Sep 11 2026",
-      "sig": "\u2192 Dollar softening -- gradually improving backdrop for international ADR positions"
+      "current": "119.5",
+      "mo3": "119.3",
+      "mo12": "120.8",
+      "trend": "\u25b2",
+      "date": "Sep 18 2026",
+      "sig": "\u26a0\ufe0f Strong dollar headwind -- crushes earnings of multinationals and makes intl ADRs cheaper in USD"
     },
     "fetched": "2026-09-21"
   },
@@ -247,7 +247,7 @@
   },
   "fear_greed": {
     "value": {
-      "score": 33,
+      "score": 34,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
@@ -262,25 +262,25 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "14.91",
+        "value": "14.87",
         "label": "CALM",
         "color": "#059669",
         "signal": "\u2705 Calm \u00b7 low fear \u00b7 complacency = less opportunity for value investors",
-        "prev": "14.91"
+        "prev": "14.87"
       },
       "spx": {
-        "value": "7,706",
+        "value": "7,765",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,706"
+        "prev": "7,765"
       },
       "rut": {
-        "value": "2,872",
+        "value": "2,875",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,872"
+        "prev": "2,875"
       },
       "urth_pe": 22.61,
       "urth_pe_stale": false,
@@ -376,8 +376,8 @@
       "CME": 4,
       "AMD": 4,
       "FBIN": 3,
-      "ZTS": 3,
       "KKR": 3,
+      "ZTS": 3,
       "Z": 1,
       "ELV": 6,
       "UNP": 4,
@@ -624,7 +624,7 @@
       ],
       [
         "BP",
-        "7.00"
+        "6.90"
       ],
       [
         "YPF",
@@ -632,23 +632,23 @@
       ],
       [
         "CF",
-        "7.60"
+        "7.40"
       ],
       [
         "SHEL",
         "7.60"
       ],
       [
+        "DINO",
+        "7.90"
+      ],
+      [
         "CTSH",
-        "8.10"
+        "8.00"
       ],
       [
         "NVO",
-        "8.20"
-      ],
-      [
-        "DINO",
-        "8.30"
+        "8.10"
       ],
       [
         "FOXA",
@@ -660,18 +660,18 @@
       ],
       [
         "GIB",
-        "8.40"
+        "8.50"
       ],
       [
         "SQM",
         "8.80"
       ],
       [
-        "CMCSA",
-        "8.90"
+        "HPQ",
+        "8.80"
       ],
       [
-        "HPQ",
+        "CMCSA",
         "9.00"
       ],
       [
@@ -679,36 +679,32 @@
         "9.00"
       ],
       [
-        "PHM",
-        "9.30"
-      ],
-      [
         "CHTR",
         "9.30"
       ],
       [
         "MO",
+        "9.40"
+      ],
+      [
+        "PHM",
         "9.50"
       ],
       [
         "RYAAY",
-        "9.70"
+        "9.90"
       ],
       [
         "FMX",
-        "9.70"
+        "9.90"
       ],
       [
         "ERIC",
-        "9.80"
+        "9.90"
       ],
       [
         "BMY",
-        "10.20"
-      ],
-      [
-        "FSLR",
-        "10.30"
+        "10.10"
       ],
       [
         "ZTS",
@@ -719,8 +715,12 @@
         "10.50"
       ],
       [
-        "SBS",
+        "FSLR",
         "10.60"
+      ],
+      [
+        "SBS",
+        "10.70"
       ],
       [
         "SKHY",
@@ -735,12 +735,12 @@
         "11.40"
       ],
       [
-        "CQP",
-        "11.70"
-      ],
-      [
         "CVS",
         "11.80"
+      ],
+      [
+        "CQP",
+        "11.90"
       ],
       [
         "VICI",
@@ -748,6 +748,14 @@
       ],
       [
         "VZ",
+        "12.30"
+      ],
+      [
+        "KR",
+        "12.40"
+      ],
+      [
+        "UPS",
         "12.40"
       ],
       [
@@ -755,62 +763,54 @@
         "12.50"
       ],
       [
-        "KR",
-        "12.50"
-      ],
-      [
-        "UPS",
-        "12.60"
-      ],
-      [
         "SONY",
         "12.70"
       ],
       [
         "LNG",
-        "12.90"
+        "13.10"
       ],
       [
         "FIS",
-        "13.90"
+        "13.80"
       ],
       [
         "KVUE",
-        "13.90"
+        "14.00"
       ],
       [
         "LOW",
-        "14.20"
-      ],
-      [
-        "LOGI",
-        "14.60"
+        "14.30"
       ],
       [
         "EXEL",
+        "14.30"
+      ],
+      [
+        "OTIS",
         "14.70"
+      ],
+      [
+        "LOGI",
+        "14.90"
+      ],
+      [
+        "FDX",
+        "14.90"
       ],
       [
         "SSNC",
         "15.00"
       ],
       [
-        "OTIS",
-        "15.00"
-      ],
-      [
-        "FDX",
-        "15.00"
-      ],
-      [
         "UL",
-        "15.40"
+        "15.50"
       ]
     ],
     "fetched": "2026-09-21"
   },
   "news_ej": {
-    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nFriday 9/18/2026 p.m.\nStocks mixed following yesterday's gains\n- The Nasdaq finished higher, led by semiconductor stocks, while the Dow ended slightly lower following the post-Fed rally. Oil prices fell for the third consecutive day, but that didn\u2019t stop bond yields from rising. On the macroeconomic front, the biggest development was the Bank of Japan's decision to raise interest rates by a quarter point to 1.25%, as expected, marking the highest policy rate since 1995. However, the yen weakened against the U.S. dollar as the vote included two dissents, fueling some skepticism about the pace of future policy tightening. The S&P 500 was little changed for the week, as strength in communication services, healthcare, and technology stocks was offset by weakness in the utilities and financials sectors.\nLong-term yields little changed after Fed hike\n- After a busy week for central banks, bond prices stabilized somewhat this week, though with yields remaining near multi-year highs. The Fed hiked interest rates this month for the first time since 2023, and officials are pointing to one more hike before the end of the year. With consumer spending resilient, the AI buildout continuing, and the labor market solid, the Fed was running out of reasons to stay on the sidelines after more than five years of above-target inflation. While the latest move by the Fed isn't likely one-and-done, it also doesn't look to us like the start of an aggressive rate-hiking cycle. In our view, the Fed isn't as far behind the curve as it was in 2022. A mid-cycle adjustment that potentially unwinds the rate cuts delivered last year, while leaving the 2024 cuts in place, is our base case. We believe equities responded positively and long-term bond yields declined following the hike because the move reinforced the Fed's inflation-fighting credibility and independence. As a result, long-term market-based inflation expectations eased and remain consistent with the Fed achieving its inflation target over time.\nOil prices and geopolitics in focus next week\n\u2013 Despite today's divergence, the positive relationship between oil prices and bond yields has strengthened to its highest level since 2020, as ongoing tensions in the Middle East have become a key driver of inflation this year. As a result, developments in energy markets will remain important for both central bank policy and global trade. Looking ahead to next week, the main event will be the September 24 meeting between President Trump and Chinese President Xi Jinping, marking Xi's first trip to the United States since 2023. Expectations are that the meeting will lead to an extension of the U.S.-China trade truce, which is currently set to expire in November. Trump is also expected to meet with Gulf state leaders to discuss the conflict involving Iran. On the economic calendar, it will be a relatively quiet week, with the preliminary U.S. Purchasing Managers' Index (PMI) scheduled for release on Wednesday.\nAngelo Kourkafas, CFA\n;\nInvestment Strategy\nSource for all data: Bloomberg.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
+    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nMonday 9/21/2026 a.m.\nMarkets start the week on the front foot \u2013\nStocks and bonds are rallying this morning, helped by lower oil prices. The Nasdaq index is leading the charge, up 1% in early trading, as we continue to see tech stocks recover from the sell-off seen at the start of last week, while the S&P 500 is up 0.7%. This follows an upbeat tone in Asian and European equities overnight on hopes that diplomatic efforts to lift crude shipments from the Middle East might be advancing. Global bonds are rallying hard in response, with the yield on 10-year European government debt falling between 5-10 basis points today (0.05%-0.10%). We are seeing a slightly more muted pick up in U.S. debt markets, with the 10-year Treasury yield down 4 basis points (0.04%) in early trading so far. The dollar and gold prices are broadly steady.\nDiplomacy in the spotlight this week\n- President Trump and Chinese President Xi Jinping are scheduled to meet on Wednesday in what will be Xi's first trip to the United States since 2023 and his first full state visit since 2015. Both U.S. and Chinese officials offered an upbeat assessment of preliminary talks held over the weekend on a range of issues including artificial intelligence, trade and investment. Expectations are that the headline meeting later this week will deliver an extension of the U.S.-China trade truce, currently set to expire in November. Otherwise, President Trump commented that he would \"probably\" be open to meeting Iranian President Pezeshkian on the sidelines of the UN General Assembly this week, with the President also expected to meet with leaders of other Gulf states, bolstering hopes for a diplomatic breakthrough that might help ease the energy supply crunch hitting the global economy.\nA quiet week on the data front\n\u2013 There was no major data release on the calendar this morning and relatively slim pickings for the week ahead. We will get September business survey data sprinkled through the week, headlined by Wednesday's preliminary Purchasing Managers' Index (PMI), and it should be interesting to hear how firms are reacting to the renewed spike in energy costs. Thursday's durable goods orders will provide some sense of business investment trends, while new home sales and permits will give a sense of how the housing market is holding up amid rising interest rates. Otherwise, a slew of Federal Open Market Committee members are scheduled to speak over the week, providing further potential insight into the rationale for last week's Fed rate hike, and likely next steps for the central bank.\nJames McCann\n;\nInvestment Strategy\nSource for all data: Bloomberg.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
     "fetched": "2026-09-21"
   },
   "news_cnbc": {
@@ -822,12 +822,12 @@
     "fetched": "2026-09-21"
   },
   "news_yahoo_calendar": {
-    "value": "week ahead.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDBSsNAEED3W-bcNDuzcbPbk6EURCQX9eIlTJtJG0i2sBsNIv671Bo89fzmzRtmx6EfGt5HPvHYcHq__-TT-XyJqu0XjH0LG8DSee8Kj85bp-9ci0VXdCglrOAwwQZ-nSzInAaZJomZ1gWSNg69Lskgd8Yi7dGKteSs7jKEFcR2US85-Favyy8-epnX_-vS-joVZMpHSYmPkvKbR-WRZ_X89tCEq93U9UtVa09ImuyBDKJHo57CgOrIcVeFSj0uePuHfwYAeh3c51e507\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to",
+    "value": "the week ahead.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDBSsNAEED3W-bcNDuzcbPbk6EURCQX9eIlTJtJG0i2sBsNIv671Bo89fzmzRtmx6EfGt5HPvHYcHq__-TT-XyJqu0XjH0LG8DSee8Kj85bp-9ci0VXdCglrOAwwQZ-nSzInAaZJomZ1gWSNg69Lskgd8Yi7dGKteSs7jKEFcR2US85-Favyy8-epnX_-vS-joVZMpHSYmPkvKbR-WRZ_X89tCEq93U9UtVa09ImuyBDKJHo57CgOrIcVeFSj0uePuHfwYAeh3c51e507\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to",
     "fetched": "2026-09-21"
   },
   "weekly_calendar": {
     "week_of": "2026-09-21",
-    "text": "week ahead.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDBSsNAEED3W-bcNDuzcbPbk6EURCQX9eIlTJtJG0i2sBsNIv671Bo89fzmzRtmx6EfGt5HPvHYcHq__-TT-XyJqu0XjH0LG8DSee8Kj85bp-9ci0VXdCglrOAwwQZ-nSzInAaZJomZ1gWSNg69Lskgd8Yi7dGKteSs7jKEFcR2US85-Favyy8-epnX_-vS-joVZMpHSYmPkvKbR-WRZ_X89tCEq93U9UtVa09ImuyBDKJHo57CgOrIcVeFSj0uePuHfwYAeh3c51e507\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to"
+    "text": "the week ahead.\r\n\r\nIt looks like your email client might not support HTML formatted email.\r\n\r\nTry opening this email in another email client.\r\n\r\nOr, open the following link to view this email in a browser:\r\nhttps://e.newsletters.yahoo.net/click?ZdJDBSsNAEED3W-bcNDuzcbPbk6EURCQX9eIlTJtJG0i2sBsNIv671Bo89fzmzRtmx6EfGt5HPvHYcHq__-TT-XyJqu0XjH0LG8DSee8Kj85bp-9ci0VXdCglrOAwwQZ-nSzInAaZJomZ1gWSNg69Lskgd8Yi7dGKteSs7jKEFcR2US85-Favyy8-epnX_-vS-joVZMpHSYmPkvKbR-WRZ_X89tCEq93U9UtVa09ImuyBDKJHo57CgOrIcVeFSj0uePuHfwYAeh3c51e507\r\n\r\n-------------------------------------------------------------------------------\r\n\r\nWe respect your privacy, if this e-mail has been sent to you by error or you no longer wish to receive email, open the following link in a browser to"
   },
   "mhs_history": [
     {
