@@ -61,10 +61,13 @@ def scrape_edward_jones():
         return "Edward Jones data unavailable today."
 
 
-def _fetch_email_raw(sender, label, char_limit=2500):
+def _fetch_email_raw(sender, label, char_limit=2500, prefer_html=False):
     """
     Fetch the latest email from sender via IMAP.
     char_limit: truncate body to this many chars. Pass None to return the full body.
+    prefer_html: always parse the HTML MIME part instead of text/plain.
+                 Yahoo Brief has a ~1200-char plain-text teaser for spam filters;
+                 the full newsletter content (including calendar) is HTML-only.
     Returns the body string, or an error string starting with label name on failure.
     """
     print(f"\n📬 Fetching {label}...")
@@ -94,13 +97,9 @@ def _fetch_email_raw(sender, label, char_limit=2500):
         msg  = email.message_from_bytes(msg_data[0][1])
         body = ""
 
-        if msg.is_multipart():
-            for part in msg.walk():
-                if part.get_content_type() == "text/plain":
-                    body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
-                    break
-
-        if not body:
+        if prefer_html:
+            # Yahoo Brief: plain-text part is a ~1200-char teaser only.
+            # Full content including the calendar section is in text/html.
             if msg.is_multipart():
                 for part in msg.walk():
                     if part.get_content_type() == "text/html":
@@ -114,10 +113,32 @@ def _fetch_email_raw(sender, label, char_limit=2500):
                     msg.get_payload(decode=True).decode("utf-8", errors="ignore"),
                     "html.parser"
                 ).get_text("\n", strip=True)
+        else:
+            # Default: prefer plain text, fall back to HTML
+            if msg.is_multipart():
+                for part in msg.walk():
+                    if part.get_content_type() == "text/plain":
+                        body = part.get_payload(decode=True).decode("utf-8", errors="ignore")
+                        break
+
+            if not body:
+                if msg.is_multipart():
+                    for part in msg.walk():
+                        if part.get_content_type() == "text/html":
+                            body = BeautifulSoup(
+                                part.get_payload(decode=True).decode("utf-8", errors="ignore"),
+                                "html.parser"
+                            ).get_text("\n", strip=True)
+                            break
+                else:
+                    body = BeautifulSoup(
+                        msg.get_payload(decode=True).decode("utf-8", errors="ignore"),
+                        "html.parser"
+                    ).get_text("\n", strip=True)
 
         mail.logout()
         body = body.strip()
-        print(f"   ✅ {label}: {len(body)} chars (full body)")
+        print(f"   ✅ {label}: {len(body)} chars (full body, html={prefer_html})")
         # Apply char limit AFTER logging full size -- None means no truncation
         if char_limit is not None:
             body = body[:char_limit]
@@ -233,7 +254,9 @@ def fetch_yahoo_morning_brief():
     raw = _fetch_email_raw(
         "finance-morning-brief@newsletters.yahoo.net",
         "Yahoo Morning Brief",
-        char_limit=None,   # fetch full body -- calendar is at the END
+        char_limit=None,    # fetch full body -- calendar is at the END
+        prefer_html=True,   # plain-text part is a ~1200-char teaser only;
+                            # full newsletter (incl. calendar) is in text/html
     )
 
     # Detect IMAP failure: _fetch_email_raw returns an error string starting

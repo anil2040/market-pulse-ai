@@ -545,9 +545,19 @@ def _build_weekly_calendar(cache, yahoo_calendar):
         week_dates[day] = dt.strftime("%-m/%-d")  # e.g. "9/15"
 
     # On Monday (weekday==0): store fresh calendar from Yahoo Brief.
-    # Guard lowered to > 50 chars (was 100) -- a sparse week can still be valid.
+    # Sanity check: extracted calendar must contain at least one weekday name
+    # to prove it's real calendar content and not intro/teaser text.
+    import re as _re
+    def _is_real_calendar(text):
+        if not text or len(text.strip()) < 80:
+            return False
+        return bool(_re.search(
+            r"\b(Monday|Tuesday|Wednesday|Thursday|Friday)\b",
+            text, _re.IGNORECASE
+        ))
+
     if now.weekday() == 0:
-        if yahoo_calendar and len(yahoo_calendar.strip()) > 50:
+        if _is_real_calendar(yahoo_calendar):
             cache["weekly_calendar"] = {
                 "week_of": this_monday,
                 "text":    yahoo_calendar,
@@ -556,17 +566,16 @@ def _build_weekly_calendar(cache, yahoo_calendar):
                   f"({len(yahoo_calendar)} chars)")
             calendar_text = yahoo_calendar
         else:
-            # Monday but no calendar -- check cache in case a prior run stored it
+            # Monday but calendar missing or invalid -- keep existing cache
             stored = cache.get("weekly_calendar", {})
             if stored.get("week_of") == this_monday and stored.get("text"):
                 calendar_text = stored["text"]
-                print(f"  📅 Monday: yahoo_calendar empty/short "
-                      f"(got {len((yahoo_calendar or '').strip())} chars), "
-                      f"falling back to cached calendar for {this_monday}")
+                print(f"  📅 Monday: yahoo_calendar invalid "
+                      f"(got {len((yahoo_calendar or '').strip())} chars, no weekday names), "
+                      f"keeping cached calendar for {this_monday}")
             else:
-                print(f"  ⚠️  Monday: yahoo_calendar empty/short and no cache "
-                      f"-- calendar section will not render. "
-                      f"Check news.py Actions log for _extract_calendar output.")
+                print(f"  ⚠️  Monday: yahoo_calendar invalid and no cache -- "
+                      f"calendar section will not render.")
                 return ""
     else:
         # Tue-Fri: try cache first
