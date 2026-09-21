@@ -232,7 +232,8 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
                 f'<td style="padding:7px 10px;text-align:center;font-size:1rem;color:{tc};">{r["trend"]}</td>'
                 f'<td style="padding:7px 6px;text-align:center;">{spark}</td>'
                 f'<td style="padding:7px 8px;font-size:.67rem;color:#9ca3af;white-space:nowrap;">{r["date"]}</td>'
-                f'<td style="padding:7px 10px;font-size:.7rem;color:#1e3a5f;min-width:200px;">{r.get("sig","")}</td>'
+                f'<td style="padding:7px 10px;font-size:.7rem;color:#1e3a5f;min-width:200px;">'
+                f'{re.sub(chr(9888)+chr(65039)+"|"+chr(9888)+"|"+chr(9889)+"|"+chr(10003)+"|"+chr(10007), "", r.get("sig","")).strip()}</td>'
                 f'</tr>'
             )
             rn += 1
@@ -681,39 +682,60 @@ def _build_mhs_history_chart(cache):
     dates   = [h["date"] for h in history]
     n       = len(scores)
 
-    # Chart dimensions -- legend panel added on right (160px)
-    LEGEND_W = 160
+    # Chart dimensions -- no separate right panel, legend lives inside chart bands
     W = 560; H = 160; PAD_L = 36; PAD_R = 10; PAD_T = 10; PAD_B = 24
-    TOTAL_W  = W + LEGEND_W          # 720px total SVG width
-    chart_w  = W - PAD_L - PAD_R     # plot area width
-    chart_h  = H - PAD_T - PAD_B
+    chart_w = W - PAD_L - PAD_R
+    chart_h = H - PAD_T - PAD_B
 
     def sx(i):    return PAD_L + i / max(n - 1, 1) * chart_w
     def sy(v):    return PAD_T + (1 - v / 100) * chart_h
 
-    # Zone bands (within chart area only, not into legend)
+    # Zones in chart order: EXTREME at top (high score = high y-position on screen),
+    # DEPLOY at bottom (low score = low y-position on screen).
+    # Each tuple: (lo, hi, band_fill, text_color, emoji, label, range_str)
     zones = [
-        (0,  33,  "#dcfce7", "#166534", "🟢", "DEPLOY",     "0-33"),
-        (34, 65,  "#fef9c3", "#b45309", "🟠", "SELECTIVE",  "34-65"),
-        (66, 85,  "#fee2e2", "#c81e1e", "⛔", "OVERHEATED", "66-85"),
-        (86, 100, "#7f1d1d22","#7f1d1d","🚨", "EXTREME",    "86-100"),
+        (86, 100, "#7f1d1d22", "#7f1d1d", "🚨", "EXTREME",    "86-100"),
+        (66, 85,  "#fee2e2",   "#c81e1e", "⛔", "OVERHEATED", "66-85"),
+        (34, 65,  "#fef9c3",   "#b45309", "🟠", "SELECTIVE",  "34-65"),
+        (0,  33,  "#dcfce7",   "#166534", "🟢", "DEPLOY",     "0-33"),
     ]
+
+    # Zone bands
     band_svg = ""
     for lo, hi, col, _, _e, _l, _r in zones:
         y1 = sy(hi); y2 = sy(lo)
         band_svg += (f'<rect x="{PAD_L}" y="{y1:.1f}" width="{chart_w}" '
                      f'height="{y2-y1:.1f}" fill="{col}" opacity="0.5"/>')
 
-    # Threshold lines (span only chart area)
+    # Inline zone labels: emoji + name rendered inside each band on the right edge,
+    # vertically centred in that band. Placed before lines/dots so lines draw on top.
+    inline_labels_svg = ""
+    label_x = W - PAD_R - 4   # right-aligned inside chart area
+    for lo, hi, _, text_col, emoji, label, rng in zones:
+        band_mid_y = (sy(hi) + sy(lo)) / 2   # vertical centre of this band
+        # Only show label if band is tall enough (at least 10px)
+        band_h = sy(lo) - sy(hi)
+        if band_h >= 10:
+            inline_labels_svg += (
+                # emoji
+                f'<text x="{label_x - 58}" y="{band_mid_y + 3:.1f}" '
+                f'font-size="8" opacity="0.75">{emoji}</text>'
+                # label text
+                f'<text x="{label_x - 46}" y="{band_mid_y + 3:.1f}" '
+                f'font-size="7.5" font-weight="700" fill="{text_col}" '
+                f'font-family="monospace" opacity="0.85">{label}</text>'
+                # range
+                f'<text x="{label_x - 46}" y="{band_mid_y + 12:.1f}" '
+                f'font-size="6.5" fill="{text_col}" '
+                f'font-family="monospace" opacity="0.65">{rng}</text>'
+            )
+
+    # Threshold lines
     thresh_svg = ""
     for v, col in [(86, "#7f1d1d"), (66, "#c81e1e"), (34, "#b45309"), (33, "#057a55")]:
         y = sy(v)
         thresh_svg += (f'<line x1="{PAD_L}" y1="{y:.1f}" x2="{W-PAD_R}" y2="{y:.1f}" '
                        f'stroke="{col}" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.7"/>')
-
-    # Divider between chart and legend
-    divider_svg = (f'<line x1="{W+4}" y1="{PAD_T}" x2="{W+4}" y2="{H-PAD_B}" '
-                   f'stroke="#e5e7eb" stroke-width="1"/>')
 
     # Daily score polyline
     pts = " ".join(f"{sx(i):.1f},{sy(s):.1f}" for i, s in enumerate(scores))
@@ -756,48 +778,6 @@ def _build_mhs_history_chart(cache):
             xaxis_svg += (f'<text x="{x:.1f}" y="{H-4}" text-anchor="middle" '
                           f'font-size="8" fill="#9ca3af">{label}</text>')
 
-    # ---- Right-side legend panel ----
-    LX = W + 14           # legend content left edge
-    LY0 = PAD_T + 2       # top of legend content
-
-    # Header: "SCALE  lower = better"
-    legend_svg = (
-        f'<text x="{LX}" y="{LY0 + 7}" font-size="7.5" font-weight="700" '
-        f'fill="#6b7280" font-family="monospace" letter-spacing="0.5">SCALE</text>'
-        f'<text x="{LX + 40}" y="{LY0 + 7}" font-size="6.5" fill="#9ca3af" '
-        f'font-family="monospace"> lower = better</text>'
-    )
-
-    # Four zone rows: emoji  LABEL  range
-    row_h  = 30   # vertical spacing per row
-    for i, (lo, hi, band_col, text_col, emoji, label, rng) in enumerate(zones):
-        ry = LY0 + 18 + i * row_h
-        # Colored swatch square
-        legend_svg += (
-            f'<rect x="{LX}" y="{ry}" width="9" height="9" '
-            f'fill="{text_col}" rx="1.5" opacity="0.85"/>'
-        )
-        # Emoji
-        legend_svg += (
-            f'<text x="{LX + 13}" y="{ry + 8}" font-size="9">{emoji}</text>'
-        )
-        # Label (bold, zone color)
-        legend_svg += (
-            f'<text x="{LX + 28}" y="{ry + 8}" font-size="8" font-weight="700" '
-            f'fill="{text_col}" font-family="monospace">{label}</text>'
-        )
-        # Range (muted, smaller)
-        legend_svg += (
-            f'<text x="{LX + 28}" y="{ry + 18}" font-size="7" '
-            f'fill="#9ca3af" font-family="monospace">{rng}</text>'
-        )
-
-    # Bottom note: base=50
-    legend_svg += (
-        f'<text x="{LX}" y="{H - PAD_B - 2}" font-size="6.5" '
-        f'fill="#9ca3af" font-family="monospace">base=50</text>'
-    )
-
     latest_score = scores[-1]
     days_shown   = n
 
@@ -809,10 +789,11 @@ def _build_mhs_history_chart(cache):
     <span style="color:#b45309;">orange = 20-day avg</span> &nbsp;·&nbsp;
     <span style="color:#1a56db;">blue = daily</span>
   </div>
-  <svg width="{TOTAL_W}" height="{H}" viewBox="0 0 {TOTAL_W} {H}"
-       style="width:100%;max-width:{TOTAL_W}px;height:auto;display:block;"
+  <svg width="{W}" height="{H}" viewBox="0 0 {W} {H}"
+       style="width:100%;max-width:{W}px;height:auto;display:block;"
        xmlns="http://www.w3.org/2000/svg">
     {band_svg}
+    {inline_labels_svg}
     {thresh_svg}
     {line_svg}
     {sma_svg}
@@ -821,8 +802,6 @@ def _build_mhs_history_chart(cache):
     {xaxis_svg}
     <text x="{latest_x:.1f}" y="{latest_y-8:.1f}" text-anchor="middle"
           font-size="9" font-weight="bold" fill="{latest_col}">{latest_score}</text>
-    {divider_svg}
-    {legend_svg}
   </svg>
   <div style="font-size:.58rem;color:#9ca3af;margin-top:2px;">
     Framework v1.0 locked · zone thresholds fixed · comparable across all dates shown

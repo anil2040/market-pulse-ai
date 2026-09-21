@@ -62,6 +62,11 @@ def scrape_edward_jones():
 
 
 def _fetch_email_raw(sender, label, char_limit=2500):
+    """
+    Fetch the latest email from sender via IMAP.
+    char_limit: truncate body to this many chars. Pass None to return the full body.
+    Returns the body string, or an error string starting with label name on failure.
+    """
     print(f"\n📬 Fetching {label}...")
     try:
         mail = imaplib.IMAP4_SSL("imap.mail.yahoo.com", 993)
@@ -111,8 +116,11 @@ def _fetch_email_raw(sender, label, char_limit=2500):
                 ).get_text("\n", strip=True)
 
         mail.logout()
-        body = body[:char_limit].strip()
-        print(f"   ✅ {label}: {len(body)} chars (raw)")
+        body = body.strip()
+        print(f"   ✅ {label}: {len(body)} chars (full body)")
+        # Apply char limit AFTER logging full size -- None means no truncation
+        if char_limit is not None:
+            body = body[:char_limit]
         return body
 
     except Exception as e:
@@ -216,11 +224,16 @@ def fetch_yahoo_morning_brief():
     brief_text: first 4000 chars of the morning brief body.
     calendar_text: extracted earnings/economic calendar section (up to 3000 chars).
     Monday brief has full week. Other days have remainder of week.
+
+    IMPORTANT: fetch with char_limit=None so the FULL email body is retrieved.
+    The calendar section is at the END of the email -- any char limit applied
+    before extraction would silently cut it off.
+    brief_text is truncated to 4000 chars AFTER calendar extraction.
     """
     raw = _fetch_email_raw(
         "finance-morning-brief@newsletters.yahoo.net",
         "Yahoo Morning Brief",
-        char_limit=12000,
+        char_limit=None,   # fetch full body -- calendar is at the END
     )
 
     # Detect IMAP failure: _fetch_email_raw returns an error string starting
@@ -232,6 +245,7 @@ def fetch_yahoo_morning_brief():
 
     print(f"   📧 Yahoo Brief raw body: {len(raw)} chars total")
 
+    # Extract calendar from FULL body first, then truncate brief separately
     calendar_text = _extract_calendar(raw)
     brief_text    = raw[:4000].strip()
 
