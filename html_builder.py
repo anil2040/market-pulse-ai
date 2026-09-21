@@ -543,14 +543,30 @@ def _build_weekly_calendar(cache, yahoo_calendar):
         dt = monday_dt + timedelta(days=i)
         week_dates[day] = dt.strftime("%-m/%-d")  # e.g. "9/15"
 
-    # On Monday (weekday==0): store fresh calendar from Yahoo Brief
-    if now.weekday() == 0 and yahoo_calendar and len(yahoo_calendar.strip()) > 100:
-        cache["weekly_calendar"] = {
-            "week_of": this_monday,
-            "text":    yahoo_calendar,
-        }
-        print(f"  📅 Weekly calendar stored for week of {this_monday}")
-        calendar_text = yahoo_calendar
+    # On Monday (weekday==0): store fresh calendar from Yahoo Brief.
+    # Guard lowered to > 50 chars (was 100) -- a sparse week can still be valid.
+    if now.weekday() == 0:
+        if yahoo_calendar and len(yahoo_calendar.strip()) > 50:
+            cache["weekly_calendar"] = {
+                "week_of": this_monday,
+                "text":    yahoo_calendar,
+            }
+            print(f"  📅 Weekly calendar stored for week of {this_monday} "
+                  f"({len(yahoo_calendar)} chars)")
+            calendar_text = yahoo_calendar
+        else:
+            # Monday but no calendar -- check cache in case a prior run stored it
+            stored = cache.get("weekly_calendar", {})
+            if stored.get("week_of") == this_monday and stored.get("text"):
+                calendar_text = stored["text"]
+                print(f"  📅 Monday: yahoo_calendar empty/short "
+                      f"(got {len((yahoo_calendar or '').strip())} chars), "
+                      f"falling back to cached calendar for {this_monday}")
+            else:
+                print(f"  ⚠️  Monday: yahoo_calendar empty/short and no cache "
+                      f"-- calendar section will not render. "
+                      f"Check news.py Actions log for _extract_calendar output.")
+                return ""
     else:
         # Tue-Fri: try cache first
         stored = cache.get("weekly_calendar", {})
@@ -650,6 +666,7 @@ def _build_mhs_history_chart(cache):
       - Daily score line
       - 20-day simple moving average overlay
       - Zone bands (DEPLOY/SELECTIVE/OVERHEATED/EXTREME)
+      - Compact zone legend embedded on the right side of the SVG
       - Last 60 data points max (3 trading months)
     Returns HTML string with embedded SVG, or empty string if <3 data points.
     MHS framework locked at v1.0 -- do not change thresholds without version bump.
@@ -664,33 +681,39 @@ def _build_mhs_history_chart(cache):
     dates   = [h["date"] for h in history]
     n       = len(scores)
 
-    # Chart dimensions
+    # Chart dimensions -- legend panel added on right (160px)
+    LEGEND_W = 160
     W = 560; H = 160; PAD_L = 36; PAD_R = 10; PAD_T = 10; PAD_B = 24
-    chart_w = W - PAD_L - PAD_R
-    chart_h = H - PAD_T - PAD_B
+    TOTAL_W  = W + LEGEND_W          # 720px total SVG width
+    chart_w  = W - PAD_L - PAD_R     # plot area width
+    chart_h  = H - PAD_T - PAD_B
 
     def sx(i):    return PAD_L + i / max(n - 1, 1) * chart_w
     def sy(v):    return PAD_T + (1 - v / 100) * chart_h
 
-    # Zone bands
+    # Zone bands (within chart area only, not into legend)
     zones = [
-        (0,  33, "#dcfce7", "DEPLOY"),
-        (34, 65, "#fef9c3", "SELECTIVE"),
-        (66, 85, "#fee2e2", "OVERHEATED"),
-        (86, 100, "#7f1d1d22", "EXTREME"),
+        (0,  33,  "#dcfce7", "#166534", "🟢", "DEPLOY",     "0-33"),
+        (34, 65,  "#fef9c3", "#b45309", "🟠", "SELECTIVE",  "34-65"),
+        (66, 85,  "#fee2e2", "#c81e1e", "⛔", "OVERHEATED", "66-85"),
+        (86, 100, "#7f1d1d22","#7f1d1d","🚨", "EXTREME",    "86-100"),
     ]
     band_svg = ""
-    for lo, hi, col, _ in zones:
+    for lo, hi, col, _, _e, _l, _r in zones:
         y1 = sy(hi); y2 = sy(lo)
         band_svg += (f'<rect x="{PAD_L}" y="{y1:.1f}" width="{chart_w}" '
                      f'height="{y2-y1:.1f}" fill="{col}" opacity="0.5"/>')
 
-    # Threshold lines
+    # Threshold lines (span only chart area)
     thresh_svg = ""
     for v, col in [(86, "#7f1d1d"), (66, "#c81e1e"), (34, "#b45309"), (33, "#057a55")]:
         y = sy(v)
         thresh_svg += (f'<line x1="{PAD_L}" y1="{y:.1f}" x2="{W-PAD_R}" y2="{y:.1f}" '
                        f'stroke="{col}" stroke-width="0.5" stroke-dasharray="3,3" opacity="0.7"/>')
+
+    # Divider between chart and legend
+    divider_svg = (f'<line x1="{W+4}" y1="{PAD_T}" x2="{W+4}" y2="{H-PAD_B}" '
+                   f'stroke="#e5e7eb" stroke-width="1"/>')
 
     # Daily score polyline
     pts = " ".join(f"{sx(i):.1f},{sy(s):.1f}" for i, s in enumerate(scores))
@@ -711,7 +734,9 @@ def _build_mhs_history_chart(cache):
 
     # Dot for latest point
     latest_x = sx(n - 1); latest_y = sy(scores[-1])
-    latest_col = "#7f1d1d" if scores[-1] >= 86 else "#c81e1e" if scores[-1] >= 66 else "#b45309" if scores[-1] >= 34 else "#057a55"
+    latest_col = ("#7f1d1d" if scores[-1] >= 86 else
+                  "#c81e1e" if scores[-1] >= 66 else
+                  "#b45309" if scores[-1] >= 34 else "#057a55")
     dot_svg = (f'<circle cx="{latest_x:.1f}" cy="{latest_y:.1f}" r="4" '
                f'fill="{latest_col}" stroke="white" stroke-width="1.5"/>')
 
@@ -731,8 +756,49 @@ def _build_mhs_history_chart(cache):
             xaxis_svg += (f'<text x="{x:.1f}" y="{H-4}" text-anchor="middle" '
                           f'font-size="8" fill="#9ca3af">{label}</text>')
 
+    # ---- Right-side legend panel ----
+    LX = W + 14           # legend content left edge
+    LY0 = PAD_T + 2       # top of legend content
+
+    # Header: "SCALE  lower = better"
+    legend_svg = (
+        f'<text x="{LX}" y="{LY0 + 7}" font-size="7.5" font-weight="700" '
+        f'fill="#6b7280" font-family="monospace" letter-spacing="0.5">SCALE</text>'
+        f'<text x="{LX + 40}" y="{LY0 + 7}" font-size="6.5" fill="#9ca3af" '
+        f'font-family="monospace"> lower = better</text>'
+    )
+
+    # Four zone rows: emoji  LABEL  range
+    row_h  = 30   # vertical spacing per row
+    for i, (lo, hi, band_col, text_col, emoji, label, rng) in enumerate(zones):
+        ry = LY0 + 18 + i * row_h
+        # Colored swatch square
+        legend_svg += (
+            f'<rect x="{LX}" y="{ry}" width="9" height="9" '
+            f'fill="{text_col}" rx="1.5" opacity="0.85"/>'
+        )
+        # Emoji
+        legend_svg += (
+            f'<text x="{LX + 13}" y="{ry + 8}" font-size="9">{emoji}</text>'
+        )
+        # Label (bold, zone color)
+        legend_svg += (
+            f'<text x="{LX + 28}" y="{ry + 8}" font-size="8" font-weight="700" '
+            f'fill="{text_col}" font-family="monospace">{label}</text>'
+        )
+        # Range (muted, smaller)
+        legend_svg += (
+            f'<text x="{LX + 28}" y="{ry + 18}" font-size="7" '
+            f'fill="#9ca3af" font-family="monospace">{rng}</text>'
+        )
+
+    # Bottom note: base=50
+    legend_svg += (
+        f'<text x="{LX}" y="{H - PAD_B - 2}" font-size="6.5" '
+        f'fill="#9ca3af" font-family="monospace">base=50</text>'
+    )
+
     latest_score = scores[-1]
-    latest_date  = dates[-1][5:]  # MM-DD
     days_shown   = n
 
     return f"""
@@ -743,8 +809,8 @@ def _build_mhs_history_chart(cache):
     <span style="color:#b45309;">orange = 20-day avg</span> &nbsp;·&nbsp;
     <span style="color:#1a56db;">blue = daily</span>
   </div>
-  <svg width="{W}" height="{H}" viewBox="0 0 {W} {H}"
-       style="width:100%;max-width:{W}px;height:auto;display:block;"
+  <svg width="{TOTAL_W}" height="{H}" viewBox="0 0 {TOTAL_W} {H}"
+       style="width:100%;max-width:{TOTAL_W}px;height:auto;display:block;"
        xmlns="http://www.w3.org/2000/svg">
     {band_svg}
     {thresh_svg}
@@ -755,6 +821,8 @@ def _build_mhs_history_chart(cache):
     {xaxis_svg}
     <text x="{latest_x:.1f}" y="{latest_y-8:.1f}" text-anchor="middle"
           font-size="9" font-weight="bold" fill="{latest_col}">{latest_score}</text>
+    {divider_svg}
+    {legend_svg}
   </svg>
   <div style="font-size:.58rem;color:#9ca3af;margin-top:2px;">
     Framework v1.0 locked · zone thresholds fixed · comparable across all dates shown
@@ -1283,12 +1351,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
   </div>
 </div>"""
 
-    mhs_scale = (
-        "🟢 DEPLOY (0-33): Panic &amp; dislocation -- aggressive deployment &nbsp;·&nbsp; "
-        "🟠 SELECTIVE (34-65): Best setups only, Left Leg &lt;4 &amp; MoS &gt;25% &nbsp;·&nbsp; "
-        "⛔ OVERHEATED (66-85): Build cash, trim winners &nbsp;·&nbsp; "
-        "🚨 EXTREME (86-100): Most stretched since dot-com -- quality and patience above all."
-    )
     mhs_chart_html = _build_mhs_history_chart(cache)
 
     # ============================================================
@@ -1388,12 +1450,6 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
         {mhs_bdown}
       </div>
     </div>
-    <div style="margin-top:8px;font-size:.67rem;color:#374151;background:#f9fafb;
-                border-radius:5px;padding:6px 10px;line-height:1.6;">
-      <strong>Scale (LOWER = better mean reversion opportunity):</strong>
-      {mhs_scale}
-      Base=50. Components adjust up (overheated signals) or down (fear/opportunity signals).
-    </div>
     {mhs_chart_html}
   </div>
 
@@ -1464,7 +1520,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <h2>🏦 Macro Indicators
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
         sparkline = 12mo → 3mo → today · green=good / red=bad for equities ·
-        amber badge = prior run data (live fetch failed)
+        ⚠️ in Insights = interpretive signal · amber pill = cached (live FRED fetch failed)
       </span>
     </h2>
     <div style="overflow-x:auto;">
