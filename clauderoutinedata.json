@@ -1,39 +1,57 @@
 {
-  "date": "2026-09-21",
-  "time_collected_utc": "10:10",
+  "date": "2026-09-22",
+  "time_collected_utc": "12:00",
   "futures": {
-    "sp500": {"change_pct": 0.4, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.8, "direction": "up"},
-    "dow": {"change_pct": 0.35, "direction": "up"},
-    "sentiment": "bullish"
+    "sp500": {"change_pct": 0.09, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.05, "direction": "up"},
+    "dow": {"change_pct": 0.05, "direction": "up"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 22.61, "proxy_for": "MSCI World", "source": "stockanalysis.com (fallback: general web search)"},
-    "EFA": {"pe_ttm": 18.24, "proxy_for": "MSCI EAFE ex-US Developed", "source": "stockanalysis.com (fallback: general web search)"}
+    "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World", "source": "investing.com (fallback: general web search)"},
+    "EFA": {"pe_ttm": 18.23, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance (fallback: general web search)"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.23,
-    "crude_oil_usd": 96.04,
+    "treasury_10yr_pct": 4.22,
+    "crude_oil_usd": 92.41,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Trump-Xi summit anticipation builds ahead of Xi's Sept 23-25 state visit, with tariff truce and AI cooperation on the agenda",
-    "Crude oil slides as Saudi supply flows ease and hopes rise for renewed US-Iran diplomatic talks",
-    "Treasury yields and Fed rate expectations remain in focus following the recent hawkish rate hike"
+    "Fed rate-cut expectations and easing Treasury yields supported early-week risk sentiment",
+    "Bank of Japan raised its policy rate 25bps to 1.25%, lifting Asian markets; Tokyo exchange closed for holiday",
+    "Signs of Middle East de-escalation ahead of UN General Assembly meetings between US and Gulf leaders"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology", "change_pct": 0.8, "reason": "chipmakers rally on strong AI/data-center demand as Nasdaq futures lead gains"},
-      {"sector": "Consumer Discretionary", "change_pct": 0.4, "reason": "risk-on tone from easing oil prices and Trump-Xi trade optimism"}
+      {"sector": "Consumer Discretionary", "change_pct": 0.46, "reason": "resilient consumer spending data"},
+      {"sector": "Healthcare", "change_pct": 0.24, "reason": "defensive rotation amid rate uncertainty"}
     ],
     "lagging": [
-      {"sector": "Energy", "change_pct": -0.6, "reason": "crude oil retreats as Saudi supply concerns ease and Iran diplomacy hopes build"},
-      {"sector": "Financials", "change_pct": -0.3, "reason": "regional banks pressured by elevated Treasury yields"}
+      {"sector": "Energy", "change_pct": -3.34, "reason": "falling crude oil prices"},
+      {"sector": "Financials", "change_pct": -1.25, "reason": "rate-cut expectations pressuring bank margins"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "FTSE 100", "direction": "up", "change_pct": 0.3},
-    "asia": {"index": "Kospi", "direction": "up", "change_pct": 1.83}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.2},
+    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 1.38}
   },
-  "open_focus": "Traders are focused on Thursday's Trump-Xi summit and its potential to extend the US-China tariff truce, with easing oil prices adding to the risk-on tone at the open."
+  "open_focus": "Traders are focused on Federal Reserve rate-cut expectations and Treasury yield moves, alongside signs of Middle East de-escalation ahead of the UN General Assembly.",
+  "market_prices": {
+    "sp500": {
+      "prev_close": 7764.70,
+      "current": 7779.22,
+      "change_pct": 0.19,
+      "source_time_et": "08:00"
+    },
+    "rut": {
+      "prev_close": 2875.36,
+      "current": 2874.63,
+      "change_pct": -0.03,
+      "source_time_et": "08:00"
+    },
+    "vix": {
+      "prev_close": 14.81,
+      "current": 14.93
+    }
+  }
 }
