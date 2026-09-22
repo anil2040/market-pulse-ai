@@ -464,27 +464,44 @@ _WEEKDAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 
 def _parse_calendar_into_days(calendar_text):
     """
-    Parse the raw calendar text into a dict {day_name: {eco: [...], earn: [...]}}.
-    Handles both structured (Economic data: / Earnings calendar:) and
-    plain bullet formats from the Yahoo Morning Brief.
-    Returns dict with keys from _WEEKDAYS.
+    Parse the Yahoo Morning Brief calendar section into per-day eco/earn lists.
+
+    Yahoo's HTML email renders earnings as hyperlinks, so BeautifulSoup's
+    get_text() produces fragmented lines like:
+        Earnings calendar: THOR Industries (
+        THO
+        ), KB Home (
+        KBH
+        )
+    This parser handles that pattern with an earn_buffer so day boundaries
+    are never corrupted. Do NOT pre-process the text with regex before calling.
     """
     days = {d: {"eco": [], "earn": []} for d in _WEEKDAYS}
     if not calendar_text:
         return days
 
     current_day  = None
-    current_type = None  # "eco" or "earn"
+    current_type = None
+    earn_buffer  = None   # accumulates "Company (" + TICKER + ")" fragments
+
+    def _flush_earn(day):
+        nonlocal earn_buffer
+        if earn_buffer and day:
+            entry = earn_buffer.strip().rstrip(",").strip()
+            if entry and entry.lower() not in ("no notable earnings.", ""):
+                days[day]["earn"].append(entry)
+        earn_buffer = None
 
     for raw_line in calendar_text.splitlines():
         line = raw_line.strip()
         if not line:
             continue
 
-        # Detect day header
+        # Day header -- must check BEFORE anything else to preserve boundaries
         matched_day = next(
-            (d for d in _WEEKDAYS if line.lower().startswith(d.lower())), None)
+            (d for d in _WEEKDAYS if re.match(rf"^{d}\b", line, re.IGNORECASE)), None)
         if matched_day:
+            _flush_earn(current_day)
             current_day  = matched_day
             current_type = None
             continue
@@ -492,29 +509,67 @@ def _parse_calendar_into_days(calendar_text):
         if current_day is None:
             continue
 
-        # Detect section type
+        # Section header: Economic data
         if re.match(r"^Economic data:", line, re.IGNORECASE):
+            _flush_earn(current_day)
             current_type = "eco"
-            content = line.split(":", 1)[1].strip() if ":" in line else ""
+            content = line.split(":", 1)[1].strip()
             if content and content.lower() not in ("no notable economic data.", ""):
                 days[current_day]["eco"].append(content)
             continue
+
+        # Section header: Earnings calendar
         if re.match(r"^Earnings calendar:", line, re.IGNORECASE):
+            _flush_earn(current_day)
             current_type = "earn"
-            content = line.split(":", 1)[1].strip() if ":" in line else ""
+            content = line.split(":", 1)[1].strip()
             if content and content.lower() not in ("no notable earnings.", ""):
-                days[current_day]["earn"].append(content)
+                if content.endswith("("):
+                    earn_buffer = content      # start buffering: "THOR Industries ("
+                else:
+                    days[current_day]["earn"].append(content)
             continue
 
-        # Continuation bullet or plain line
-        clean = re.sub(r"^[•\-\*]\s*", "", line)
-        if clean.lower() in ("no notable economic data.", "no notable earnings.", ""):
+        # Inside earn section -- handle BS4-fragmented ticker lines
+        if current_type == "earn":
+            # Bare ticker: 1-5 uppercase letters/digits alone on line
+            if re.match(r"^[A-Z0-9]{1,5}$", line):
+                if earn_buffer is not None:
+                    earn_buffer += line + ")"  # "THOR Industries (" + "THO" + ")" -> "THOR Industries (THO)"
+                continue
+
+            # Closing fragment: "), Next Company (" or bare ")"
+            if line.startswith("),") or line == ")":
+                _flush_earn(current_day)
+                remainder = line[2:].strip() if line.startswith("),") else ""
+                if remainder:
+                    if remainder.endswith("("):
+                        earn_buffer = remainder
+                    else:
+                        days[current_day]["earn"].append(remainder)
+                continue
+
+            # New company line ending with "(" -- flush previous buffer first
+            if line.endswith("("):
+                _flush_earn(current_day)
+                earn_buffer = line
+                continue
+
+            # Plain earn line (no fragmentation)
+            _flush_earn(current_day)
+            clean = re.sub(r"^[•\-\*]\s*", "", line)
+            if clean.lower() not in ("no notable earnings.", ""):
+                days[current_day]["earn"].append(clean)
             continue
+
+        # Plain eco line
         if current_type == "eco":
-            days[current_day]["eco"].append(clean)
-        elif current_type == "earn":
-            days[current_day]["earn"].append(clean)
+            clean = re.sub(r"^[•\-\*]\s*", "", line)
+            if clean.lower() not in ("no notable economic data.", ""):
+                days[current_day]["eco"].append(clean)
 
+    # Flush any remaining buffer at end of text
+    _flush_earn(current_day)
     return days
 
 
