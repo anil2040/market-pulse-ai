@@ -901,21 +901,98 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     today    = now_mt.strftime("%A, %B %d, %Y")
     now_str  = now_mt.strftime("%I:%M %p")
 
-    # Market values
-    vix_val  = mkt_data["vix"]["value"];  vix_prev = mkt_data["vix"]["prev"]
-    vix_lbl  = mkt_data["vix"]["label"];  vix_col  = mkt_data["vix"]["color"]
-    vix_sig  = mkt_data["vix"]["signal"]
+    # ── Market values ────────────────────────────────────────────────────────
+    # Primary source: routine_data["market_prices"] written by Claude Routine
+    # at ~7:45am MT (browser-side, no CORS issue).
+    # Fallback: mkt_data from market.py (fetched server-side by pipeline).
+    # classify helpers
+    def _classify_idx(c):
+        if c >  1.0: return "RALLY"
+        if c >  0.1: return "UP"
+        if c > -0.1: return "FLAT"
+        if c > -1.0: return "DOWN"
+        return "SELLOFF"
+    def _idx_color(lbl):
+        return {"RALLY":"#057a55","UP":"#86c440","FLAT":"#6b7280",
+                "DOWN":"#e97316","SELLOFF":"#c81e1e"}.get(lbl, "#6b7280")
+    def _classify_vix(v):
+        if v < 15: return "CALM"
+        if v < 20: return "NORMAL"
+        if v < 25: return "CAUTIOUS"
+        if v < 30: return "FEARFUL"
+        return "PANIC"
+    def _vix_color(lbl):
+        return {"CALM":"#059669","NORMAL":"#6b7280","CAUTIOUS":"#e97316",
+                "FEARFUL":"#c81e1e","PANIC":"#7f1d1d"}.get(lbl, "#6b7280")
+    def _vix_sig(v):
+        if v >= 30: return "Panic -- forced selling, mean reversion entries emerging"
+        if v >= 25: return "Elevated fear -- watch for entry points"
+        if v >= 20: return "Slightly elevated -- no broad panic signal"
+        if v >= 15: return "Normal -- market calm, no stress signal"
+        return "Calm -- low fear, complacency = less opportunity for value investors"
 
-    spx_val  = mkt_data["spx"]["value"];  spx_chg  = mkt_data["spx"]["chg"]
-    spx_lbl  = mkt_data["spx"]["label"];  spx_col  = mkt_data["spx"]["color"]
+    mp = (routine_data or {}).get("market_prices", {})
+    routine_fresh_prices = bool(mp and mp.get("sp500", {}).get("current"))
 
-    rut_val  = mkt_data["rut"]["value"];  rut_chg  = mkt_data["rut"]["chg"]
-    rut_lbl  = mkt_data["rut"]["label"];  rut_col  = mkt_data["rut"]["color"]
+    if routine_fresh_prices:
+        # ── Use Claude Routine prices (accurate, browser-fetched at ~7:45am MT)
+        _spx = mp["sp500"]
+        _rut = mp.get("rut", {})
+        _vix = mp.get("vix", {})
 
-    pulse     = mkt_data["pulse"]
-    mkt_state = mkt_data.get("market_state", "UNKNOWN")
-    mkt_cached= mkt_data.get("cached", False)
-    mkt_cdate = mkt_data.get("cached_date", "")
+        spx_val  = f'{_spx.get("current", 0):,.0f}'
+        spx_chg  = (f'+{_spx["change_pct"]:.2f}%' if _spx.get("change_pct",0) >= 0
+                    else f'{_spx["change_pct"]:.2f}%')
+        spx_lbl  = _classify_idx(_spx.get("change_pct", 0))
+        spx_col  = _idx_color(spx_lbl)
+
+        rut_val  = f'{_rut.get("current", 0):,.0f}'
+        rut_chg  = (f'+{_rut["change_pct"]:.2f}%' if _rut.get("change_pct",0) >= 0
+                    else f'{_rut["change_pct"]:.2f}%')
+        rut_lbl  = _classify_idx(_rut.get("change_pct", 0))
+        rut_col  = _idx_color(rut_lbl)
+
+        _vix_cur  = float(_vix.get("current", 0))
+        _vix_prev = float(_vix.get("prev_close", _vix_cur))
+        vix_val   = f'{_vix_cur:.2f}'
+        vix_prev  = f'{_vix_prev:.2f}'
+        vix_lbl   = _classify_vix(_vix_cur)
+        vix_col   = _vix_color(vix_lbl)
+        vix_sig   = _vix_sig(_vix_cur)
+
+        _src_time  = _spx.get("source_time_et", "")
+        _src_note  = f" · as of {_src_time} ET" if _src_time else ""
+        mkt_state  = "ROUTINE"
+        mkt_cached = False
+        mkt_cdate  = ""
+
+        spx_mood = ""
+        _vix_n = _vix_cur
+        if _vix_n >= 30 or spx_lbl == "SELLOFF":
+            spx_mood = "broad stress -- mean reversion entries emerging"
+        elif spx_lbl == "FLAT":
+            spx_mood = "indecisive -- focus on individual catalysts"
+        elif spx_lbl in ("UP","RALLY") and rut_lbl in ("UP","RALLY"):
+            spx_mood = "broad strength -- be selective"
+        else:
+            spx_mood = "mixed -- stay selective"
+        pulse = (f"S&P {spx_chg} ({spx_lbl}) · Russell {rut_chg} ({rut_lbl}) "
+                 f"· VIX {_vix_cur:.1f} ({vix_lbl}) -- {spx_mood}{_src_note}")
+    else:
+        # ── Fallback: pipeline mkt_data (server-side, may show 0.00% after close)
+        vix_val  = mkt_data["vix"]["value"];  vix_prev = mkt_data["vix"]["prev"]
+        vix_lbl  = mkt_data["vix"]["label"];  vix_col  = mkt_data["vix"]["color"]
+        vix_sig  = mkt_data["vix"]["signal"]
+        spx_val  = mkt_data["spx"]["value"];  spx_chg  = mkt_data["spx"]["chg"]
+        spx_lbl  = mkt_data["spx"]["label"];  spx_col  = mkt_data["spx"]["color"]
+        rut_val  = mkt_data["rut"]["value"];  rut_chg  = mkt_data["rut"]["chg"]
+        rut_lbl  = mkt_data["rut"]["label"];  rut_col  = mkt_data["rut"]["color"]
+        _src_note = ""
+
+    pulse     = mkt_data["pulse"] if not routine_fresh_prices else pulse
+    mkt_state = mkt_data.get("market_state", "UNKNOWN") if not routine_fresh_prices else mkt_state
+    mkt_cached= mkt_data.get("cached", False) if not routine_fresh_prices else False
+    mkt_cdate = mkt_data.get("cached_date", "") if not routine_fresh_prices else ""
 
     urth_pe    = mkt_data.get("urth_pe");  urth_stale = mkt_data.get("urth_pe_stale", False)
     efa_pe     = mkt_data.get("efa_pe");   efa_stale  = mkt_data.get("efa_pe_stale",  False)
@@ -974,6 +1051,14 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
             f'padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#b45309;">'
             f'Market data from cache ({mkt_cdate}) -- live fetch failed</div>')
 
+    # Source label shown in card header
+    if routine_fresh_prices:
+        _rt = (routine_data or {}).get("market_prices", {}).get("sp500", {})
+        _st = _rt.get("source_time_et", "")
+        mkt_src_label = f"as of {_st} ET · via Claude Routine" if _st else "via Claude Routine"
+    else:
+        mkt_src_label = f"as of pipeline run · {now_str} MT"
+
     # AI failure alert
     ai_alert = ""
     if ai_failed:
@@ -989,7 +1074,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     gauge_section = f"""
 <div class="card ar" style="margin-bottom:12px;" id="market-perf-card">
   <h2>📈 Market Performance
-    <span id="mkt-refresh-ts" style="font-weight:400;color:var(--muted);font-size:.55rem;margin-left:8px;"></span>
+    <span style="font-weight:400;color:var(--muted);font-size:.55rem;margin-left:8px;">{mkt_src_label}</span>
   </h2>
   {mkt_banner}{mkt_cache_banner}
 
@@ -1067,165 +1152,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
   </div>
 </div>
 
-<script>
-// ============================================================
-// Live market refresh -- calls Yahoo Finance v8 directly from browser.
-// Works because the browser is not blocked (only GitHub Actions IPs are).
-// Refreshes on page load and every 60 seconds while market is open.
-// chg computed manually as (price - prev) / prev to avoid Yahoo's
-// regularMarketChangePercent which resets to 0 at open/close/pre-market.
-// ============================================================
-(function() {{
-  var BANDS = {{SELLOFF:5, DOWN:25, FLAT:50, UP:75, RALLY:95}};
-  var COLORS = {{
-    RALLY:"#057a55", UP:"#86c440", FLAT:"#6b7280",
-    DOWN:"#e97316", SELLOFF:"#c81e1e",
-    CALM:"#059669", NORMAL:"#6b7280", CAUTIOUS:"#e97316",
-    FEARFUL:"#c81e1e", PANIC:"#7f1d1d"
-  }};
-
-  function classifyIdx(c) {{
-    if (c >  1.0) return "RALLY";
-    if (c >  0.1) return "UP";
-    if (c > -0.1) return "FLAT";
-    if (c > -1.0) return "DOWN";
-    return "SELLOFF";
-  }}
-
-  function classifyVix(v) {{
-    if (v < 15) return "CALM";
-    if (v < 20) return "NORMAL";
-    if (v < 25) return "CAUTIOUS";
-    if (v < 30) return "FEARFUL";
-    return "PANIC";
-  }}
-
-  function vixSig(v) {{
-    if (v >= 30) return "Panic -- forced selling, mean reversion entries emerging";
-    if (v >= 25) return "Elevated fear -- watch for entry points";
-    if (v >= 20) return "Slightly elevated -- no broad panic signal";
-    if (v >= 15) return "Normal -- market calm, no stress signal";
-    return "Calm -- low fear, complacency = less opportunity for value investors";
-  }}
-
-  function updateDot(dotId, lbl, col) {{
-    var dot = document.getElementById(dotId);
-    if (!dot) return;
-    var pct = BANDS[lbl] !== undefined ? BANDS[lbl] : 50;
-    dot.style.left = "calc(" + pct + "% - 6px)";
-    dot.style.background = col;
-  }}
-
-  function fetchTicker(sym, callback) {{
-    // range=1d&interval=1m gives intraday bars so we can compute real chg vs prev close.
-    // regularMarketChangePercent from meta is also reliable and used as primary source.
-    var url = "https://query1.finance.yahoo.com/v8/finance/chart/" + sym +
-              "?interval=1d&range=2d&cors=true";
-    fetch(url, {{headers: {{"Accept": "application/json"}}}})
-      .then(function(r) {{ return r.json(); }})
-      .then(function(d) {{
-        var meta = d.chart.result[0].meta;
-        var p    = parseFloat(meta.regularMarketPrice || 0);
-        var pv   = parseFloat(meta.previousClose || p);
-        // Use regularMarketChangePercent as primary -- Yahoo populates this correctly
-        // both during trading and after close. Manual calc from range=2d fails after
-        // close because regularMarketPrice == previousClose in the meta response.
-        var chgPct = parseFloat(meta.regularMarketChangePercent || 0);
-        // Cross-check: if Yahoo gives 0 but prices differ, compute manually
-        if (chgPct === 0 && pv && Math.abs(p - pv) > 0.01) {{
-          chgPct = (p - pv) / pv * 100;
-        }}
-        var state = meta.marketState || "UNKNOWN";
-        callback(null, {{price:p, prev:pv, chg:chgPct, state:state}});
-      }})
-      .catch(function(e) {{ callback(e, null); }});
-  }}
-
-  function refresh() {{
-    var results = {{}};
-    var done = 0;
-    var tickers = ["%5EGSPC", "%5ERUT", "%5EVIX"];
-    var keys    = ["spx",     "rut",    "vix"];
-
-    tickers.forEach(function(sym, i) {{
-      fetchTicker(sym, function(err, data) {{
-        done++;
-        if (!err) results[keys[i]] = data;
-        if (done === tickers.length) apply(results);
-      }});
-    }});
-  }}
-
-  function apply(r) {{
-    var spx = r.spx; var rut = r.rut; var vix = r.vix;
-    if (!spx || !rut || !vix) return;
-
-    var stateMap = {{REGULAR:"OPEN", PRE:"PRE", POST:"POST", CLOSED:"CLOSED"}};
-    var state = stateMap[spx.state] || "OPEN";
-
-    var spxLbl, rutLbl, spxChgStr, rutChgStr;
-    if (state === "PRE") {{
-      spxLbl = "PRE-MKT"; rutLbl = "PRE-MKT";
-      spxChgStr = "Pre-Market"; rutChgStr = "Pre-Market";
-    }} else {{
-      spxLbl = classifyIdx(spx.chg); rutLbl = classifyIdx(rut.chg);
-      spxChgStr = (spx.chg >= 0 ? "+" : "") + spx.chg.toFixed(2) + "%";
-      rutChgStr = (rut.chg >= 0 ? "+" : "") + rut.chg.toFixed(2) + "%";
-    }}
-    var spxCol = COLORS[spxLbl] || "#6b7280";
-    var rutCol = COLORS[rutLbl] || "#6b7280";
-    var vixLbl = classifyVix(vix.price);
-    var vixCol = COLORS[vixLbl] || "#6b7280";
-
-    var el;
-    el = document.getElementById("spx-val");  if(el) el.textContent = spx.price.toLocaleString("en-US", {{maximumFractionDigits:0}});
-    el = document.getElementById("spx-chg");  if(el) {{ el.textContent = spxChgStr; el.style.color = spxCol; }}
-    el = document.getElementById("spx-pill"); if(el) {{ el.textContent = spxLbl; el.style.background = spxCol; }}
-    updateDot("spx-dot", spxLbl, spxCol);
-
-    el = document.getElementById("rut-val");  if(el) el.textContent = rut.price.toLocaleString("en-US", {{maximumFractionDigits:0}});
-    el = document.getElementById("rut-chg");  if(el) {{ el.textContent = rutChgStr; el.style.color = rutCol; }}
-    el = document.getElementById("rut-pill"); if(el) {{ el.textContent = rutLbl; el.style.background = rutCol; }}
-    updateDot("rut-dot", rutLbl, rutCol);
-
-    el = document.getElementById("vix-val");  if(el) el.textContent = vix.price.toFixed(2);
-    el = document.getElementById("vix-prev"); if(el) {{ el.textContent = "prev " + vix.prev.toFixed(2); el.style.color = vixCol; }}
-    el = document.getElementById("vix-pill"); if(el) {{ el.textContent = vixLbl; el.style.background = vixCol; }}
-    el = document.getElementById("vix-sig");  if(el) el.textContent = vixSig(vix.price);
-
-    var tone = "";
-    if (state === "PRE") {{
-      tone = "Pre-Market · S&P last close " + spx.price.toLocaleString("en-US",{{maximumFractionDigits:0}}) +
-             " · Russell " + rut.price.toLocaleString("en-US",{{maximumFractionDigits:0}}) +
-             " · VIX " + vix.price.toFixed(1) + " (" + vixLbl + ")";
-    }} else {{
-      var mood = "";
-      if (vix.price >= 30 || spxLbl === "SELLOFF") mood = "broad stress -- mean reversion entries emerging";
-      else if (spxLbl === "FLAT") mood = "indecisive -- focus on individual catalysts";
-      else if (["UP","RALLY"].includes(spxLbl) && ["UP","RALLY"].includes(rutLbl)) mood = "broad strength -- be selective";
-      else mood = "mixed -- stay selective";
-      tone = "S&P " + spxChgStr + " (" + spxLbl + ") · Russell " + rutChgStr + " (" + rutLbl + ") · VIX " + vix.price.toFixed(1) + " (" + vixLbl + ") -- " + mood;
-    }}
-    el = document.getElementById("pulse-line"); if(el) el.textContent = "⚡ " + tone;
-
-    var now = new Date();
-    var hh = now.getHours(); var mm = now.getMinutes();
-    var ampm = hh >= 12 ? "PM" : "AM"; hh = hh % 12 || 12;
-    var ts = "refreshed " + hh + ":" + (mm < 10 ? "0" : "") + mm + " " + ampm;
-    el = document.getElementById("mkt-refresh-ts"); if(el) el.textContent = ts;
-
-    var day = now.getDay();
-    var minOfDay = now.getHours() * 60 + now.getMinutes();
-    var mktOpen  = 7 * 60 + 30;
-    var mktClose = 16 * 60 + 5;
-    if (day >= 1 && day <= 5 && minOfDay >= mktOpen && minOfDay < mktClose) {{
-      setTimeout(refresh, 60000);
-    }}
-  }}
-
-  refresh();
-}})();
-</script>"""
+</div>
+"""
 
     # Sentiment table
     fg_cache_html    = _cache_badge(fg_cdate) if fg_cached else ""
@@ -1448,8 +1376,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 
 <div class="hero">
   <h1>📈 MEAN REVERSION MACRO INSIGHTS</h1>
-  <div class="sub">{today}</div>
-  <div class="ts">Updated {now_str} MT · anil2040.github.io/market-pulse-ai</div>
+  <div class="sub">{today} &nbsp;·&nbsp; Updated {now_str} MT</div>
 </div>
 
 <div class="container">
