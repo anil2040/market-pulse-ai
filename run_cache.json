@@ -185,7 +185,7 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,388",
+      "current": "$4,374",
       "mo3": "$4,203",
       "mo12": "$3,682",
       "trend": "\u25b2",
@@ -247,14 +247,14 @@
   },
   "fear_greed": {
     "value": {
-      "score": 34,
+      "score": 39,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 29,
-      "prev_week": 31,
+      "prev_close": 34,
+      "prev_week": 28,
       "prev_month": 55,
-      "prev_year": 66,
+      "prev_year": 67,
       "cached": false
     },
     "fetched": "2026-09-22"
@@ -262,35 +262,35 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "14.87",
+        "value": "14.69",
         "label": "CALM",
         "color": "#059669",
         "signal": "\u2705 Calm \u00b7 low fear \u00b7 complacency = less opportunity for value investors",
-        "prev": "14.87"
+        "prev": "14.69"
       },
       "spx": {
-        "value": "7,765",
+        "value": "7,771",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,765"
+        "prev": "7,771"
       },
       "rut": {
-        "value": "2,875",
+        "value": "2,893",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,875"
+        "prev": "2,893"
       },
-      "urth_pe": 22.61,
+      "urth_pe": 19.41,
       "urth_pe_stale": false,
       "urth_pe_source": "Claude Routine",
-      "efa_pe": 18.24,
+      "efa_pe": 18.23,
       "efa_pe_stale": false,
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 14.9 (CALM) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 14.7 (CALM) -- indecisive -- focus on individual catalysts"
     },
     "fetched": "2026-09-22"
   },
@@ -612,7 +612,7 @@
       ],
       [
         "EQNR",
-        "3.30"
+        "3.20"
       ],
       [
         "PBR",
@@ -620,42 +620,42 @@
       ],
       [
         "APA",
-        "5.50"
+        "5.40"
       ],
       [
         "BP",
         "6.90"
       ],
       [
+        "CF",
+        "7.30"
+      ],
+      [
         "YPF",
         "7.40"
       ],
       [
-        "CF",
-        "7.40"
-      ],
-      [
         "SHEL",
-        "7.60"
+        "7.50"
       ],
       [
         "DINO",
-        "7.90"
+        "7.70"
+      ],
+      [
+        "NVO",
+        "8.00"
       ],
       [
         "CTSH",
         "8.00"
       ],
       [
-        "NVO",
-        "8.10"
-      ],
-      [
-        "FOXA",
+        "SNY",
         "8.40"
       ],
       [
-        "SNY",
+        "FOXA",
         "8.40"
       ],
       [
@@ -663,12 +663,12 @@
         "8.50"
       ],
       [
-        "SQM",
+        "HPQ",
         "8.80"
       ],
       [
-        "HPQ",
-        "8.80"
+        "SQM",
+        "8.90"
       ],
       [
         "CMCSA",
@@ -687,32 +687,32 @@
         "9.40"
       ],
       [
-        "PHM",
-        "9.50"
+        "ERIC",
+        "9.40"
       ],
       [
-        "RYAAY",
-        "9.90"
+        "PHM",
+        "9.70"
       ],
       [
         "FMX",
-        "9.90"
-      ],
-      [
-        "ERIC",
-        "9.90"
+        "10.00"
       ],
       [
         "BMY",
         "10.10"
       ],
       [
+        "RYAAY",
+        "10.20"
+      ],
+      [
         "ZTS",
-        "10.30"
+        "10.40"
       ],
       [
         "LDOS",
-        "10.50"
+        "10.40"
       ],
       [
         "FSLR",
@@ -720,11 +720,11 @@
       ],
       [
         "SBS",
-        "10.70"
+        "10.60"
       ],
       [
         "SKHY",
-        "10.80"
+        "11.10"
       ],
       [
         "EIX",
@@ -732,15 +732,15 @@
       ],
       [
         "BBY",
-        "11.40"
+        "11.60"
+      ],
+      [
+        "CQP",
+        "11.80"
       ],
       [
         "CVS",
         "11.80"
-      ],
-      [
-        "CQP",
-        "11.90"
       ],
       [
         "VICI",
@@ -756,7 +756,7 @@
       ],
       [
         "UPS",
-        "12.40"
+        "12.50"
       ],
       [
         "BTI",
@@ -768,7 +768,7 @@
       ],
       [
         "LNG",
-        "13.10"
+        "13.00"
       ],
       [
         "FIS",
@@ -776,26 +776,22 @@
       ],
       [
         "KVUE",
-        "14.00"
-      ],
-      [
-        "LOW",
-        "14.30"
+        "14.20"
       ],
       [
         "EXEL",
-        "14.30"
+        "14.40"
       ],
       [
-        "OTIS",
-        "14.70"
+        "LOW",
+        "14.40"
       ],
       [
         "LOGI",
-        "14.90"
+        "14.80"
       ],
       [
-        "FDX",
+        "OTIS",
         "14.90"
       ],
       [
@@ -803,8 +799,12 @@
         "15.00"
       ],
       [
+        "FDX",
+        "15.00"
+      ],
+      [
         "UL",
-        "15.50"
+        "15.70"
       ]
     ],
     "fetched": "2026-09-22"
@@ -818,11 +818,11 @@
     "fetched": "2026-09-22"
   },
   "news_yahoo": {
-    "value": "The big things you need to know for the week ahead.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nMonday, September 21 \u00a0 |\nView in your browser\nGood morning!\nWith the Fed decision and most of the earnings season in the rearview, the last full week of September presents a lighter slate of scheduled financial programming \u2014 opening the door for whatever wild-card news the universe has in store.\nFor instance, a giant must-watch meeting between President Trump and his Chinese counterpart, Xi Jinping, that is set to feature AI's biggest figures, and a big conference from Meta.\nIn today's issue\nThe stock market is drifting, despite the action\nTrump and Xi get ready for dinner with the AI titans\nMarkets look to FedSpeak and oil for answers\nMeta and Qualcomm take the stage from both sides of the AI spectrum\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman\u2019s Snider says fears of a US earnings bubble\nare misplaced.\nBofA warns Warsh's Fed could raise rates\nabove 5%\n.\nWhy Salesforce CEO Marc Benioff thinks AI chip king Nvidia\nis 'exquisite.'\nCoinbase CEO Brian Armstrong is moving past the Clarity Act's failure\n:\n'There's another path\n.'\nJamie Dimon on AI oversight\n:\n'It should be light touch.'\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe stock market is drifting, despite the action\nPeople walk outside the New York Stock Exchange on Sept. 9, 2026, in New York City. (Spencer Platt/Getty Images)\nLast week saw stocks mostly tread water despite the first Fed rate hike since 2023, as investors did a lot of looking around at bonds and stocks, trying to get a read on the market\u2019s various rooms.\nTrying to figure out what the Fed hike actually means \u2014 and whether it will make any difference to inflation \u2014 will be high on the week\u2019s to-do list. Stocks have largely drifted as the two competing forces have canceled each other out: High bond yields and strong earnings forecasts.\nLooking ahead this week, it's a calm earnings slate. But we\u2019ll have our eyes on corporate reports from Costco Wholesale Corporation (\nCOST\n) and Darden Restaurants (\nDRI\n), which will provide checks on consumers and, in Costco\u2019s case, a key place where the inflation rubber meets the road. We\u2019ll also be watching for commentary from KB Home (\nKBH\n), given that mortgage rates are surging once again.\nWithout any big economic data releases, some of the more niche data may find itself taking center stage. Keep an eye on our calendar.\nTrump and Xi get ready for dinner with the AI titans\nUS President Donald Trump, right, participates in a friendship walk through Zhongnanhai Garden with Chinese President Xi Jinping in Beijing, Friday, May 15, 2026. (Evan Vucci/Pool Photo via AP, File)\nPresident Trump will be hosting Chinese leader Xi Jinping this week for the second time in 2026.\nQuite a lot has happened since Trump's visit to China in May: a sticky war with Iran, a corresponding energy crisis, and growing risks amid an AI arms race between the two countries, just to name a few plot points.\nGoing into this, one has to imagine Trump is looking for wins with a low approval rating and that growing laundry list of things that are worrying the public \u2014 in a bipartisan fashion, no less.\nThe obvious thing markets are looking for is a continuation of the two countries' trade truce ahead of its November expiration.\nWhile that's broadly expected\n, any meeting between volatile parties could always devolve into something worrying.\nEspecially when touchy subjects li",
+    "value": "Plus: The post-phone era is here, and California is forcing Paramount to release 30 films/year.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nTuesday, September 22 \u00a0 |\nView in your browser\nGood morning!\nWhat a Monday. Oil slid to an 11-day low amid a dose of\noptimism over the conflict with Iran.\nAnd a new wave of AI bullishness after a\nMeta upgrade\nhelped propel stocks to a big day.\nThe S&P 500 (\n^GSPC\n) jumped 1.5%, the Dow (\n^DJI\n) rose 0.7%, and the Nasdaq (\n^IXIC\n) surged 2.3%, marking a new all-time high.\nThe risk-on sentiment also pushed bitcoin (\nBTC-USD\n) well over $86,000.\nIn today's issue\nThe post-phone hardware era is here as Oura goes public\nCalifornia is forcing Paramount to release 30 movies in theaters per year\nStrategy buys more bitcoin to get back in the green\nTech stocks are the cheapest since ChatGPT shook everything up\nWhat we're watching Tuesday:\nThe risk-on mood will continue with some minor economic data and a check on homebuilding with KB Home (\nKBH\n) earnings.\nHeadlines\nMeta stock rockets 10% on price target increase and Muse AI downloads.\nWells Fargo's analysis is convincing the market that Meta isn't just a social media company.\nXi heads to Washington:\nWhat to expect on tariffs, AI, and a CEO parade\n.\nTesla stock jumps ahead of highly anticipated Roadster reveal Oct. 1.\nThe company is asking people to put down a $5,000 deposit and $45,000 second payment 10 days later. The car may cost $250,000.\nTo get a piece of Anthropic, retail investors are open\nto big risks\n.\nNew data centers worth $68B have been disrupted in US,\nas local opposition to their construction has grown.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe post-phone hardware era is here as Oura goes public\nA detailed view of the Oura ring of Coco Gauff at the 2026 US Open on Sept. 1, 2026, in Queens, New York. (Patrick Smith/Getty Images)\nMonday morning brought us news that another popular consumer hardware device is looking to raise a few billion, trying its hand in the public markets as it starts its pre-IPO roadshow.\nOura Health, which makes smart rings at $399 and up, will add regular people to its cadre of very famous investors that includes celebrities, Marc Benioff, Michael Dell, and many more.\nWhen it IPOs on the Nasdaq, you can probably guess its ticker symbol.\nI (Ethan) remember hearing about the Oura on Lance Armstrong's podcast, which I had to stop listening to because it was 25% ads \u2014 an unsaleable fat ratio if it were ground meat.\nBut Armstrong (an early investor) talking his VC book at great lengths seemed to either work or forerun a trend:\nSmart, screenless jewelry has become both lucrative and ubiquitous.\nAfter years of phone stagnation, the key to hardware sales \u2014 as the Apple Watch correctly guessed \u2014 has been health. Not just sports. Not just sleep. A product that was once \"gadget/jewelry\" has transformed into something essential.\nAnd in a way that wasn't forced on consumers, like wireless headphones with the elimination of the headphone jack.\nThough this isn't yet the AI \"phone killer\" device, but rather a peripheral, we have to think Oura, Whoop, and smart glasses from Meta and Snap are priming the consumer for new devices, even if, as Apple hopes, the phone remains the control center of the AI future.\nOura is hoping to see a $15.6 billion valuation. The company saw annual revenue of $1.2 billion in the 12 months that ended June 30, up from just over half that the year before. It is, of course, not yet profitable, losing over $900 m",
     "fetched": "2026-09-22"
   },
   "news_yahoo_calendar": {
-    "value": "Earnings and economic calendar\nMonday\nEconomic data:\nChicago Fed national activity index, August (-0.06 expected, -0.08 previously)\nEarnings calendar:\nNo notable earnings.\nTuesday\nEconomic data:\nADP weekly employment change, week ended Sept. 5 (+16,250 previously); Philadelphia Fed non-manufacturing index, September (-10.6 previously); Richmond Fed manufacturing index, September (4 previously); Richmond Fed business conditions, September (-12 previously)\nEarnings calendar:\nTHOR Industries (\nTHO\n), KB Home (\nKBH\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 18 (-4.1% previously); S&P Global US manufacturing PMI, September preliminary reading (53.6 expected, 53.9 previously); S&P Global US services PMI, September preliminary reading (56 expected, 56.5 previously); S&P Global US composite PMI, September preliminary reading (56 previously)\nEarnings calendar:\nCintas Corporation (\nCTAS\n), Paychex (\nPAYX\n), General Mills (\nGIS\n), H.B. Fuller Company (\nFUL\n), Cracker Barrel Old Country Store (\nCBRL\n)\nThursday\nEconomic data:\nCurrent account balance, second quarter (-$226.8 billion previously); Initial jobless claims, week ended Sept. 19 (196,000 previously); Continuing claims, week ended Sept. 12 (1.73 million previously); New home sales, month-on-month, August (+1.3% expected, -10.5% previously); Building permits, month-on-month, August final reading (-2.7% previously); Kansas City Fed manufacturing activity, September (10 previously)\nEarnings calendar:\nCostco Wholesale Corporation (\nCOST\n), Darden Restaurants (\nDRI\n), Uranium Energy Corp. (\nUEC\n), BlackBerry (\nBB\n), Scholastic Corporation (\nSCHL\n)\nFriday\nEconomic data:\nDurable goods orders, August preliminary reading (-0.3% expected, +1.1% previously); Kansas City Fed services activity, September (-3 previously); U. Mich. sentiment, September final reading (47.8 expected, 47.8 previously); U. Mich. current conditions, September final reading (50.9 previously); U. Mich. expectations, September final reading (45.8 previously); U. Mich. 1-year inflation, September final reading (+4.6% previously); U. Mich. 5-10 year inflation, September final reading (+3.4% previously)\nEarnings calendar:\nTamboran Resources Corporation (\nTBN\n)",
+    "value": "Earnings and economic calendar\nTuesday\nEconomic data:\nADP weekly employment change, week ended Sept. 5 (+16,250 previously); Philadelphia Fed non-manufacturing index, September (-10.6 previously); Richmond Fed manufacturing index, September (4 previously); Richmond Fed business conditions, September (-12 previously)\nEarnings calendar:\nTHOR Industries (\nTHO\n), KB Home (\nKBH\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 18 (-4.1% previously); S&P Global US manufacturing PMI, September preliminary reading (53.6 expected, 53.9 previously); S&P Global US services PMI, September preliminary reading (56 expected, 56.5 previously); S&P Global US composite PMI, September preliminary reading (56 previously)\nEarnings calendar:\nCintas Corporation (\nCTAS\n), Paychex (\nPAYX\n), General Mills (\nGIS\n), H.B. Fuller Company (\nFUL\n), Cracker Barrel Old Country Store (\nCBRL\n)\nThursday\nEconomic data:\nCurrent account balance, second quarter (-$226.8 billion previously); Initial jobless claims, week ended Sept. 19 (196,000 previously); Continuing claims, week ended Sept. 12 (1.73 million previously); New home sales, month-on-month, August (+1.3% expected, -10.5% previously); Building permits, month-on-month, August final reading (-2.7% previously); Kansas City Fed manufacturing activity, September (10 previously)\nEarnings calendar:\nCostco Wholesale Corporation (\nCOST\n), Darden Restaurants (\nDRI\n), Uranium Energy Corp. (\nUEC\n), BlackBerry (\nBB\n), Scholastic Corporation (\nSCHL\n)\nFriday\nEconomic data:\nDurable goods orders, August preliminary reading (-0.3% expected, +1.1% previously); Kansas City Fed services activity, September (-3 previously); U. Mich. sentiment, September final reading (47.8 expected, 47.8 previously); U. Mich. current conditions, September final reading (50.9 previously); U. Mich. expectations, September final reading (45.8 previously); U. Mich. 1-year inflation, September final reading (+4.6% previously); U. Mich. 5-10 year inflation, September final reading (+3.4% previously)\nEarnings calendar:\nTamboran Resources Corporation (\nTBN\n)",
     "fetched": "2026-09-22"
   },
   "weekly_calendar": {
@@ -873,6 +873,11 @@
     {
       "date": "2026-09-21",
       "score": 91,
+      "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-22",
+      "score": 99,
       "label": "EXTREME OVERHEATED"
     }
   ]
