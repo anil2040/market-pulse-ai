@@ -1,57 +1,57 @@
 {
   "date": "2026-09-22",
-  "time_collected_utc": "12:00",
+  "time_collected_utc": "13:46",
   "futures": {
-    "sp500": {"change_pct": 0.09, "direction": "up"},
+    "sp500": {"change_pct": 0.03, "direction": "up"},
     "nasdaq100": {"change_pct": 0.05, "direction": "up"},
-    "dow": {"change_pct": 0.05, "direction": "up"},
+    "dow": {"change_pct": 0.04, "direction": "up"},
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World", "source": "investing.com (fallback: general web search)"},
+    "URTH": {"pe_ttm": 22.61, "proxy_for": "MSCI World", "source": "etfdb.com (fallback: general web search)"},
     "EFA": {"pe_ttm": 18.23, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance (fallback: general web search)"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.22,
+    "treasury_10yr_pct": 4.90,
     "crude_oil_usd": 92.41,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed rate-cut expectations and easing Treasury yields supported early-week risk sentiment",
-    "Bank of Japan raised its policy rate 25bps to 1.25%, lifting Asian markets; Tokyo exchange closed for holiday",
-    "Signs of Middle East de-escalation ahead of UN General Assembly meetings between US and Gulf leaders"
+    "10-year Treasury yield near 4.9% as markets price roughly 51% odds of another Fed rate hike in October (CME FedWatch)",
+    "Iran signals potential 7-day reopening of the Strait of Hormuz amid easing Middle East tensions",
+    "Trump addresses UN General Assembly, with a possible meeting with Iran's counterpart in focus"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Consumer Discretionary", "change_pct": 0.46, "reason": "resilient consumer spending data"},
-      {"sector": "Healthcare", "change_pct": 0.24, "reason": "defensive rotation amid rate uncertainty"}
+      {"sector": "Industrials", "change_pct": 0.87, "reason": "broad economic strength"},
+      {"sector": "Technology", "change_pct": 0.60, "reason": "AI enthusiasm following Meta's new AI assistant"}
     ],
     "lagging": [
-      {"sector": "Energy", "change_pct": -3.34, "reason": "falling crude oil prices"},
-      {"sector": "Financials", "change_pct": -1.25, "reason": "rate-cut expectations pressuring bank margins"}
+      {"sector": "Energy", "change_pct": -2.32, "reason": "falling crude oil prices"},
+      {"sector": "Utilities", "change_pct": -0.40, "reason": "rotation out of defensives amid risk-on sentiment"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.2},
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 1.00},
     "asia": {"index": "Nikkei", "direction": "up", "change_pct": 1.38}
   },
-  "open_focus": "Traders are focused on Federal Reserve rate-cut expectations and Treasury yield moves, alongside signs of Middle East de-escalation ahead of the UN General Assembly.",
+  "open_focus": "Traders are focused on the 10-year Treasury yield near 4.9% and rising Fed rate-hike odds, alongside Iran's signal to reopen the Strait of Hormuz ahead of Trump's UN address.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7764.70,
+      "prev_close": 7650.50,
       "current": 7779.22,
-      "change_pct": 0.19,
-      "source_time_et": "08:00"
+      "change_pct": 1.68,
+      "source_time_et": "09:46"
     },
     "rut": {
-      "prev_close": 2875.36,
+      "prev_close": 2851.25,
       "current": 2874.63,
-      "change_pct": -0.03,
-      "source_time_et": "08:00"
+      "change_pct": 0.82,
+      "source_time_et": "09:46"
     },
     "vix": {
       "prev_close": 14.81,
-      "current": 14.93
+      "current": 14.87
     }
   }
 }
