@@ -1547,7 +1547,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
     <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
     <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
-    Gemini · Claude Haiku (fallback) · Not financial advice.
+    Gemini 3.6 Flash · Gemini 2.5 Flash · Claude Haiku 4.5 (fallback) · Not financial advice.
   </div>
 </div>
 

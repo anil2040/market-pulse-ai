@@ -21,15 +21,22 @@
 # CLAUDE ROUTINE INTEGRATION:
 #   Pre-market intelligence (futures, sentiment, rates, sector
 #   movers, global markets, macro events, open_focus) from the
-#   4am Claude Routine is injected into the prompt. When fresh,
+#   7:44am Claude Routine is injected into the prompt. When fresh,
 #   this provides today's context. When stale, it is included
 #   with a staleness note so the AI can weight it accordingly.
 #
 # FALLBACK CHAIN:
-#   1. gemini-3.6-flash  (free, 20 RPD -- resets midnight UTC = 6 PM MT)
-#   2. gemini-1.5-flash  (free, separate quota pool)
-#   3. claude-haiku-4-5  (paid ~$0.003/run -- logged prominently)
+#   1. gemini-3.6-flash  (free, 1,500 RPD -- resets daily)
+#   2. gemini-2.5-flash  (free, separate quota pool, stable)
+#   3. claude-haiku-4-5  (paid ~$0.01-0.02/run -- varies with prompt size)
 #   4. structured text   (always works, no AI narrative)
+#
+# HAIKU COST NOTE (Sep 2026, confirmed from Anthropic dashboard):
+#   Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
+#   Observed range: $0.008 (light day) to $0.015 (heavy news day)
+#   Token count varies because prompt includes news email text +
+#   calendar section + FRED summary + routine block -- all variable length.
+#   Cost is logged with actual token counts from message.usage each run.
 # ============================================================
 
 import os
@@ -49,18 +56,26 @@ def _call_gemini(prompt, model):
     client = genai.Client(api_key=GEMINI_API_KEY)
     return client.interactions.create(model=model, input=prompt).output_text
 
+
 def _call_haiku(prompt):
+    """
+    Call Claude Haiku 4.5. Returns (text, input_tokens, output_tokens).
+    Uses anthropic SDK when available; falls back to direct HTTP.
+    Token counts come from message.usage so cost logging is always accurate.
+    """
     if not ANTHROPIC_API_KEY:
         raise Exception("ANTHROPIC_API_KEY secret not set in GitHub repo")
     try:
         import anthropic
         client  = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
         message = client.messages.create(
-            model     = "claude-haiku-4-5",
-            max_tokens= 1000,
-            messages  = [{"role": "user", "content": prompt}],
+            model      = "claude-haiku-4-5",
+            max_tokens = 1000,
+            messages   = [{"role": "user", "content": prompt}],
         )
-        return message.content[0].text
+        in_tok  = message.usage.input_tokens
+        out_tok = message.usage.output_tokens
+        return message.content[0].text, in_tok, out_tok
     except ImportError:
         print("  ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
         resp = requests.post(
@@ -80,7 +95,11 @@ def _call_haiku(prompt):
         if resp.status_code != 200:
             raise Exception(
                 f"Anthropic API error {resp.status_code}: {resp.text[:200]}")
-        return resp.json()["content"][0]["text"]
+        data    = resp.json()
+        in_tok  = data.get("usage", {}).get("input_tokens", 0)
+        out_tok = data.get("usage", {}).get("output_tokens", 0)
+        return data["content"][0]["text"], in_tok, out_tok
+
 
 # ============================================================
 # ROUTINE DATA FORMATTER
@@ -103,15 +122,15 @@ def _format_routine_block(routine_data, routine_fresh):
 
     # Futures
     futures = routine_data.get("futures", {})
-    sp5   = futures.get("sp500",    {})
-    nq    = futures.get("nasdaq100",{})
-    dw    = futures.get("dow",      {})
-    sent  = futures.get("sentiment", "N/A")
+    sp5     = futures.get("sp500",     {})
+    nq      = futures.get("nasdaq100", {})
+    dw      = futures.get("dow",       {})
+    sent    = futures.get("sentiment", "N/A")
 
     def fmt_future(d):
         if not d:
             return "N/A"
-        chg = d.get("change_pct", 0)
+        chg       = d.get("change_pct", 0)
         direction = d.get("direction", "")
         return f"{chg:+.2f}% ({direction})" if isinstance(chg, (int, float)) else f"{chg} ({direction})"
 
@@ -125,7 +144,7 @@ def _format_routine_block(routine_data, routine_fresh):
     ctype = rc.get("crude_oil_type", "WTI")
 
     # Macro events
-    events = routine_data.get("macro_events", [])
+    events     = routine_data.get("macro_events", [])
     events_str = " / ".join(events) if events else "None reported"
 
     # Sector movers
@@ -136,9 +155,9 @@ def _format_routine_block(routine_data, routine_fresh):
     def fmt_sector(lst):
         parts = []
         for s in lst:
-            name   = s.get("sector", "")
-            chg    = s.get("change_pct", 0)
-            reason = s.get("reason", "")
+            name    = s.get("sector", "")
+            chg     = s.get("change_pct", 0)
+            reason  = s.get("reason", "")
             chg_str = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else str(chg)
             parts.append(f"{name} {chg_str} ({reason})")
         return " | ".join(parts) if parts else "N/A"
@@ -151,10 +170,10 @@ def _format_routine_block(routine_data, routine_fresh):
     def fmt_global(d):
         if not d:
             return "N/A"
-        idx = d.get("index", "")
-        chg = d.get("change_pct", 0)
+        idx       = d.get("index", "")
+        chg       = d.get("change_pct", 0)
         direction = d.get("direction", "")
-        chg_str = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else str(chg)
+        chg_str   = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else str(chg)
         return f"{idx} {chg_str} ({direction})"
 
     # Open focus
@@ -177,6 +196,7 @@ OPEN FOCUS: {open_focus}
 ETF PE (routine source): URTH={urth_pe}x | EFA={efa_pe}x"""
 
     return block.strip()
+
 
 # ============================================================
 # MAIN SYNTHESIS
@@ -206,7 +226,7 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
 
     # mf_list: [(ticker, rank), ...] -- convert to set for membership tests
     # am_list: [(ticker, multiple_str), ...] -- convert to dict for lookup
-    mf_set = {t for t, _ in mf_list}
+    mf_set  = {t for t, _ in mf_list}
     am_dict = dict(am_list)  # ticker -> multiple_str
 
     all_tickers = sorted(set(si_tickers.keys()) | mf_set | set(am_dict.keys()))
@@ -229,7 +249,8 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
     # Calendar block for prompt
     calendar_block = ""
     if yahoo_calendar and len(yahoo_calendar.strip()) > 50:
-        calendar_block = f"\nWEEK AHEAD (from Yahoo Morning Brief -- use specific dates):\n{yahoo_calendar[:2000]}"
+        calendar_block = (f"\nWEEK AHEAD (from Yahoo Morning Brief -- use specific dates):\n"
+                          f"{yahoo_calendar[:2000]}")
 
     prompt = f"""You are a sharp financial analyst writing a morning briefing for a
 deep-value mean reversion investor (Greenblatt, Carlisle, Howard Marks, Burry, Pabrai
@@ -291,8 +312,6 @@ HIGH CONVICTION SCREENS (2+ screens overlap):
 {', '.join(overlap[:15]) if overlap else 'None today'}
 
 {routine_block}
-
-{routine_block}
 {calendar_block}
 
 NEWS SOURCES (for macro context -- no stock-specific stories):
@@ -304,9 +323,9 @@ YAHOO BRIEF: {yahoo_text[:600]}
     models_to_try = [
         ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",
          lambda: _call_gemini(prompt, "gemini-3.6-flash")),
-        ("gemini-1.5-flash", "Gemini 1.5 Flash (free tier)",
-         lambda: _call_gemini(prompt, "gemini-1.5-flash")),
-        ("claude-haiku-4-5", "Claude Haiku 4.5 (paid ~$0.003)",
+        ("gemini-2.5-flash", "Gemini 2.5 Flash (free tier)",
+         lambda: _call_gemini(prompt, "gemini-2.5-flash")),
+        ("claude-haiku-4-5", "Claude Haiku 4.5",
          lambda: _call_haiku(prompt)),
     ]
 
@@ -314,14 +333,23 @@ YAHOO BRIEF: {yahoo_text[:600]}
         try:
             print(f"  Trying {model_name}...")
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
-                fut      = ex.submit(call_fn)
-                briefing = fut.result(timeout=90)
+                fut    = ex.submit(call_fn)
+                result = fut.result(timeout=90)
+
             if model_id == "claude-haiku-4-5":
+                # _call_haiku returns (text, in_tokens, out_tokens)
+                briefing, in_tok, out_tok = result
+                cost = (in_tok * 1.00 + out_tok * 5.00) / 1_000_000
                 print(f"  ✅ Claude Haiku used as fallback: {len(briefing)} chars")
-                print("  💰 Estimated cost: ~$0.003 (input ~2000 tokens + output ~400 tokens)")
+                print(f"  💰 Cost: ~${cost:.4f} "
+                      f"(input {in_tok:,} tokens + output {out_tok:,} tokens)")
             else:
+                # Gemini returns plain text string
+                briefing = result
                 print(f"  ✅ {model_name}: {len(briefing)} chars")
+
             return briefing, False
+
         except concurrent.futures.TimeoutError:
             print(f"  ⚠️ {model_name} timed out (>90s)")
         except Exception as e:
@@ -331,10 +359,6 @@ YAHOO BRIEF: {yahoo_text[:600]}
     fallback = """MARKET AND MACRO
 - AI synthesis unavailable -- all models failed or quota exhausted today
 - All data sections below are complete and current -- no data loss
-
-EARNINGS AND EVENTS
-- Check Yahoo Morning Brief and CNBC Squawk sections for today's calendar
-- Edward Jones recap has previous session summary
 
 WHAT TO WATCH
 - Review MHS score and FRED indicator table -- all data is fresh
@@ -347,13 +371,14 @@ AI LEARNING
 - Attention mechanism: lets LLMs weight relationships between all tokens simultaneously."""
     return fallback, True
 
+
 # ============================================================
 # SECTION PARSER
 # ============================================================
 
 def parse_sections(text):
     """
-    Split raw AI output into 5 named sections.
+    Split raw AI output into 4 named sections.
     Handles slight header variations (numbered, prefixed with #, etc).
     Returns dict {section_name: raw_content_str}.
     """
