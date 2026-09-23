@@ -167,12 +167,12 @@
       "group": "COMMODITIES",
       "prefix": "$",
       "insight": "Energy price \u00b7 >$85 = inflation pressure & input cost risk",
-      "current": "$107.0",
-      "mo3": "$91.6",
-      "mo12": "$65.0",
+      "current": "$96.4",
+      "mo3": "$80.3",
+      "mo12": "$62.2",
       "trend": "\u25b2",
-      "date": "Sep 15 2026",
-      "sig": "\u26a0\ufe0f Above $100 and rising -- stagflation risk: energy tax on consumers, input cost spike for industry"
+      "date": "Sep 22 2026",
+      "sig": "\u26a0\ufe0f Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
     },
     "fetched": "2026-09-23"
   },
@@ -185,7 +185,7 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,321",
+      "current": "$4,318",
       "mo3": "$4,149",
       "mo12": "$3,674",
       "trend": "\u25b2",
@@ -247,7 +247,7 @@
   },
   "fear_greed": {
     "value": {
-      "score": 39,
+      "score": 35,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
@@ -262,25 +262,25 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "14.20",
-        "label": "CALM",
-        "color": "#059669",
-        "signal": "\u2705 Calm \u00b7 low fear \u00b7 complacency = less opportunity for value investors",
-        "prev": "14.20"
+        "value": "15.14",
+        "label": "NORMAL",
+        "color": "#6b7280",
+        "signal": "\u2192 Normal -- market calm, no stress signal",
+        "prev": "15.14"
       },
       "spx": {
-        "value": "7,736",
+        "value": "7,700",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,736"
+        "prev": "7,700"
       },
       "rut": {
-        "value": "2,867",
+        "value": "2,844",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,867"
+        "prev": "2,844"
       },
       "urth_pe": 19.41,
       "urth_pe_stale": false,
@@ -290,7 +290,7 @@
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 14.2 (CALM) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 15.1 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
     "fetched": "2026-09-23"
   },
@@ -620,11 +620,11 @@
       ],
       [
         "APA",
-        "5.40"
+        "5.50"
       ],
       [
         "BP",
-        "7.00"
+        "7.10"
       ],
       [
         "CF",
@@ -632,7 +632,11 @@
       ],
       [
         "YPF",
-        "7.50"
+        "7.40"
+      ],
+      [
+        "DINO",
+        "7.70"
       ],
       [
         "SHEL",
@@ -640,22 +644,18 @@
       ],
       [
         "NVO",
-        "7.90"
-      ],
-      [
-        "DINO",
-        "7.90"
+        "7.80"
       ],
       [
         "CTSH",
         "7.90"
       ],
       [
-        "FOXA",
-        "8.20"
+        "SNY",
+        "8.30"
       ],
       [
-        "SNY",
+        "FOXA",
         "8.30"
       ],
       [
@@ -668,19 +668,19 @@
       ],
       [
         "SQM",
-        "8.70"
-      ],
-      [
-        "CMCSA",
         "8.80"
       ],
       [
         "CI",
-        "9.00"
+        "8.90"
+      ],
+      [
+        "CMCSA",
+        "8.90"
       ],
       [
         "CHTR",
-        "9.10"
+        "9.20"
       ],
       [
         "MO",
@@ -692,7 +692,7 @@
       ],
       [
         "PHM",
-        "9.60"
+        "9.50"
       ],
       [
         "FMX",
@@ -704,27 +704,31 @@
       ],
       [
         "BMY",
-        "10.10"
-      ],
-      [
-        "LDOS",
-        "10.20"
-      ],
-      [
-        "ZTS",
-        "10.50"
-      ],
-      [
-        "SBS",
-        "10.50"
+        "10.00"
       ],
       [
         "FSLR",
-        "10.60"
+        "10.10"
+      ],
+      [
+        "SBS",
+        "10.30"
+      ],
+      [
+        "LDOS",
+        "10.30"
+      ],
+      [
+        "ZTS",
+        "10.40"
       ],
       [
         "SKHY",
-        "10.90"
+        "10.80"
+      ],
+      [
+        "BBY",
+        "11.10"
       ],
       [
         "EIX",
@@ -735,12 +739,8 @@
         "11.70"
       ],
       [
-        "BBY",
-        "11.80"
-      ],
-      [
         "CQP",
-        "11.90"
+        "11.70"
       ],
       [
         "VICI",
@@ -748,15 +748,15 @@
       ],
       [
         "VZ",
-        "12.10"
+        "12.20"
       ],
       [
         "KR",
-        "12.40"
+        "12.20"
       ],
       [
         "BTI",
-        "12.40"
+        "12.50"
       ],
       [
         "SONY",
@@ -764,11 +764,11 @@
       ],
       [
         "UPS",
-        "12.50"
+        "12.60"
       ],
       [
         "LNG",
-        "13.20"
+        "13.00"
       ],
       [
         "FIS",
@@ -780,11 +780,15 @@
       ],
       [
         "EXEL",
-        "14.40"
+        "14.20"
       ],
       [
         "LOW",
-        "14.40"
+        "14.30"
+      ],
+      [
+        "LOGI",
+        "14.80"
       ],
       [
         "FDX",
@@ -792,25 +796,21 @@
       ],
       [
         "SSNC",
-        "14.90"
+        "15.00"
       ],
       [
         "OTIS",
-        "14.90"
-      ],
-      [
-        "LOGI",
-        "14.90"
+        "15.00"
       ],
       [
         "UL",
-        "15.60"
+        "15.50"
       ]
     ],
     "fetched": "2026-09-23"
   },
   "news_ej": {
-    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nTuesday 9/22/2026 p.m.\nMarkets close mixed as oil prices extend their decline \u2013\nU.S. equity markets finished mixed on Tuesday, with the Nasdaq reaching a record high and the S&P 500 little changed. Bond yields were also roughly flat, with the 10-year Treasury yield near 4.95%. Internationally, Asian markets ended mostly higher overnight, while European equities also advanced. In energy markets, WTI crude extended its recent decline, trading near $95 per barrel amid reports that Saudi Arabia has been moving additional supply through the Strait of Hormuz. The U.S. dollar strengthened against most major currencies.\nEmployment data points to firmer job growth \u2013\nU.S. private employers added an average of 20,000 jobs per week for the four weeks ending September 5, up from 16,750 in the previous report, according to ADP. This marked the third consecutive report showing stronger job gains. In our view, the broader labor market appears relatively balanced. The unemployment rate remains contained at 4.1%, while 7.3 million job openings continue to exceed the 7.0 million unemployed workers. Together, these figures suggest that labor demand remains healthy but not excessively strong. Continued employment and wage growth should help support household income and consumer spending, key pillars of the broader economy.\nBond yields little changed after their recent decline \u2013\nToday's pause follows the recent trend lower for bond yields alongside falling oil prices. Part of that decline appears to reflect easing inflation expectations, an important component of bond yields. Market-implied 10-year inflation expectations in Treasury Inflation Protected Securities (TIPS) markets declined by about 5-10 basis points (0.05%-0.10%) over the past week. This suggests that investors view the recent decline in oil prices as reducing some of the upside risk to inflation. The move may also indicate that the Fed's recent rate hike and continued emphasis on price stability have helped reinforce its inflation-fighting credibility. If inflation expectations remain well anchored, longer-term yields could face less upward pressure.\nBrian Therien, CFA\n;\nInvestment Strategy\nSource for all data: FactSet.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
+    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nWednesday 9/23/2026 a.m.\nMarkets trade slightly lower with economic activity in focus \u2013\nU.S. equity markets are trading modestly lower Wednesday morning following the release of September S&P Global PMI data, which showed that economic activity remains healthy despite elevated oil prices. From a leadership perspective, most S&P 500 sectors are opening the day flat to lower, with energy the notable outperformer amid a modest rise in oil prices. Treasury yields are moving higher to start the day, with the 10-year yield back above 5% and the 2-year yield rising to 4.84%. Higher U.S. Treasury yields and resilient economic data are supporting a stronger U.S. dollar against a basket of developed-market currencies, extending the dollar\u2019s recent strength.\nGlobal economic activity remains firm in September \u2013\nThis morning brought an update on global economic trends with the preliminary September S&P Global Purchasing Managers\u2019 Index (PMI) readings. PMIs measure business activity, with readings above 50 indicating expansion and readings below 50 indicating contraction. Overnight, the eurozone composite PMI rose to 53.1 in September, its highest level since April 2023, supported primarily by improvement in the services sector. Activity also continued to expand in the United Kingdom. Although the U.K. composite PMI declined modestly, it remained above 50 at 51.7. In the U.S., activity remained firm as well, with the composite PMI rising to 58.4, the highest level in over five years. For all three regions, the downside of the September data was persistent price pressure, as input costs increased amid higher oil prices. Despite this headwind, economic activity has proven resilient in 2026, helping support a 12% gain in international developed large-cap stocks and a 14% gain in the S&P 500 through yesterday\u2019s close. We continue to see attractive opportunities in equity markets over the coming months, supported by resilient economic activity and strong profit growth.\nMidterm elections and implications for investors \u2013\nMidterm Election Day is just over one month away, providing an opportunity to review how markets have historically performed around midterm elections. For the full year, equity returns have historically been modest during midterm election years. Since 1970, the S&P 500 has generated an average total return of 3.6% during midterm election years, compared to an average annual return of 12.5% across all years from 1970\u20132025.* The two most recent midterm years were particularly challenging for stocks, with the index declining 18.1% in 2022 and 4.4% in 2018.* Stocks have bucked that historical pattern in 2026, however, with the S&P 500 up roughly 14% year to date including dividends. Looking ahead, the month immediately preceding midterm elections and the six months following Election Day have historically been favorable periods for the market. The S&P 500 has gained an average of 4.5% during the month leading up to Election Day, with positive returns in 78.6% of midterm election years.* Over the subsequent six months, the index has generated an average return of 15.5% and posted gains following all 14 midterm elections since 1970.* While there is no guarantee that history will repeat itself this election cycle, we believe these results help reinforce the importance of maintaining a disciplined investment strategy and resisting the temptation to play politics with your portfolio.\nBrock Weimer, CFA\n;\nInvestment Strategy\nSource for all data not cited: FactSet.\nSource for cited data: *FactSet, Edward Jones calculations, history.house.gov. S&P 500 total return index. Midterm election years span 1970 \u2013 2022.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
     "fetched": "2026-09-23"
   },
   "news_cnbc": {
@@ -882,7 +882,7 @@
     },
     {
       "date": "2026-09-23",
-      "score": 99,
+      "score": 86,
       "label": "EXTREME OVERHEATED"
     }
   ]

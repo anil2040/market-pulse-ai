@@ -1,57 +1,59 @@
 {
-  "date": "2026-09-22",
-  "time_collected_utc": "12:00",
+  "date": "2026-09-23",
+  "time_collected_utc": "13:35",
   "futures": {
-    "sp500": {"change_pct": 0.09, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.05, "direction": "up"},
-    "dow": {"change_pct": 0.05, "direction": "up"},
+    "sp500":     {"change_pct": 0.11, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.06, "direction": "up"},
+    "dow":       {"change_pct": 0.16, "direction": "up"},
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World", "source": "investing.com (fallback: general web search)"},
-    "EFA": {"pe_ttm": 18.23, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance (fallback: general web search)"}
+    "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World",
+             "source": "stockanalysis.com"},
+    "EFA":  {"pe_ttm": 18.80, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "ishares.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.22,
-    "crude_oil_usd": 92.41,
+    "treasury_10yr_pct": 5.12,
+    "crude_oil_usd": 92.54,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed rate-cut expectations and easing Treasury yields supported early-week risk sentiment",
-    "Bank of Japan raised its policy rate 25bps to 1.25%, lifting Asian markets; Tokyo exchange closed for holiday",
-    "Signs of Middle East de-escalation ahead of UN General Assembly meetings between US and Gulf leaders"
+    "10-year Treasury yield surged to 5.12%, a 19-year high, as US September PMI beat forecasts and markets price in another Fed rate hike in October",
+    "Trump-Xi summit began September 23-25 with trade, AI, and US chip export policy at the center of discussions",
+    "US-Iran diplomacy at UNGA showed progress as Iran offered to reopen Strait of Hormuz; Trump called talks 'very productive'"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Consumer Discretionary", "change_pct": 0.46, "reason": "resilient consumer spending data"},
-      {"sector": "Healthcare", "change_pct": 0.24, "reason": "defensive rotation amid rate uncertainty"}
+      {"sector": "Technology",      "change_pct": 1.92, "reason": "Chipmakers (SMH) rallied on AI momentum and Nasdaq strength"},
+      {"sector": "Consumer Staples","change_pct": 0.99, "reason": "Defensive rotation as investors seek safety amid rising yields"}
     ],
     "lagging": [
-      {"sector": "Energy", "change_pct": -3.34, "reason": "falling crude oil prices"},
-      {"sector": "Financials", "change_pct": -1.25, "reason": "rate-cut expectations pressuring bank margins"}
+      {"sector": "Financials", "change_pct": -1.99, "reason": "Yield curve pressure and regional bank weakness on rate hike fears"},
+      {"sector": "Energy",     "change_pct": -1.09, "reason": "Oil prices retreating on US-Iran diplomacy progress at UNGA"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.2},
-    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 1.38}
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.40},
+    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 0.10}
   },
-  "open_focus": "Traders are focused on Federal Reserve rate-cut expectations and Treasury yield moves, alongside signs of Middle East de-escalation ahead of the UN General Assembly.",
+  "open_focus": "Traders are watching the 10-year Treasury yield at a 19-year high of 5.12% and the start of the Trump-Xi summit, with September PMI beats fueling Fed rate hike fears as the primary driver of risk sentiment at the open.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7764.70,
-      "current": 7779.22,
-      "change_pct": 0.19,
-      "source_time_et": "08:00"
+      "prev_close": 7764.64,
+      "current":    7726.82,
+      "change_pct": -0.49,
+      "source_time_et": "09:35"
     },
     "rut": {
-      "prev_close": 2875.36,
-      "current": 2874.63,
-      "change_pct": -0.03,
-      "source_time_et": "08:00"
+      "prev_close": 2875.25,
+      "current":    2909.05,
+      "change_pct": 1.18,
+      "source_time_et": "09:35"
     },
     "vix": {
-      "prev_close": 14.81,
-      "current": 14.93
+      "prev_close": 14.87,
+      "current":    14.23
     }
   }
 }
