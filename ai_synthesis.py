@@ -14,10 +14,6 @@
 #   and surface non-obvious implications for a value investor.
 #   Regurgitation = failure.
 #
-#   EARNINGS AND EVENTS rule: only reference events with a
-#   specific date from today's news sources. No filler, no
-#   generic context, no recycled headlines.
-#
 # CLAUDE ROUTINE INTEGRATION:
 #   Pre-market intelligence (futures, sentiment, rates, sector
 #   movers, global markets, macro events, open_focus) from the
@@ -26,16 +22,20 @@
 #   with a staleness note so the AI can weight it accordingly.
 #
 # FALLBACK CHAIN:
-#   1. gemini-3.6-flash  (free, 1,500 RPD -- resets daily)
-#   2. gemini-2.5-flash  (free, separate quota pool, stable)
+#   1. gemini-3.6-flash  (free, 20 RPD confirmed from AI Studio dashboard)
+#   2. gemini-3.5-flash  (free, 1,500 RPD -- confirmed stable Sep 2026)
 #   3. claude-haiku-4-5  (paid ~$0.01-0.02/run -- varies with prompt size)
 #   4. structured text   (always works, no AI narrative)
 #
-# HAIKU COST NOTE (Sep 2026, confirmed from Anthropic dashboard):
+# GEMINI API NOTE:
+#   Uses generate_content (legacy but fully supported, stable, low latency).
+#   interactions.create is the new API but had 90s+ timeout issues in production.
+#   google.genai SDK: client.models.generate_content(model, contents=[prompt])
+#
+# HAIKU COST NOTE (confirmed from Anthropic dashboard Sep 2026):
 #   Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
 #   Observed range: $0.008 (light day) to $0.015 (heavy news day)
-#   Token count varies because prompt includes news email text +
-#   calendar section + FRED summary + routine block -- all variable length.
+#   Token count varies because prompt includes news email + calendar + FRED block.
 #   Cost is logged with actual token counts from message.usage each run.
 # ============================================================
 
@@ -43,7 +43,6 @@ import os
 import re
 import concurrent.futures
 import requests
-import google.genai as genai
 
 GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY")
 ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
@@ -53,8 +52,19 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
 # ============================================================
 
 def _call_gemini(prompt, model):
+    """
+    Call Gemini using generate_content (stable legacy API).
+    Uses google.genai SDK v2.3+. Returns plain text string.
+    generate_content is stateless, low-latency, and confirmed working
+    with gemini-3.6-flash and gemini-3.5-flash in production.
+    """
+    import google.genai as genai
     client = genai.Client(api_key=GEMINI_API_KEY)
-    return client.interactions.create(model=model, input=prompt).output_text
+    response = client.models.generate_content(
+        model    = model,
+        contents = [prompt],
+    )
+    return response.text
 
 
 def _call_haiku(prompt):
@@ -323,8 +333,8 @@ YAHOO BRIEF: {yahoo_text[:600]}
     models_to_try = [
         ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",
          lambda: _call_gemini(prompt, "gemini-3.6-flash")),
-        ("gemini-2.5-flash", "Gemini 2.5 Flash (free tier)",
-         lambda: _call_gemini(prompt, "gemini-2.5-flash")),
+        ("gemini-3.5-flash", "Gemini 3.5 Flash (free tier)",
+         lambda: _call_gemini(prompt, "gemini-3.5-flash")),
         ("claude-haiku-4-5", "Claude Haiku 4.5",
          lambda: _call_haiku(prompt)),
     ]

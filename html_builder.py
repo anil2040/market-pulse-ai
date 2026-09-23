@@ -1072,7 +1072,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 
     # Gauge market performance -- Chrome extension style
     gauge_section = f"""
-<div class="card ar" style="margin-bottom:12px;" id="market-perf-card">
+<div class="card ar" id="market-perf-card" style="flex:1;">
   <h2>📈 Market Performance
     <span style="font-weight:400;color:var(--muted);font-size:.55rem;margin-left:8px;">{mkt_src_label}</span>
   </h2>
@@ -1132,26 +1132,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     </div>
   </div>
 
-  <!-- VIX row -->
-  <div style="margin-top:8px;background:white;border:1px solid #e5e7eb;border-radius:8px;
-              padding:8px 14px;">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
-      <div style="font-weight:700;font-size:.88rem;color:#111928;">VIX</div>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span id="vix-val" style="font-weight:800;font-size:1rem;color:#111928;">{vix_val}</span>
-        <span id="vix-prev" style="font-size:.7rem;color:{vix_col};font-weight:600;">prev {vix_prev}</span>
-        <span id="vix-pill" style="background:{vix_col};color:white;padding:2px 9px;
-              border-radius:4px;font-size:.68rem;font-weight:700;">{vix_lbl}</span>
-      </div>
-    </div>
-    <div id="vix-sig" style="font-size:.68rem;color:#6b7280;">{vix_sig}</div>
-  </div>
-
   <div id="pulse-line" style="margin-top:4px;font-size:.63rem;color:#9ca3af;">
     ⚡ {pulse}
   </div>
-</div>
-
 </div>
 """
 
@@ -1170,7 +1153,11 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
                 f'<td style="padding:7px 10px;font-size:.72rem;color:#374151;">{sig}</td></tr>')
 
     sent_rows = (
-        sr("Fear & Greed", f"{fg_score}/100",
+        sr("VIX", f"{vix_val}",
+           f"prev close:{vix_prev}",
+           vix_lbl, vix_col, vix_sig,
+           "CBOE Volatility · fear gauge · <15=calm · 20-25=cautious · >30=panic")
+        + sr("Fear & Greed", f"{fg_score}/100",
            f"1wk:{fg_data.get('prev_week','N/A')} 1mo:{fg_data.get('prev_month','N/A')} "
            f"1yr:{fg_data.get('prev_year','N/A')}",
            fg_lbl, fg_col, fg_sig,
@@ -1383,7 +1370,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   {ai_alert}
 
   <!-- 1. AI Fun Fact + AI Learning -- quick daily orientation -->
-  <div class="grid-2" style="margin-bottom:12px;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
     <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;
                 padding:11px 16px;display:flex;align-items:center;gap:12px;">
       <div style="font-size:1.3rem;flex-shrink:0;">🤖</div>
@@ -1433,8 +1420,10 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   </div>
 
   <!-- 4. Market Performance + Sentiment -- where are we right now -->
-  <div class="grid-2" style="margin-bottom:12px;">
-    {gauge_section}
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+    <div style="display:flex;flex-direction:column;">
+      {gauge_section}
+    </div>
     <div class="card aa">
       <h2>🌡️ Market Sentiment</h2>
       <table class="tbl">
@@ -1547,7 +1536,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
     <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
     <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
-    Gemini 3.6 Flash · Gemini 2.5 Flash · Claude Haiku 4.5 (fallback) · Not financial advice.
+    Gemini 3.6 Flash · Gemini 3.5 Flash · Claude Haiku 4.5 (fallback) · Not financial advice.
   </div>
 </div>
 
