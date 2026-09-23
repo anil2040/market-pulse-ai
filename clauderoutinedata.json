@@ -1,17 +1,17 @@
 {
   "date": "2026-09-23",
-  "time_collected_utc": "12:00",
+  "time_collected_utc": "13:05",
   "futures": {
-    "sp500":    {"change_pct": -0.03, "direction": "down"},
-    "nasdaq100":{"change_pct": -0.06, "direction": "down"},
-    "dow":      {"change_pct": -0.03, "direction": "down"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.11, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.06, "direction": "up"},
+    "dow":       {"change_pct": 0.16, "direction": "up"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
     "EFA":  {"pe_ttm": 18.80, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "stockanalysis.com"}
+             "source": "ishares.com"}
   },
   "rates_commodities": {
     "treasury_10yr_pct": 5.12,
@@ -19,41 +19,41 @@
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "10-year Treasury yield surged 17bps to 5.12%, highest since 2007, driven by sticky inflation and Fed rate hike expectations",
-    "Trump threatens to 'annihilate' Iran at UNGA; US-Iran diplomatic talks ongoing on sidelines raising oil volatility",
-    "Trump-Xi summit begins September 23-25; trade, AI, and US chip export policy central to talks"
+    "10-year Treasury yield surged to 5.12%, a 19-year high, as US September PMI beat forecasts and markets price in another Fed rate hike in October",
+    "Trump-Xi summit began September 23-25 with trade, AI, and US chip export policy at the center of discussions",
+    "US-Iran diplomacy at UNGA showed progress as Iran offered to reopen Strait of Hormuz; Trump called talks 'very productive'"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",               "change_pct": 1.20, "reason": "Rising oil prices and Middle East supply tension"},
-      {"sector": "Consumer Discretionary","change_pct": 0.35, "reason": "Retail resilience; XRT among pre-market outperformers"}
+      {"sector": "Technology",      "change_pct": 1.92, "reason": "Chipmakers (SMH) rallied on AI momentum and Nasdaq strength"},
+      {"sector": "Consumer Staples","change_pct": 0.99, "reason": "Defensive rotation as investors seek safety amid rising yields"}
     ],
     "lagging": [
-      {"sector": "Technology", "change_pct": -0.30, "reason": "Rising Treasury yields pressure high-multiple growth stocks"},
-      {"sector": "Utilities",  "change_pct": -0.45, "reason": "Rate-sensitive sector hit hard by yield spike to 19-year high"}
+      {"sector": "Financials", "change_pct": -1.99, "reason": "Yield curve pressure and regional bank weakness on rate hike fears"},
+      {"sector": "Energy",     "change_pct": -1.09, "reason": "Oil prices retreating on US-Iran diplomacy progress at UNGA"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.40},
-    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 0.10}
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.40},
+    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 0.10}
   },
-  "open_focus": "Traders are focused on the Trump-Xi summit and its implications for U.S. chip export policy, alongside the 10-year Treasury yield surging to a 19-year high of 5.12% as rising oil prices weigh on equities.",
+  "open_focus": "Traders are watching the 10-year Treasury yield at a 19-year high of 5.12% and the start of the Trump-Xi summit, with September PMI beats fueling Fed rate hike fears as the primary driver of risk sentiment at the open.",
   "market_prices": {
     "sp500": {
       "prev_close": 7764.64,
-      "current":    7756.86,
-      "change_pct": -0.10,
-      "source_time_et": "08:00"
+      "current":    7773.18,
+      "change_pct": 0.11,
+      "source_time_et": "09:05"
     },
     "rut": {
       "prev_close": 2875.25,
-      "current":    2893.94,
-      "change_pct": 0.65,
-      "source_time_et": "08:00"
+      "current":    2909.05,
+      "change_pct": 1.18,
+      "source_time_et": "09:05"
     },
     "vix": {
       "prev_close": 14.87,
-      "current":    14.21
+      "current":    14.23
     }
   }
 }
