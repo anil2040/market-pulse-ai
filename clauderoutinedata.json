@@ -1,57 +1,57 @@
 {
-  "date": "2026-09-22",
-  "time_collected_utc": "12:00",
+  "date": "2026-09-23",
+  "time_collected_utc": "13:45",
   "futures": {
-    "sp500": {"change_pct": 0.09, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.05, "direction": "up"},
-    "dow": {"change_pct": 0.05, "direction": "up"},
-    "sentiment": "neutral"
+    "sp500": {"change_pct": 0.3, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.6, "direction": "up"},
+    "dow": {"change_pct": 0.2, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World", "source": "investing.com (fallback: general web search)"},
-    "EFA": {"pe_ttm": 18.23, "proxy_for": "MSCI EAFE ex-US Developed", "source": "Yahoo Finance (fallback: general web search)"}
+    "URTH": {"pe_ttm": 22.61, "proxy_for": "MSCI World", "source": "Yahoo Finance (fallback: general web search)"},
+    "EFA": {"pe_ttm": 17.50, "proxy_for": "MSCI EAFE ex-US Developed", "source": "stockanalysis.com (fallback: general web search)"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.22,
-    "crude_oil_usd": 92.41,
+    "treasury_10yr_pct": 4.96,
+    "crude_oil_usd": 90.20,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed rate-cut expectations and easing Treasury yields supported early-week risk sentiment",
-    "Bank of Japan raised its policy rate 25bps to 1.25%, lifting Asian markets; Tokyo exchange closed for holiday",
-    "Signs of Middle East de-escalation ahead of UN General Assembly meetings between US and Gulf leaders"
+    "10-year Treasury yield touched near 5% intraday, highest since 2007, fueling stagflation concerns",
+    "Bank of Japan held steady after last week's 25bps hike to 1.25%; Tokyo exchange closed for Silver Week holiday",
+    "Chicago Fed National Activity Index near zero as traders await further Fed commentary"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Consumer Discretionary", "change_pct": 0.46, "reason": "resilient consumer spending data"},
-      {"sector": "Healthcare", "change_pct": 0.24, "reason": "defensive rotation amid rate uncertainty"}
+      {"sector": "Utilities", "change_pct": 0.6, "reason": "defensive rotation amid Treasury yields near 5%"},
+      {"sector": "Industrials", "change_pct": 0.4, "reason": "broadening cyclical strength alongside commodity gains"}
     ],
     "lagging": [
-      {"sector": "Energy", "change_pct": -3.34, "reason": "falling crude oil prices"},
-      {"sector": "Financials", "change_pct": -1.25, "reason": "rate-cut expectations pressuring bank margins"}
+      {"sector": "Technology", "change_pct": -0.5, "reason": "semiconductor weakness ahead of Micron earnings"},
+      {"sector": "Financials", "change_pct": -0.3, "reason": "pressured by rate uncertainty"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.2},
-    "asia": {"index": "Nikkei", "direction": "up", "change_pct": 1.38}
+    "europe": {"index": "STOXX600", "direction": "flat", "change_pct": 0.0},
+    "asia": {"index": "Nikkei", "direction": "flat", "change_pct": 0.0}
   },
-  "open_focus": "Traders are focused on Federal Reserve rate-cut expectations and Treasury yield moves, alongside signs of Middle East de-escalation ahead of the UN General Assembly.",
+  "open_focus": "Traders are focused on Treasury yields hovering near 5% and the outlook for Fed policy, even as the Nasdaq notches fresh records on continued AI-driven strength.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7764.70,
-      "current": 7779.22,
-      "change_pct": 0.19,
-      "source_time_et": "08:00"
+      "prev_close": 7764.64,
+      "current": 7787.93,
+      "change_pct": 0.30,
+      "source_time_et": "09:45"
     },
     "rut": {
-      "prev_close": 2875.36,
-      "current": 2874.63,
-      "change_pct": -0.03,
-      "source_time_et": "08:00"
+      "prev_close": 2874.63,
+      "current": 2880.38,
+      "change_pct": 0.20,
+      "source_time_et": "09:45"
     },
     "vix": {
-      "prev_close": 14.81,
-      "current": 14.93
+      "prev_close": 14.87,
+      "current": 14.67
     }
   }
 }
