@@ -15,6 +15,9 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v5
 
+      - name: Pull latest commits
+        run: git pull origin main
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -25,17 +28,11 @@ jobs:
           pip install requests beautifulsoup4 google-genai anthropic
 
       - name: Fetch and cache slow data sources
-        # Runs fetch_cache.py BEFORE main.py.
-        # Writes dataroma_cache.json to disk.
-        # Commits it so it persists across ephemeral runners.
-        # Exit 0 always -- cache failure is non-fatal (main.py has fallback).
         run: python fetch_cache.py
         env:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
 
       - name: Commit cache files
-        # Commit dataroma_cache.json before main.py runs.
-        # This ensures the cache is available even if the main step fails.
         run: |
           git config user.name  "MarketPulse Bot"
           git config user.email "actions@github.com"

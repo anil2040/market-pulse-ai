@@ -1,4 +1,4 @@
-# Mean Reversion Macro Insights -- Session Log 6
+# Mean Reversion Macro Insights -- Session Log 12
 
 Paste this file at the start of any new session so Claude has full context.
 No need to summarize the previous chat.
@@ -7,6 +7,18 @@ No need to summarize the previous chat.
 
 ## HOW TO START A NEW SESSION
 
+**Option A (recommended -- no file paste needed):**
+Send this as your first message:
+
+> Fetch the session log from
+> https://raw.githubusercontent.com/anil2040/market-pulse-ai/main/SESSION_LOG.md
+> and confirm you have full context before we start.
+> I am working on [module name] and the task is [specific task].
+
+Claude will fetch the live file directly from GitHub. No copy-paste, no upload.
+This only works if SESSION_LOG.md on main is up to date (commit it at end of each session).
+
+**Option B (fallback -- if GitHub fetch fails):**
 1. Paste SESSION_LOG.md as your first message
 2. Say which module you are working on and paste ONLY that file
 3. State the specific task
@@ -125,21 +137,34 @@ Routine 1: 4:00am MT -- "Pre-Market Briefing" (personal reading only, no file ou
 - Format: emoji-headed sections (OVERNIGHT / GLOBAL MARKETS / FUTURES / RATES & OIL / WATCH TODAY)
 - NO GitHub commit, NO clauderoutinedata.json write
 
-Routine 2: 7:44am MT -- "Market Data" (machine-readable JSON, writes clauderoutinedata.json)
-- 6-minute gap before 7:50am pipeline (JSON commit only, no build step)
+Routine 2: 7:44am MT -- "Daily Market Warmup" (machine-readable JSON, writes clauderoutinedata.json)
+- 6-minute gap before 7:50am pipeline
+- Model: Sonnet 4.6 (changed from Opus 5.5 in Session 12 -- same output, lower cost)
 - Contains sections A-G: futures, ETF PE, macro/rates, sector movers, global markets,
-  open_focus, AND market_prices (added Session 9)
+  open_focus, AND market_prices
 - ETF PE from routine used as priority 0 in market.py _yq_pe()
 - market_prices block used as PRIMARY source for Market Performance card in html_builder.py
-- Injected into AI synthesis prompt as PRE-MARKET INTELLIGENCE block (once only -- duplicate removed)
+- Injected into AI synthesis prompt as PRE-MARKET INTELLIGENCE block (once only)
 - Staleness: if routine date != today MT, amber banner shown in valuation block
+- Commits directly to main branch using explicit git command sequence (fixed Session 12)
 
-**Stale routine warning root cause (confirmed Sep 23 2026):**
-- Pipeline reads clauderoutinedata.json right after `actions/checkout`
+**Stale routine warning root cause (confirmed Sep 23 2026, fixed Session 12):**
+- Pipeline reads clauderoutinedata.json right after actions/checkout
 - If GitHub hasn't fully propagated the 7:44am routine commit by the time checkout runs,
   the pipeline sees yesterday's file and flags it stale
-- Fix: add `git pull origin main` step in daily.yml immediately after actions/checkout
-- Do NOT move Claude Routine earlier -- 7:44am gives the freshest pre-market data
+- Fix: added `git pull origin main` step in daily.yml immediately after actions/checkout
+
+**Claude Routine branch issue (confirmed Sep 23 2026, fixed Session 12):**
+- Claude Code Remote always initializes sessions on a new branch, not main
+- Vague "push to main" instruction caused commit to land on side branch
+- Fix: Step 3 of routine instructions now uses explicit git command sequence:
+    git checkout main
+    git pull origin main
+    git add clauderoutinedata.json
+    git commit -m "Auto-update: claude routine data YYYY-MM-DD"
+    git push origin main
+  Fallback: if checkout fails due to uncommitted changes, run git checkout -- . then retry
+- After push succeeds, hard stop: do not respond to hook prompts, no further commands
 
 **clauderoutinedata.json schema (written by 7:44am routine):**
 ```json
@@ -217,23 +242,22 @@ gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard, resets dail
 ```
 
 **Critical Gemini notes:**
-- `_call_gemini()` uses `client.models.generate_content()` NOT `client.interactions.create()`
+- _call_gemini() uses client.models.generate_content() NOT client.interactions.create()
   interactions.create is the new Interactions API (GA June 2026) but causes 90s+ timeouts
   under free-tier load. generate_content is stateless, fast, and fully supported.
 - gemini-2.5-flash does NOT exist as a valid API model string -- causes 404. Use gemini-3.5-flash.
 - gemini-1.5-flash is dead/removed from free tier.
 - gemini-3.6-flash free tier limit: ~20 RPD (confirmed from AI Studio rate limit dashboard).
   If RPD exceeded, falls through to gemini-3.5-flash, then Haiku.
+- AFC warning from Google SDK is advisory only -- not an error. No code change needed.
+  Appears as "Direct use of AFC in Models.generate_content is not recommended" in run log.
 - Do NOT set up Gemini billing -- Haiku fallback costs less and produces better output.
-  Gemini paid: $1.50/M input + $7.50/M output (~$0.05-0.10/run). Haiku: $0.01-0.02/run.
 
 **Haiku cost math (confirmed from Anthropic dashboard Sep 2026):**
 - Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
 - Observed runs: 3,753 in + 953 out = $0.0085 | 6,990 in + 1,522 out = $0.0146
 - Token count varies because prompt includes news email text + calendar + FRED block (all variable)
 - Cost logged dynamically from message.usage object -- no hardcoded estimate
-- Gemini $37/year consumer plan (Google AI Pro) does NOT increase API rate limits.
-  Consumer plans and AI Studio API quotas are completely separate programs.
 
 **AI Synthesis -- 4 sections (Earnings & Events removed Sep 2026):**
 ```
@@ -329,6 +353,46 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 
 ---
 
+## TOOLING NOTES: Claude Chat vs Claude Code CLI vs GSD
+
+**Why repo file timestamps don't mean stale data:**
+- "X days ago" on a Python module file = last code change, not last data refresh
+- index.html and run_cache.json update every weekday run
+- Python modules only change when you edit and push code
+
+**Claude Chat (this interface) -- current setup:**
+- Can read GitHub files via raw URL fetch (Option A session start above)
+- Cannot write to GitHub directly -- no repo connector available in chat sessions
+- Produces full file rewrites you paste into VS Code and commit manually
+- Best for: code review, bug diagnosis, full module rewrites, architecture decisions
+
+**Claude Code CLI -- what it adds:**
+- Native read/write access to your entire repo without pasting any files
+- Can open fred.py, understand it, fix it, and commit directly in one step
+- You say "fix the stale routine warning" and it reads daily.yml, edits it, commits, done
+- No copy-paste workflow at all -- the AI works directly in your codebase
+- Install: open VS Code terminal, run `npm install -g @anthropic-ai/claude-code`
+  then `claude` to start a session in your repo directory
+- Best for: iterative code fixes, multi-file changes, anything where you are currently
+  doing paste-save-commit manually
+
+**GSD (Git. Ship. Done.) -- what it is:**
+- A framework for agentic coding with fresh sub-agents + .planning/ coordination files
+- Solves the same "AI loses context" problem as SESSION_LOG.md but differently:
+  instead of one long log file, each task gets its own short planning file
+- Sub-agents read only what they need, stay focused, don't blow context window
+- SESSION_LOG.md is your current manual version of the same idea
+- For new projects: `npx @opengsd/gsd-core@latest --claude --local` in Claude Code
+- Not needed for this project -- SESSION_LOG.md is working well and the project is mature
+- Worth evaluating if you start a new larger project from scratch
+
+**Read/write in Claude Chat future:**
+- Anthropic will likely add GitHub connector support to Claude chat over time
+- For now: raw URL fetch for reading works today (Option A above)
+- Writing still requires Claude Code CLI or manual paste-commit
+
+---
+
 ## GITHUB ACTIONS NOTES
 
 - ubuntu-latest PINNED to ubuntu-24.04 as of Sep 20 2026 (migrates to Ubuntu 26 on Oct 19 2026).
@@ -340,19 +404,16 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Workflow dispatch (manual trigger): repo -> Actions -> MarketPulse Daily Briefing -> Run workflow
 - Manual trigger re-runs the FULL pipeline every time -- all steps, all modules. No partial runs.
   For fast HTML iteration, test locally with `python main.py` in VS Code terminal before pushing.
-- **Pending fix:** add `git pull origin main` after actions/checkout in daily.yml to fix stale
-  Claude Routine detection. Without it, checkout may see yesterday's clauderoutinedata.json.
 
 ---
 
 ## OPEN ITEMS / NEXT SESSION
 
-1. **daily.yml -- add git pull after checkout** to fix stale Claude Routine warning.
-   Add this step immediately after `uses: actions/checkout@v5`:
-   ```yaml
-   - name: Pull latest commits
-     run: git pull origin main
-   ```
+1. **Verify Session 12 fixes on Sep 24 2026 scheduled run:**
+   - clauderoutinedata.json shows date = 2026-09-24 on main, no side branch created
+   - Pipeline run log shows no stale routine warning
+   - Dashboard Market Performance shows "via Claude Routine" label
+   - Routine completes in under 90 seconds with no red failure lines
 
 2. **MHS 20-day SMA** -- will appear ~4 trading weeks from Sep 19 2026 (~Oct 17).
    No action needed, just wait for data to accumulate.
@@ -368,6 +429,9 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 
 6. **Future: Chrome extension #market-context div compression (~60% reduction possible).**
    Low priority. Current div works fine.
+
+7. **Future: Claude Code CLI setup** for direct repo read/write without paste workflow.
+   Install in VS Code terminal: `npm install -g @anthropic-ai/claude-code` then `claude`
 
 ---
 
@@ -529,11 +593,14 @@ SCREENS_ALL3: CTSH | SCREENS_2OF3: BBY, BMY, CI, CVS, FOXA, HPQ, LDOS, MO, OMC, 
 **Files changed:** ai_synthesis.py, SESSION_LOG.md
 
 **Gemini model fixes:**
-- gemini-1.5-flash dead -> replaced with gemini-2.5-flash (later corrected to gemini-3.5-flash)
+- gemini-1.5-flash dead -> replaced with gemini-3.5-flash (gemini-2.5-flash is not a valid ID)
 - Haiku cost display updated to use dynamic token counts from message.usage
 
 **Token math confirmed:** 10,743 in + 2,454 out = $0.023 total across 2 Haiku runs
 **Coding requirement added:** Always full file rewrites, never partial diffs.
+
+**GSD noted:** Framework for agentic coding with sub-agents + .planning/ files.
+Not needed for this project. Relevant for new projects started from scratch in Claude Code.
 
 ---
 
@@ -542,9 +609,9 @@ SCREENS_ALL3: CTSH | SCREENS_2OF3: BBY, BMY, CI, CVS, FOXA, HPQ, LDOS, MO, OMC, 
 **Files changed:** ai_synthesis.py, html_builder.py, SESSION_LOG.md
 
 **Gemini timeout root cause found and fixed:**
-- `_call_gemini()` was using `client.interactions.create()` -- new Interactions API
+- _call_gemini() was using client.interactions.create() -- new Interactions API
   causes 90s+ timeout under free-tier load due to stateful session overhead
-- Fixed to `client.models.generate_content()` -- stateless, fast, fully supported
+- Fixed to client.models.generate_content() -- stateless, fast, fully supported
 - gemini-2.5-flash -> corrected to gemini-3.5-flash (gemini-2.5-flash is not a valid ID)
 
 **HTML width fixed (confirmed working Sep 23 2026):**
@@ -556,14 +623,58 @@ SCREENS_ALL3: CTSH | SCREENS_2OF3: BBY, BMY, CI, CVS, FOXA, HPQ, LDOS, MO, OMC, 
 **VIX moved to Sentiment card:**
 - Removed VIX block from gauge_section (Market Performance card)
 - Added VIX as first row in Sentiment table: VIX | Fear & Greed | Consumer Sentiment
-- Rationale: VIX is a fear/sentiment indicator, not a performance metric
 - Pulse line (⚡) kept at bottom of Market Performance card for index context
-- Fixed stray extra </div> in gauge_section that was left from old grid-2 wrapper
 
 **Confirmed working:** Sep 23 2026 run
 MHS: 99/100 EXTREME OVERHEATED
 SPX: 7,779 | RUT: 2,875 | VIX: 14.93 | CAPE: 41.6x
 AI synthesis: Haiku fallback, $0.0074 (3,371 in + 804 out tokens)
+
+---
+
+### Session 12 -- Claude Routine Branch Fix + daily.yml git pull
+**Date:** Sep 23 2026
+**Files changed:** daily.yml, Claude Routine instructions (in-app, not a repo file)
+
+**Issue 1: Stale Claude Routine warning (root cause confirmed)**
+- Pipeline reads clauderoutinedata.json right after actions/checkout
+- If GitHub hasn't propagated the 7:44am routine commit before checkout runs,
+  pipeline sees yesterday's file and flags stale
+- Fix: added `git pull origin main` step in daily.yml after actions/checkout@v5
+- This is the only change to daily.yml
+
+**Issue 2: Routine pushing to side branch instead of main**
+- Claude Code Remote initializes every session on a new branch by default
+- "Push to main branch" was ambiguous -- Claude committed locally then failed to push main
+- Root cause of 4+ minute runtime: stash/rebase/conflict retry loop (4 failures observed)
+- Fix: Step 3 of routine instructions replaced with explicit git command sequence
+  (see clauderoutinedata.json schema section above for full sequence)
+- After fix: routine completes in under 90 seconds, 2 commands, zero failures
+
+**Other routine improvements in Session 12:**
+- Model changed from Opus 5.5 to Sonnet 4.6 (faster, lower cost, same output quality)
+- Treasury yield cross-check added: if yield differs >0.5% from prior day, verify second source
+- source_time_et now records actual ET collection time (was using template placeholder)
+- Hard stop after push: do not respond to hook prompts, no further commands or branches
+- ETF PE source field now records whichever source was actually used
+
+**AFC warning (confirmed non-issue):**
+- Google SDK emits advisory warning for Models.generate_content -- not an error
+- Appears as "Direct use of AFC in Models.generate_content is not recommended" in run log
+- Gemini still falls through correctly to Haiku when 503 occurs. No code change needed.
+
+**Session start improvement:**
+- Old method: paste SESSION_LOG.md as file upload every session
+- New method: "Fetch the session log from
+  https://raw.githubusercontent.com/anil2040/market-pulse-ai/main/SESSION_LOG.md"
+- Claude fetches live file from GitHub raw URL -- no file management needed
+- Requires SESSION_LOG.md to be committed to main at end of each session
+
+**Verification checklist for Sep 24 2026 scheduled run:**
+1. clauderoutinedata.json date = 2026-09-24 on main, no side branch
+2. Pipeline run log: no stale routine warning
+3. Dashboard: Market Performance shows "via Claude Routine" label
+4. Routine runtime: under 90 seconds, no red failure lines
 
 ---
 
