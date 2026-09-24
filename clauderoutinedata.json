@@ -1,59 +1,59 @@
 {
-  "date": "2026-09-23",
-  "time_collected_utc": "13:35",
+  "date": "2026-09-24",
+  "time_collected_utc": "11:30",
   "futures": {
-    "sp500":     {"change_pct": 0.11, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.06, "direction": "up"},
-    "dow":       {"change_pct": 0.16, "direction": "up"},
-    "sentiment": "neutral"
+    "sp500":     {"change_pct": -0.60, "direction": "down"},
+    "nasdaq100": {"change_pct": -1.10, "direction": "down"},
+    "dow":       {"change_pct": -0.40, "direction": "down"},
+    "sentiment": "bearish"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 19.41, "proxy_for": "MSCI World",
-             "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 18.80, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "ishares.com"}
+    "URTH": {"pe_ttm": 18.71, "proxy_for": "MSCI World",
+             "source": "stocktradersdaily.com"},
+    "EFA":  {"pe_ttm": 15.22, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "investing.com"}
   },
   "rates_commodities": {
     "treasury_10yr_pct": 5.12,
-    "crude_oil_usd": 92.54,
+    "crude_oil_usd": 93.96,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "10-year Treasury yield surged to 5.12%, a 19-year high, as US September PMI beat forecasts and markets price in another Fed rate hike in October",
-    "Trump-Xi summit began September 23-25 with trade, AI, and US chip export policy at the center of discussions",
-    "US-Iran diplomacy at UNGA showed progress as Iran offered to reopen Strait of Hormuz; Trump called talks 'very productive'"
+    "10-year Treasury yield hit 5.13%, highest since 2007, on strong PMI data and Fed signals of additional rate hikes to tame sticky inflation",
+    "China's President Xi Jinping arrived in the US for a strategic summit with President Trump, with US chip export policy and trade at the center of discussions",
+    "WTI crude surged above $93/bbl, pushing 30-year Treasury yields to their highest since 2004 as US-Iran negotiations remained uncertain"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",      "change_pct": 1.92, "reason": "Chipmakers (SMH) rallied on AI momentum and Nasdaq strength"},
-      {"sector": "Consumer Staples","change_pct": 0.99, "reason": "Defensive rotation as investors seek safety amid rising yields"}
+      {"sector": "Energy",    "change_pct": 1.50, "reason": "crude oil surge above $93/bbl lifts energy producers and drillers"},
+      {"sector": "Materials", "change_pct": 0.30, "reason": "geopolitical supply concerns and dollar weakness support commodity-linked stocks"}
     ],
     "lagging": [
-      {"sector": "Financials", "change_pct": -1.99, "reason": "Yield curve pressure and regional bank weakness on rate hike fears"},
-      {"sector": "Energy",     "change_pct": -1.09, "reason": "Oil prices retreating on US-Iran diplomacy progress at UNGA"}
+      {"sector": "Technology",            "change_pct": -1.20, "reason": "rising 10-year yields to 2007 highs pressure high-multiple growth stocks"},
+      {"sector": "Consumer Discretionary","change_pct": -0.70, "reason": "inflation fears and higher borrowing costs weigh on consumer spending outlook"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.40},
-    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 0.10}
+    "europe": {"index": "STOXX600",  "direction": "down", "change_pct": -0.44},
+    "asia":   {"index": "Nikkei225", "direction": "up",   "change_pct": 1.01}
   },
-  "open_focus": "Traders are watching the 10-year Treasury yield at a 19-year high of 5.12% and the start of the Trump-Xi summit, with September PMI beats fueling Fed rate hike fears as the primary driver of risk sentiment at the open.",
+  "open_focus": "Traders are focused on whether 10-year Treasury yields sustain above 5.12% — levels not seen since 2007 — with crude oil-driven bond selling and outcomes from the Trump-Xi summit the key macro drivers at the open.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7764.64,
-      "current":    7726.82,
-      "change_pct": -0.49,
-      "source_time_et": "09:35"
+      "prev_close": 7706.00,
+      "current":    7699.00,
+      "change_pct": -0.09,
+      "source_time_et": "07:30"
     },
     "rut": {
-      "prev_close": 2875.25,
-      "current":    2909.05,
-      "change_pct": 1.18,
-      "source_time_et": "09:35"
+      "prev_close": 2889.80,
+      "current":    2838.66,
+      "change_pct": -1.77,
+      "source_time_et": "07:30"
     },
     "vix": {
-      "prev_close": 14.87,
-      "current":    14.23
+      "prev_close": 14.21,
+      "current":    15.18
     }
   }
 }
