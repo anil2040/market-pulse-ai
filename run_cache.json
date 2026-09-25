@@ -13,7 +13,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 Above avg but decelerating -- progress toward 2% but not there yet"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Core CPI": {
     "value": {
@@ -29,7 +29,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Re-heating -- service sector inflation erodes real returns and PE expansion"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_PCE Inflation": {
     "value": {
@@ -45,7 +45,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Core PCE": {
     "value": {
@@ -61,7 +61,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Re-accelerating at 65% above Fed target -- hike risk rising, PE compression ahead"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_10Y Treasury": {
     "value": {
@@ -77,7 +77,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Approaching levels where bonds compete with equities on yield -- watch spread compression"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_2Y Treasury": {
     "value": {
@@ -93,7 +93,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Higher 2Y locks in restrictive financial conditions -- reduces room for P/E expansion"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Yield Curve (10Y-2Y)": {
     "value": {
@@ -102,14 +102,14 @@
       "is_index": false,
       "group": "RATES",
       "insight": "Negative = inverted = recession signal 12-18mo ahead",
-      "current": "0.26%",
-      "mo3": "0.27%",
-      "mo12": "0.54%",
+      "current": "0.31%",
+      "mo3": "0.34%",
+      "mo12": "0.50%",
       "trend": "\u2192",
-      "date": "Sep 23 2026",
-      "sig": "\u2192 Nearly flat -- disinversion underway but not yet a steepening growth signal; watch direction"
+      "date": "Sep 24 2026",
+      "sig": "\u2705 Positive slope -- no inversion signal; normal credit environment for long-term investors"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Fed Funds Rate": {
     "value": {
@@ -125,7 +125,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 On hold -- Fed is watching; next move direction matters more than current level"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_HY Credit Spread": {
     "value": {
@@ -141,7 +141,7 @@
       "date": "Sep 23 2026",
       "sig": "\u2192 Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Unemployment": {
     "value": {
@@ -157,7 +157,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 Near historical norm -- labor not a swing factor for macro direction today"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_WTI Crude Oil": {
     "value": {
@@ -174,7 +174,7 @@
       "date": "Sep 22 2026",
       "sig": "\u26a0\ufe0f Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Gold Price": {
     "value": {
@@ -185,14 +185,14 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,307",
-      "mo3": "$4,009",
-      "mo12": "$3,686",
+      "current": "$4,311",
+      "mo3": "$4,048",
+      "mo12": "$3,719",
       "trend": "\u25b2",
-      "date": "Sep 24 2026",
-      "sig": "\u2192 Gold surging +17% yr -- real rates concern or dollar debasement fear; watch DXY correlation"
+      "date": "Sep 25 2026",
+      "sig": "\u2192 Gold surging +16% yr -- real rates concern or dollar debasement fear; watch DXY correlation"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_US Dollar (DXY)": {
     "value": {
@@ -209,7 +209,7 @@
       "date": "Sep 18 2026",
       "sig": "\u26a0\ufe0f Strong dollar headwind -- crushes earnings of multinationals and makes intl ADRs cheaper in USD"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Consumer Sentiment": {
     "value": {
@@ -226,7 +226,7 @@
       "date": "Jul 01 2026",
       "sig": "\u2192 Below-average sentiment -- consumer cautious but not collapsing; watch for inflection"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fred_Shiller CAPE (US)": {
     "value": {
@@ -236,67 +236,168 @@
       "group": "VALUATION",
       "no_pct": true,
       "insight": "Cyclically Adj PE \u00b7 10yr smoothed \u00b7 hist avg 17x \u00b7 ~41 = 2nd highest ever",
-      "current": "41.3",
-      "mo3": "41.3",
-      "mo12": "41.3",
+      "current": "41.2",
+      "mo3": "41.2",
+      "mo12": "41.2",
       "trend": "\u2192",
-      "date": "Sep 24 2026",
+      "date": "Sep 25 2026",
       "sig": "\u26a0\ufe0f 2.4x the 145yr avg -- only dot-com peak (44x) was higher; 10yr forward returns historically near zero from this level"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "fear_greed": {
     "value": {
-      "score": 34,
+      "score": 38,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 35,
-      "prev_week": 28,
-      "prev_month": 55,
-      "prev_year": 55,
+      "prev_close": 36,
+      "prev_week": 30,
+      "prev_month": 60,
+      "prev_year": 51,
       "cached": false
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "15.75",
+        "value": "15.10",
         "label": "NORMAL",
         "color": "#6b7280",
         "signal": "\u2192 Normal -- market calm, no stress signal",
-        "prev": "15.75"
+        "prev": "15.10"
       },
       "spx": {
-        "value": "7,683",
+        "value": "7,729",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,683"
+        "prev": "7,729"
       },
       "rut": {
-        "value": "2,827",
+        "value": "2,841",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,827"
+        "prev": "2,841"
       },
-      "urth_pe": 18.71,
+      "urth_pe": 18.76,
       "urth_pe_stale": false,
       "urth_pe_source": "Claude Routine",
-      "efa_pe": 15.22,
+      "efa_pe": 17.98,
       "efa_pe_stale": false,
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 15.8 (NORMAL) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 15.1 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "screens_si": {
-    "value": {},
-    "fetched": "2026-09-24"
+    "value": {
+      "ASH": 2,
+      "META": 14,
+      "EGO": 1,
+      "MSFT": 18,
+      "SPGI": 9,
+      "MA": 7,
+      "PDD": 3,
+      "WBD": 3,
+      "AMZN": 11,
+      "V": 14,
+      "BRK.B": 11,
+      "BDX": 5,
+      "UBER": 5,
+      "AIIR": 1,
+      "GPI": 2,
+      "AJG": 4,
+      "TSM": 7,
+      "ORLAOL": 2,
+      "GOOGL": 4,
+      "NFLX": 6,
+      "ACN": 5,
+      "AMAT": 2,
+      "XRAY": 2,
+      "FRPT": 1,
+      "KHC": 3,
+      "GOOG": 9,
+      "CR": 1,
+      "HD": 6,
+      "YNDX": 1,
+      "STX": 3,
+      "MDLN": 2,
+      "GEHC": 5,
+      "APP": 2,
+      "MCO": 2,
+      "SPOT": 2,
+      "PVH": 3,
+      "IEP": 1,
+      "APH": 4,
+      "SPUU": 1,
+      "BKNG": 4,
+      "GEV": 5,
+      "DASH": 2,
+      "DVN": 5,
+      "TTMI": 3,
+      "SUNB": 4,
+      "BABA": 4,
+      "AAL": 2,
+      "VGNT": 2,
+      "GPGI": 1,
+      "GPC": 3,
+      "APTV": 2,
+      "LIN": 2,
+      "COF": 8,
+      "KEYS": 2,
+      "XYZ": 2,
+      "ROP": 3,
+      "ABT": 3,
+      "TJX": 3,
+      "TMO": 8,
+      "PFGC": 4,
+      "BFAM": 2,
+      "ICLR": 5,
+      "AZN": 1,
+      "INTU": 5,
+      "MAIR": 1,
+      "TEL": 6,
+      "RKT": 2,
+      "VMC": 3,
+      "TWLO": 2,
+      "FLEX": 2,
+      "LYV": 3,
+      "CRH": 3,
+      "VEEV": 5,
+      "ADP": 4,
+      "BLDR": 4,
+      "NSC": 1,
+      "HHH": 1,
+      "CME": 4,
+      "AMD": 4,
+      "FBIN": 3,
+      "ZTS": 3,
+      "KKR": 3,
+      "Z": 1,
+      "ELV": 6,
+      "UNP": 4,
+      "STRL": 1,
+      "SNOW": 2,
+      "ONON": 2,
+      "DHR": 8,
+      "FERG": 6,
+      "APD": 5,
+      "EFX": 4,
+      "CBRS": 1,
+      "BA": 4,
+      "SAP": 5,
+      "WHK": 1,
+      "GXO": 1,
+      "GPN": 4,
+      "CTSH": 4,
+      "GDS": 2
+    },
+    "fetched": "2026-09-25"
   },
   "screens_mf": {
     "value": [
@@ -329,111 +430,111 @@
         7
       ],
       [
-        "BKNG",
+        "BMY",
         8
       ],
       [
-        "BMY",
+        "BKE",
         9
       ],
       [
-        "BKE",
+        "CARG",
         10
       ],
       [
-        "CARG",
+        "GIB",
         11
       ],
       [
-        "GIB",
+        "CTSH",
         12
       ],
       [
-        "CTSH",
+        "CROX",
         13
       ],
       [
-        "CROX",
+        "CVS",
         14
       ],
       [
-        "CVS",
+        "DECK",
         15
       ],
       [
-        "DECK",
+        "DBD",
         16
       ],
       [
-        "DBD",
+        "EPAM",
         17
       ],
       [
-        "EPAM",
+        "FOXA",
         18
       ],
       [
-        "FOXA",
+        "IT",
         19
       ],
       [
-        "IT",
+        "GEN",
         20
       ],
       [
-        "GEN",
+        "GDDY",
         21
       ],
       [
-        "GDDY",
+        "LOPE",
         22
       ],
       [
-        "LOPE",
+        "GRGDF",
         23
       ],
       [
-        "GRGDF",
+        "HRB",
         24
       ],
       [
-        "HRB",
+        "HRMY",
         25
       ],
       [
-        "HRMY",
+        "HAS",
         26
       ],
       [
-        "HAS",
+        "HPQ",
         27
       ],
       [
-        "HPQ",
+        "INTU",
         28
       ],
       [
-        "INTU",
+        "WLY",
         29
       ],
       [
-        "WLY",
+        "KBR",
         30
       ],
       [
-        "KBR",
+        "KFY",
         31
       ],
       [
-        "KFY",
+        "LDOS",
         32
       ],
       [
-        "LDOS",
+        "LULU",
         33
       ],
       [
-        "LULU",
+        "MMS",
         34
       ],
       [
@@ -501,7 +602,7 @@
         50
       ]
     ],
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "screens_am": {
     "value": [
@@ -511,39 +612,39 @@
       ],
       [
         "EQNR",
-        "3.40"
+        "3.30"
       ],
       [
         "PBR",
-        "5.30"
+        "5.10"
       ],
       [
         "APA",
-        "5.50"
+        "5.40"
       ],
       [
         "BP",
-        "7.20"
+        "7.00"
       ],
       [
         "CF",
-        "7.30"
+        "7.10"
       ],
       [
         "YPF",
+        "7.30"
+      ],
+      [
+        "DINO",
         "7.50"
       ],
       [
         "SHEL",
-        "7.80"
-      ],
-      [
-        "DINO",
-        "7.80"
+        "7.70"
       ],
       [
         "CTSH",
-        "7.80"
+        "7.70"
       ],
       [
         "NVO",
@@ -551,31 +652,31 @@
       ],
       [
         "SNY",
-        "8.20"
+        "8.10"
       ],
       [
         "FOXA",
-        "8.30"
+        "8.20"
       ],
       [
         "GIB",
-        "8.40"
+        "8.30"
+      ],
+      [
+        "HPQ",
+        "8.50"
       ],
       [
         "SQM",
         "8.60"
       ],
       [
-        "HPQ",
-        "8.60"
+        "CMCSA",
+        "8.70"
       ],
       [
         "CI",
-        "8.90"
-      ],
-      [
-        "CMCSA",
-        "8.90"
+        "8.80"
       ],
       [
         "CHTR",
@@ -583,19 +684,19 @@
       ],
       [
         "ERIC",
-        "9.20"
+        "9.30"
+      ],
+      [
+        "FSLR",
+        "9.30"
+      ],
+      [
+        "MO",
+        "9.40"
       ],
       [
         "PHM",
         "9.40"
-      ],
-      [
-        "MO",
-        "9.60"
-      ],
-      [
-        "FSLR",
-        "9.60"
       ],
       [
         "FMX",
@@ -610,35 +711,35 @@
         "10.00"
       ],
       [
-        "LDOS",
-        "10.30"
+        "ZTS",
+        "10.20"
       ],
       [
         "SBS",
-        "10.30"
+        "10.20"
       ],
       [
-        "ZTS",
-        "10.40"
+        "LDOS",
+        "10.20"
       ],
       [
         "SKHY",
-        "10.60"
-      ],
-      [
-        "EIX",
-        "11.30"
+        "10.90"
       ],
       [
         "BBY",
-        "11.30"
+        "11.10"
       ],
       [
-        "CVS",
-        "11.60"
+        "EIX",
+        "11.20"
       ],
       [
         "CQP",
+        "11.50"
+      ],
+      [
+        "CVS",
         "11.60"
       ],
       [
@@ -646,23 +747,23 @@
         "11.80"
       ],
       [
+        "UPS",
+        "12.20"
+      ],
+      [
         "VZ",
-        "12.30"
+        "12.20"
       ],
       [
         "KR",
-        "12.40"
-      ],
-      [
-        "SONY",
-        "12.40"
-      ],
-      [
-        "UPS",
-        "12.40"
+        "12.20"
       ],
       [
         "BTI",
+        "12.50"
+      ],
+      [
+        "SONY",
         "12.60"
       ],
       [
@@ -671,58 +772,58 @@
       ],
       [
         "FIS",
-        "13.70"
+        "13.80"
       ],
       [
         "KVUE",
-        "14.10"
+        "14.00"
       ],
       [
         "LOW",
-        "14.20"
+        "14.10"
       ],
       [
         "LOGI",
         "14.20"
       ],
       [
-        "EXEL",
-        "14.30"
+        "FDX",
+        "14.40"
       ],
       [
-        "FDX",
-        "14.70"
+        "EXEL",
+        "14.50"
       ],
       [
         "OTIS",
-        "14.90"
+        "14.70"
       ],
       [
         "SSNC",
-        "14.90"
+        "14.80"
       ],
       [
         "UL",
-        "15.60"
+        "15.50"
       ]
     ],
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "news_ej": {
-    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nWednesday 9/23/2026 p.m.\nStocks fall with rising bond yields weighing on sentiment \u2013\nU.S. equity markets closed lower on Wednesday, as rising Treasury yields weighed on investor sentiment. The 10-year yield climbed to 5.11%, its highest level since 2007, with robust economic data, hawkish comments from Federal Reserve Governor Michael Barr, and a poorly received Treasury auction likely all contributing to Wednesday\u2019s rise in yields. From a leadership perspective, energy was the only S&P 500 sector to finish in positive territory, while rate-sensitive sectors such as utilities and real estate, along with growth-oriented sectors including communication services and consumer discretionary, were among the laggards. On the economic front, the September S&P Global U.S. Purchasing Managers\u2019 Index (PMI) showed that business activity remained resilient, with the U.S. composite PMI rising to 58.4, its highest level in more than five years. While business activity remained robust, price pressures also appeared persistent, with input costs increasing across both the manufacturing and services sectors, likely contributing to the rise in bond yields. In commodity markets, oil prices finished modestly higher, with WTI crude closing near $93 per barrel and snapping a streak of five consecutive daily declines.\nGlobal economic activity remains firm in September \u2013\nWednesday brought an update on global economic trends with the preliminary September S&P Global Purchasing Managers\u2019 Index (PMI) readings. PMIs measure business activity, with readings above 50 indicating expansion and readings below 50 indicating contraction. Overnight, the eurozone composite PMI rose to 53.1 in September, its highest level since April 2023, supported primarily by improvement in the services sector. Activity also continued to expand in the United Kingdom. Although the U.K. composite PMI declined modestly, it remained above 50 at 51.7. In the U.S., activity remained firm as well, with the composite PMI rising to 58.4, the highest level in over five years. For all three regions, the downside of the September data was persistent price pressure, as input costs increased amid higher oil prices. Against a backdrop of resilient business activity and persistent price pressure, global bond yields surged, with the 10-year U.S. Treasury yield climbing to 5.11%, while long-term bond yields in the United Kingdom and euro area were sharply higher on Wednesday as well. Despite the headwind of elevated yields and persistent price pressures, economic activity has proven resilient in 2026, helping support a 12% gain in international developed large-cap stocks and a 14% gain in the S&P 500 through yesterday\u2019s close. We continue to see attractive opportunities in equity markets over the coming months, supported by resilient economic activity and strong profit growth.\nMidterm elections and implications for investors \u2013\nMidterm Election Day is just over one month away, providing an opportunity to review how markets have historically performed around midterm elections. For the full year, equity returns have historically been modest during midterm election years. Since 1970, the S&P 500 has generated an average total return of 3.6% during midterm election years, compared to an average annual return of 12.5% across all years from 1970\u20132025.* The two most recent midterm years were particularly challenging for stocks, with the index declining 18.1% in 2022 and 4.4% in 2018.* Stocks have bucked that historical pattern in 2026, however, with the S&P 500 up roughly 14% year to date including dividends, through yesterday's close. Looking ahead, the month immediately preceding midterm elections and the six months following Election Day have historically been favorable periods for the market. The S&P 500 has gained an average of 4.5% during the month leading up to Election Day, with positive returns in 78.6% of midterm election years.* Over the subsequent six months, the index has generated an average return of 15.5% and posted gains following all 14 midterm elections since 1970.* While there is no guarantee that history will repeat itself this election cycle, we believe these results help reinforce the importance of maintaining a disciplined investment strategy and resisting the temptation to play politics with your portfolio.\nBrock Weimer, CFA\n;\nInvestment Strategy\nSource for all data not cited: FactSet.\nSource for cited data: *FactSet, Edward Jones calculations, history.house.gov. S&P 500 total return index. Midterm election years span 1970 \u2013 2022.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
-    "fetched": "2026-09-24"
+    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nThursday 9/24/2026 p.m.\nStocks fluctuate as inflation anxiety persists\n- Equity markets ended little changed as oil prices rose and long-term bond yields continued to climb to their highest levels in more than two decades. WTI crude finished 3% higher, while Brent stayed above $100 per barrel, though off their session highs after report of talks for a phased reopening of the Strait of Hormuz. Refined products have risen even more sharply than crude in recent weeks, with diesel prices surging to record highs. Given diesel's importance to transportation, construction, and agriculture, the move is adding to broader inflation concerns. On the positive side, Treasury Secretary Bessent announced that the U.S. and China have agreed to extend their trade truce by two months, through January 10, as both sides pursue a broader agreement. The extension comes ahead of planned meetings between the two countries' leaders at the APEC summit in November and the G20 summit in December. On the corporate front, Oracle shares fell more than 3% after reports that the company invoked force majeure provisions on a large New Mexico data center project following significant regulatory and permitting setbacks. The move is intended to limit the company's financial exposure if the facility fails to come online as planned in 2028. The news highlights the financing and execution risks associated with the AI infrastructure buildout amid rising costs and growing political scrutiny of large-scale data centers.\nHigher yields are becoming a more meaningful headwind\n- The biggest challenge facing markets this week is the sharp rise in long-term bond yields to multi-decade highs, with the 10-year Treasury yield reaching 5.17%, its highest level since 2007, and the 30-year Treasury yield climbing to 5.47%, its highest since 2004. Several factors are driving the move higher, including 1) rising oil prices amid ongoing conflict in the Middle East, 2) increasingly hawkish Fed rhetoric as more policymakers signal support for additional rate hikes, 3) weak demand at yesterday's Treasury auction, and 4) stronger-than-expected economic data that reinforce the higher-for-longer rate narrative. While solid economic growth and healthy corporate fundamentals suggest interest rates are not yet restrictive enough to derail the expansion, the rapid increase in yields and elevated bond market volatility are creating a more meaningful headwind for equities. Any easing of geopolitical tensions that helps relieve pressure on energy prices could go a long way toward stabilizing the bond market, in our view. Until then, we believe upward pressure on yields is likely to persist as expectations for additional Fed tightening remain elevated.\nSolid economic activity and earnings remain pillars of support\n- Amid rising bond market volatility, we think it is important to recognize that yields are increasing for both negative reasons, such as inflation concerns, and positive reasons, including stronger growth that justifies higher interest rates and suggests Fed policy is not overly restrictive. Yesterday's PMI data showed business activity expanding at its fastest pace since 2021, pointing to real GDP growth running at roughly a 5% annualized pace. While PMI surveys may somewhat overstate the economy's underlying strength, they are broadly consistent with other indicators suggesting growth has accelerated in recent quarters alongside improving labor market trends. This backdrop should provide a solid foundation for corporate profits to continue growing. As investors look ahead to the start of third-quarter earnings season in the coming weeks, S&P 500 earnings are on track for one of the strongest periods of growth outside of post-recession recoveries, with profits for the year expected to increase 36%. Although valuations have compressed this year, robust earnings growth has more than offset that headwind. The bottom line, in our view, is that rising yields and higher oil prices are testing market resilience, but strong economic momentum and broad-based earnings growth continue to serve as powerful sources of support.\nAngelo Kourkafas, CFA\n;\nInvestment Strategy\nSource for all data: Bloomberg.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
+    "fetched": "2026-09-25"
   },
   "news_cnbc": {
     "value": "5 things to know before the market opens Thursday\nVIEW IN BROWSER\n|\nCNBC NEWSLETTERS\nTHU, SEP 03, 2026\nDOW\nFUTURES\n+0.42%\nS&P 500 FUTURES\n+0.19%\nNASDAQ 100 FUTURES\n+0.02%\nData as of 8:30 a.m. ET\nThink a friend or colleague should be getting this newsletter? Share\nthis link\nwith them to sign up.\nAlex Harring\nCNBC Reporter & Morning Squawk Writer\nHappy Thursday. Breaking news this morning:\u00a0Nvidia\u00a0has agreed to buy open-source artificial intelligence platform Hugging Face\nfor nearly $13 billion.\nStock futures\nare mixed this morning after a\nwinning day\non Wall Street.\nHere are five key things investors need to know to start the trading day:\n1. Summit up\nThe G20 wrapped up its two-day Innovation Ministerial yesterday, where technology leaders and government representatives talked artificial intelligence, data centers and tariffs.\nHere are some of the biggest headlines out of the gathering:\nNvidia CEO Jensen Huang said that AI will \u201cdemocratize intelligence\u201d for G20 countries and called the technology \u201cthe great equalizer.\u201d\nOpenAI CEO Sam Altman, meanwhile, said using AI is a \u201cnon-negotiable\u201d for countries, comparing the adoption of AI to the adoption of electricity.\nPalantir\u00a0CEO Alex Karp acknowledged that there are \u201chuge dangers\u201d to the technology but pushed back on what he called the \u201cdoom message\u201d around AI. He appeared to allude to Anthropic and its CEO, who have warned about the technology\u2019s risks.\nOn the data center front, Anthropic co-founder Tom Brown said he \u201creally loved\u201d President Donald Trump\u2019s Monday Truth Social post, in which the president said communities who opposed data centers \u201cwant to end up being backwards and poor.\u201d\nCommerce Secretary Howard Lutnick said that data centers will \u201cbring prosperity\u201d and are \u201cgetting a bad rap.\u201d He also downplayed the facilities\u2019 water consumption.\nCatch up on all the biggest moments here.\n2. Bond, John Bond\nAfter hitting its\nhighest level since 2023\n, the\u00a010-year U.S. Treasury\u00a0yield pulled back in Wednesday\u2019s session, providing relief for other corners of the market.\nNew York Federal Reserve President John Williams\u00a0told CNBC yesterday\u00a0that the recent yield jumps should be seen as\na sign of a strong economy\nrather than as market dysfunction. Williams also said he would have to \u201cwait and see\u201d before deciding whether an interest rate hike would be necessary to calm inflation.\nThe three major averages snapped three-day losing streaks yesterday.\nFollow live market updates here.\n3. Snow forecast\nSnowflake\u00a0soared 24%",
-    "fetched": "2026-09-24"
+    "fetched": "2026-09-25"
   },
   "news_yahoo": {
-    "value": "Plus: Our tech reporter let Muse run his life for an evening \u2014 and things got interesting.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nThursday, September 24 \u00a0 |\nView in your browser\nGood morning!\nWe're still watching the bigwigs in Washington visiting with Presidents Trump and Xi, but with fewer Chinese CEOs accompanying Xi than expected,\nexpectations have been somewhat dampened\n.\nThe stock market's momentum, however, was stopped by the highest 10-year Treasury yield (\n^TNX\n) since 2007, which crossed the 5.10% mark as the day's\neconomic data came in hotter than expected and oil prices rose\n.\nThe S&P 500 (\n^GSPC\n) fell 0.8%, the Dow (\n^DJI\n) 0.7%, and the Nasdaq (\n^IXIC\n) 1.1% off its all-time high.\nAnd one more thing before we continue: We are extremely excited to see Nathan Fielder's Elizabeth Holmes (Theranos!) documentary.\nTrailer here, ICYMI\n.\nIn today's issue\nWall Street's massive streak of optimism just ended\nAI leaders brief the UN about 'risk to humanity'\nYouTube is eating Netflix\u2019s lunch\nOur tech reporter let Muse run his life for an evening\nWhat we're watching Thursday:\nIt's the \"big\" earnings day on the week's calendar, with corporate reports from Costco Wholesale Corporation (\nCOST\n), Darden Restaurants (\nDRI\n), and Uranium Energy Corp. (\nUEC\n).\nEven if inflation hurts right now, we have zero doubt that Costco will be keeping its hot dog prices\nright where they are\n.\nHeadlines\n10-year Treasury yield hits highest level since 2007\nas market prices in another Fed rate hike.\nOpenAI, Anthropic, and SpaceX valuations could dwarf 45 years of IPOs.\nThe shear amount of money involved is more than all the IPOs from 1980 to 2025.\nOil hovers near $100 as analysts warn Trump's potential diesel export ban\nwould 'tighten global supply.'\nGoldman Sachs' interest rate prediction hinges on 1 key outcome.\nOil prices.\nApple stock just delivered an early win for new CEO John Ternus.\nNew products? Record highs? Apple is riding high.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nWall Street's massive streak of optimism just ended\nIt's still very much a bull market. But the bears are starting to have a few things to feast on. Ahead of winter, if we push the metaphor. (Getty Creative)\nSay it with us now: The most important thing for long-term stock growth is earnings.\nSpecifically, expectations and outlooks. We know we've harped on this for a long time, but we do that for a very good reason: It's uncontrovertibly true.\nThis also means that when those expectations turn, it's essentially as if the economy's Boeing 777 is having engine trouble.\nTracking equity analysts' revisions is a key measure of the market's directionality, and for the first time in months, there have been more stock downgrades than upgrades.\nThis happens plenty, even if the Citigroup US Earnings Revision Index hasn't been negative since April. But this run since April has been the longest bullish swing of upgrades in\nfive\nyears, Bloomberg noted.\nThe reason behind the end of this streak of optimism isn't exactly subtle. High energy prices and a stressful 10-year yield that is pushing the Fed toward more rate hikes are laying bare some big risks for the S&P 500.\nMorgan Stanley sees a risk of a 7% fall if trends continue. EY-Parthenon chief economist Gregory Daco went even further and noted that it \"could increase the risk of a stock market correction.\"\nRead More\u00a0 \u279d\nAI leaders brief the UN about 'risk to humanity'\nCEO of OpenAI Sam Altman speaks during a United Nations Security Council m",
-    "fetched": "2026-09-24"
+    "value": "Plus: Soaring mortgage rates are disrupting the fall buying season, and the era of listening devices is here.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nFriday, September 25 \u00a0 |\nView in your browser\nGood morning!\nThursday was one of the days where a lot seemed to be happening, but you'd never know it from the indexes.\nBy the numbers, the S&P 500 (\n^GSPC\n) and the Nasdaq (\n^IXIC\n) closed flat, and the Dow (\n^DJI\n) lost 0.3%.\nBut underneath, some major things canceled each other out: scary-high bond yields and\nhopes of a deal to open the Strait of Hormuz\n.\nAnd the state visit by Chinese leader Xi Jinping\nleft the trade deal status quo\n, as China exercised the softest of power by\nannouncing that two new pandas would be coming to the Atlanta zoo\n.\nIn today's issue\nSoaring mortgage rates are disrupting the fall buying season\nGoogle throws a satellite into the ring as the AI space race heats up\nThe stock market is very concentrated in two stocks\nThe era of listening devices is here\nWhat we're watching Friday:\nIt may be a quiet Friday on the calendar, but the University of Michigan's consumer sentiment data will be notable amid our surging rates and hiking cycle from the Fed, from inflation expectations to a simple sense of how people are feeling.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban.\nHeadlines\nUS-China summit begins with signs that the trade truce\nwill stay in place. It's good news for a delicate stock market.\nStarbucks to close 250 stores in US and Canada\nthis week\n.\nHere's what Wall Street thinks of Meta's new smart glasses lineup\nand first Muse 'holdable.' Something big is happening.\nWill Social Security really go broke in 2032?\nHere is what's happening.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nSoaring mortgage rates are disrupting the fall buying season\nSigns advertising new homes for sale are seen on September 15, 2026 in Homestead, Florida. (Joe Raedle/Getty Images)\nMortgage rates zoomed well past the 7% mark on Thursday, flying up to 7.37%, the highest level since May 2024.\nWe all saw the possibility coming before the rates were published, of course. While the Fed decides \"rates,\" the real rate that the housing industry \u2014 and many others \u2014 is tied to is the 10-year Treasury yield, which has been behaving like the old man in\nUp.\nAnd on Thursday, it crossed to 5.16% as the 30-year Treasury yield\nhit levels not seen since 2004.\nBeing this high is, of course, very bad for the housing market. But psychologically, being at a multiyear high is just part of it. There's something about that 7% number that derails plans to buy, according to housing economists.\nIn other words, people are saying goodbye to any plans of pre-holiday buying, selling, and moving.\nIt's worth noting that this week we've seen factors pushing up rates that aren't actually directly related to the inflation crisis, but rather due to \"good news.\"\nData from S&P Global showed that the economy is actually trucking along better than we thought, which reframes the Fed's rate hike as prescient.\nThough the Fed can't open the Strait of Hormuz, it\ncan\npour water on an economy that's running hot.\nIf it's really running hot, that is. To very roughly paraphrase Jerome Powell, let's not get too excited by a single data release \u2014 and certainly not one from S&P Global, a C-tier macroeconomic metric.\nRead More\u00a0 \u279d\nGoogle throws a satellite into the ring as the AI space race heats up\nSpaceX will be providing the transportation, naturally. (Photo by Joel",
+    "fetched": "2026-09-25"
   },
   "news_yahoo_calendar": {
-    "value": "Earnings and economic calendar\nThursday\nEconomic data:\nCurrent account balance, second quarter (-$226.8 billion previously); Initial jobless claims, week ended Sept. 19 (196,000 previously); Continuing claims, week ended Sept. 12 (1.73 million previously); New home sales, month-on-month, August (+1.3% expected, -10.5% previously); Building permits, month-on-month, August final reading (-2.7% previously); Kansas City Fed manufacturing activity, September (10 previously)\nEarnings calendar:\nCostco Wholesale Corporation (\nCOST\n), Darden Restaurants (\nDRI\n), Uranium Energy Corp. (\nUEC\n), BlackBerry (\nBB\n), Scholastic Corporation (\nSCHL\n)\nFriday\nEconomic data:\nDurable goods orders, August preliminary reading (-0.3% expected, +1.1% previously); Kansas City Fed services activity, September (-3 previously); U. Mich. sentiment, September final reading (47.8 expected, 47.8 previously); U. Mich. current conditions, September final reading (50.9 previously); U. Mich. expectations, September final reading (45.8 previously); U. Mich. 1-year inflation, September final reading (+4.6% previously); U. Mich. 5-10 year inflation, September final reading (+3.4% previously)\nEarnings calendar:\nTamboran Resources Corporation (\nTBN\n)",
-    "fetched": "2026-09-24"
+    "value": "Earnings and economic calendar\nFriday\nEconomic data:\nDurable goods orders, August preliminary reading (-0.3% expected, +1.1% previously); Kansas City Fed services activity, September (-3 previously); U. Mich. sentiment, September final reading (47.8 expected, 47.8 previously); U. Mich. current conditions, September final reading (50.9 previously); U. Mich. expectations, September final reading (45.8 previously); U. Mich. 1-year inflation, September final reading (+4.6% previously); U. Mich. 5-10 year inflation, September final reading (+3.4% previously)\nEarnings calendar:\nTamboran Resources Corporation (\nTBN\n)",
+    "fetched": "2026-09-25"
   },
   "weekly_calendar": {
     "week_of": "2026-09-21",
@@ -787,6 +888,11 @@
     {
       "date": "2026-09-24",
       "score": 86,
+      "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-25",
+      "score": 94,
       "label": "EXTREME OVERHEATED"
     }
   ]
