@@ -1,59 +1,59 @@
 {
-  "date": "2026-09-24",
+  "date": "2026-09-25",
   "time_collected_utc": "11:30",
   "futures": {
-    "sp500":     {"change_pct": -0.60, "direction": "down"},
-    "nasdaq100": {"change_pct": -1.10, "direction": "down"},
-    "dow":       {"change_pct": -0.40, "direction": "down"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.40, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.25, "direction": "up"},
+    "dow":       {"change_pct": 0.36, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 18.71, "proxy_for": "MSCI World",
-             "source": "stocktradersdaily.com"},
-    "EFA":  {"pe_ttm": 15.22, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "investing.com"}
+    "URTH": {"pe_ttm": 18.76, "proxy_for": "MSCI World",
+             "source": "ishares.com"},
+    "EFA":  {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "macrotrends.net"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.12,
-    "crude_oil_usd": 93.96,
+    "treasury_10yr_pct": 5.17,
+    "crude_oil_usd": 93.02,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "10-year Treasury yield hit 5.13%, highest since 2007, on strong PMI data and Fed signals of additional rate hikes to tame sticky inflation",
-    "China's President Xi Jinping arrived in the US for a strategic summit with President Trump, with US chip export policy and trade at the center of discussions",
-    "WTI crude surged above $93/bbl, pushing 30-year Treasury yields to their highest since 2004 as US-Iran negotiations remained uncertain"
+    "10-year Treasury yield slipped 3bps to 5.17%, paring a two-day 20bps surge, as Fed signals additional rate hikes with yields near 19-year highs",
+    "US-Iran negotiators explore phased deal to reopen Strait of Hormuz, sending Brent crude below $105/bbl and easing global energy supply concerns",
+    "August durable goods orders and final September University of Michigan Consumer Sentiment data released; nonfarm payrolls next Friday in focus"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",    "change_pct": 1.50, "reason": "crude oil surge above $93/bbl lifts energy producers and drillers"},
-      {"sector": "Materials", "change_pct": 0.30, "reason": "geopolitical supply concerns and dollar weakness support commodity-linked stocks"}
+      {"sector": "Technology",             "change_pct": 0.80, "reason": "Semiconductor and chipmaker strength driven by AI optimism and Nvidia-related gains"},
+      {"sector": "Consumer Discretionary", "change_pct": 0.45, "reason": "Easing oil prices support consumer spending outlook and reduce cost pressures"}
     ],
     "lagging": [
-      {"sector": "Technology",            "change_pct": -1.20, "reason": "rising 10-year yields to 2007 highs pressure high-multiple growth stocks"},
-      {"sector": "Consumer Discretionary","change_pct": -0.70, "reason": "inflation fears and higher borrowing costs weigh on consumer spending outlook"}
+      {"sector": "Energy",                 "change_pct": -1.20, "reason": "US-Iran diplomatic progress on Strait of Hormuz eases oil supply disruption fears"},
+      {"sector": "Utilities",              "change_pct": -0.60, "reason": "Persistently elevated Treasury yields near 5.17% pressure rate-sensitive dividend sectors"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600",  "direction": "down", "change_pct": -0.44},
-    "asia":   {"index": "Nikkei225", "direction": "up",   "change_pct": 1.01}
+    "europe": {"index": "STOXX600",  "direction": "up",   "change_pct": 0.20},
+    "asia":   {"index": "Nikkei225", "direction": "down", "change_pct": -0.15}
   },
-  "open_focus": "Traders are focused on whether 10-year Treasury yields sustain above 5.12% — levels not seen since 2007 — with crude oil-driven bond selling and outcomes from the Trump-Xi summit the key macro drivers at the open.",
+  "open_focus": "Traders are watching whether US-Iran diplomatic progress on the Strait of Hormuz will sustain the pullback in crude oil and Treasury yields, with August durable goods data and Fed commentary also in focus at the open.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7706.00,
-      "current":    7699.00,
-      "change_pct": -0.09,
+      "prev_close": 7704.13,
+      "current":    7734.95,
+      "change_pct": 0.40,
       "source_time_et": "07:30"
     },
     "rut": {
-      "prev_close": 2889.80,
-      "current":    2838.66,
-      "change_pct": -1.77,
+      "prev_close": 2890.96,
+      "current":    2858.16,
+      "change_pct": -1.13,
       "source_time_et": "07:30"
     },
     "vix": {
-      "prev_close": 14.21,
-      "current":    15.18
+      "prev_close": 15.67,
+      "current":    15.40
     }
   }
 }
