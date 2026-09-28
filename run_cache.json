@@ -13,7 +13,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 Above avg but decelerating -- progress toward 2% but not there yet"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Core CPI": {
     "value": {
@@ -29,7 +29,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Re-heating -- service sector inflation erodes real returns and PE expansion"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_PCE Inflation": {
     "value": {
@@ -45,7 +45,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Core PCE": {
     "value": {
@@ -61,7 +61,7 @@
       "date": "Jul 01 2026",
       "sig": "\u26a0\ufe0f Re-accelerating at 65% above Fed target -- hike risk rising, PE compression ahead"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_10Y Treasury": {
     "value": {
@@ -77,7 +77,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Approaching levels where bonds compete with equities on yield -- watch spread compression"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_2Y Treasury": {
     "value": {
@@ -93,7 +93,7 @@
       "date": "Aug 01 2026",
       "sig": "\u26a0\ufe0f Higher 2Y locks in restrictive financial conditions -- reduces room for P/E expansion"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Yield Curve (10Y-2Y)": {
     "value": {
@@ -102,14 +102,14 @@
       "is_index": false,
       "group": "RATES",
       "insight": "Negative = inverted = recession signal 12-18mo ahead",
-      "current": "0.25%",
-      "mo3": "0.27%",
-      "mo12": "0.56%",
-      "trend": "\u2192",
-      "date": "Sep 22 2026",
-      "sig": "\u2192 Nearly flat -- disinversion underway but not yet a steepening growth signal; watch direction"
+      "current": "0.36%",
+      "mo3": "0.30%",
+      "mo12": "0.49%",
+      "trend": "\u25b2",
+      "date": "Sep 25 2026",
+      "sig": "\u2705 Positive slope -- no inversion signal; normal credit environment for long-term investors"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Fed Funds Rate": {
     "value": {
@@ -125,7 +125,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 On hold -- Fed is watching; next move direction matters more than current level"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_HY Credit Spread": {
     "value": {
@@ -134,14 +134,14 @@
       "is_index": false,
       "group": "CREDIT",
       "insight": "Junk bond premium \u00b7 <3%=calm \u00b7 >6%=credit fear/stress",
-      "current": "2.68%",
-      "mo3": "2.71%",
-      "mo12": "2.76%",
+      "current": "2.80%",
+      "mo3": "2.78%",
+      "mo12": "2.74%",
       "trend": "\u2192",
-      "date": "Sep 22 2026",
+      "date": "Sep 24 2026",
       "sig": "\u2192 Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Unemployment": {
     "value": {
@@ -157,7 +157,7 @@
       "date": "Aug 01 2026",
       "sig": "\u2192 Near historical norm -- labor not a swing factor for macro direction today"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_WTI Crude Oil": {
     "value": {
@@ -174,7 +174,7 @@
       "date": "Sep 22 2026",
       "sig": "\u26a0\ufe0f Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Gold Price": {
     "value": {
@@ -185,14 +185,14 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,318",
-      "mo3": "$4,149",
-      "mo12": "$3,674",
+      "current": "$4,188",
+      "mo3": "$4,096",
+      "mo12": "$3,725",
       "trend": "\u25b2",
-      "date": "Sep 23 2026",
-      "sig": "\u2192 Gold surging +18% yr -- real rates concern or dollar debasement fear; watch DXY correlation"
+      "date": "Sep 28 2026",
+      "sig": "\u2192 Gold ++12% yr -- modest hedge; not yet a panic signal"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_US Dollar (DXY)": {
     "value": {
@@ -209,7 +209,7 @@
       "date": "Sep 18 2026",
       "sig": "\u26a0\ufe0f Strong dollar headwind -- crushes earnings of multinationals and makes intl ADRs cheaper in USD"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Consumer Sentiment": {
     "value": {
@@ -219,14 +219,14 @@
       "group": "SENTIMENT_FRED",
       "no_pct": true,
       "insight": "U of Michigan 0-100 \u00b7 avg ~75 \u00b7 <60 = consumer stress",
-      "current": "55.2",
-      "mo3": "49.8",
-      "mo12": "61.7",
+      "current": "51.7",
+      "mo3": "44.8",
+      "mo12": "58.2",
       "trend": "\u25b2",
-      "date": "Jul 01 2026",
-      "sig": "\u2192 Below-average sentiment -- consumer cautious but not collapsing; watch for inflection"
+      "date": "Aug 01 2026",
+      "sig": "\u26a0\ufe0f Consumer deeply pessimistic -- spending contraction risk; watch retail and discretionary sectors"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fred_Shiller CAPE (US)": {
     "value": {
@@ -236,63 +236,63 @@
       "group": "VALUATION",
       "no_pct": true,
       "insight": "Cyclically Adj PE \u00b7 10yr smoothed \u00b7 hist avg 17x \u00b7 ~41 = 2nd highest ever",
-      "current": "41.6",
-      "mo3": "41.6",
-      "mo12": "41.6",
+      "current": "41.5",
+      "mo3": "41.5",
+      "mo12": "41.5",
       "trend": "\u2192",
-      "date": "Sep 23 2026",
+      "date": "Sep 28 2026",
       "sig": "\u26a0\ufe0f 2.4x the 145yr avg -- only dot-com peak (44x) was higher; 10yr forward returns historically near zero from this level"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "fear_greed": {
     "value": {
-      "score": 35,
+      "score": 37,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 35,
-      "prev_week": 27,
-      "prev_month": 55,
-      "prev_year": 57,
+      "prev_close": 37,
+      "prev_week": 34,
+      "prev_month": 54,
+      "prev_year": 51,
       "cached": false
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "15.14",
+        "value": "16.03",
         "label": "NORMAL",
         "color": "#6b7280",
         "signal": "\u2192 Normal -- market calm, no stress signal",
-        "prev": "15.14"
+        "prev": "16.03"
       },
       "spx": {
-        "value": "7,700",
+        "value": "7,711",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,700"
+        "prev": "7,711"
       },
       "rut": {
-        "value": "2,844",
+        "value": "2,818",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,844"
+        "prev": "2,818"
       },
-      "urth_pe": 19.41,
+      "urth_pe": 18.85,
       "urth_pe_stale": false,
       "urth_pe_source": "Claude Routine",
-      "efa_pe": 18.23,
+      "efa_pe": 17.98,
       "efa_pe_stale": false,
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 15.1 (NORMAL) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 16.0 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "screens_si": {
     "value": {
@@ -376,8 +376,8 @@
       "CME": 4,
       "AMD": 4,
       "FBIN": 3,
-      "ZTS": 3,
       "KKR": 3,
+      "ZTS": 3,
       "Z": 1,
       "ELV": 6,
       "UNP": 4,
@@ -397,7 +397,7 @@
       "CTSH": 4,
       "GDS": 2
     },
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "screens_mf": {
     "value": [
@@ -426,183 +426,183 @@
         6
       ],
       [
-        "BCRX",
+        "BBY",
         7
       ],
       [
-        "BMY",
+        "BCRX",
         8
       ],
       [
-        "BKE",
+        "BAH",
         9
       ],
       [
-        "CARG",
+        "BMY",
         10
       ],
       [
-        "GIB",
+        "BKE",
         11
       ],
       [
-        "CTSH",
+        "CARG",
         12
       ],
       [
-        "CROX",
+        "GIB",
         13
       ],
       [
-        "CVS",
+        "CTSH",
         14
       ],
       [
-        "DECK",
+        "CROX",
         15
       ],
       [
-        "DBD",
+        "CVS",
         16
       ],
       [
-        "EPAM",
+        "DECK",
         17
       ],
       [
-        "FOXA",
+        "DBD",
         18
       ],
       [
-        "IT",
+        "EPAM",
         19
       ],
       [
-        "GEN",
+        "FOXA",
         20
       ],
       [
-        "GDDY",
+        "IT",
         21
       ],
       [
-        "LOPE",
+        "GEN",
         22
       ],
       [
-        "GRGDF",
+        "GDDY",
         23
       ],
       [
-        "HRB",
+        "LOPE",
         24
       ],
       [
-        "HRMY",
+        "GRGDF",
         25
       ],
       [
-        "HAS",
+        "HRB",
         26
       ],
       [
-        "HPQ",
+        "HRMY",
         27
       ],
       [
-        "INTU",
+        "HAS",
         28
       ],
       [
-        "WLY",
+        "HPQ",
         29
       ],
       [
-        "KBR",
+        "INTU",
         30
       ],
       [
-        "KFY",
+        "WLY",
         31
       ],
       [
-        "LDOS",
+        "KBR",
         32
       ],
       [
-        "LULU",
+        "KFY",
         33
       ],
       [
-        "OMC",
+        "LDOS",
         34
       ],
       [
-        "OTEX",
+        "LULU",
         35
       ],
       [
-        "MD",
+        "MMS",
         36
       ],
       [
-        "PNR",
+        "OMC",
         37
       ],
       [
-        "PBI",
+        "OTEX",
         38
       ],
       [
-        "SIRI",
+        "MD",
         39
       ],
       [
-        "LRN",
+        "PNR",
         40
       ],
       [
-        "SGHC",
+        "PBI",
         41
       ],
       [
-        "TPR",
+        "SIRI",
         42
       ],
       [
-        "TDC",
+        "LRN",
         43
       ],
       [
-        "CI",
+        "SGHC",
         44
       ],
       [
-        "TNET",
+        "TDC",
         45
       ],
       [
-        "VSNT",
+        "CI",
         46
       ],
       [
-        "VNT",
+        "TNET",
         47
       ],
       [
-        "WDOFF",
+        "VSNT",
         48
       ],
       [
-        "WH",
+        "VNT",
         49
       ],
       [
-        "ZD",
+        "WDOFF",
         50
       ]
     ],
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "screens_am": {
     "value": [
@@ -616,30 +616,26 @@
       ],
       [
         "PBR",
-        "5.30"
+        "5.20"
       ],
       [
-        "APA",
-        "5.50"
+        "CF",
+        "7.10"
       ],
       [
         "BP",
         "7.10"
       ],
       [
-        "CF",
+        "YPF",
         "7.30"
       ],
       [
-        "YPF",
-        "7.40"
+        "CTSH",
+        "7.50"
       ],
       [
         "DINO",
-        "7.70"
-      ],
-      [
-        "SHEL",
         "7.70"
       ],
       [
@@ -647,27 +643,27 @@
         "7.80"
       ],
       [
-        "CTSH",
-        "7.90"
+        "SHEL",
+        "8.00"
       ],
       [
         "SNY",
-        "8.30"
+        "8.20"
       ],
       [
         "FOXA",
-        "8.30"
-      ],
-      [
-        "GIB",
-        "8.50"
-      ],
-      [
-        "HPQ",
-        "8.70"
+        "8.20"
       ],
       [
         "SQM",
+        "8.30"
+      ],
+      [
+        "HPQ",
+        "8.40"
+      ],
+      [
+        "CMCSA",
         "8.80"
       ],
       [
@@ -675,84 +671,84 @@
         "8.90"
       ],
       [
-        "CMCSA",
-        "8.90"
+        "CHTR",
+        "9.10"
       ],
       [
-        "CHTR",
+        "ERIC",
+        "9.20"
+      ],
+      [
+        "FSLR",
         "9.20"
       ],
       [
         "MO",
-        "9.40"
-      ],
-      [
-        "ERIC",
-        "9.40"
-      ],
-      [
-        "PHM",
         "9.50"
       ],
       [
+        "PHM",
+        "9.60"
+      ],
+      [
+        "OMC",
+        "9.60"
+      ],
+      [
         "FMX",
-        "9.90"
+        "9.80"
       ],
       [
         "RYAAY",
         "9.90"
       ],
       [
-        "BMY",
-        "10.00"
-      ],
-      [
-        "FSLR",
+        "SBS",
         "10.10"
       ],
       [
-        "SBS",
-        "10.30"
-      ],
-      [
-        "LDOS",
-        "10.30"
+        "BMY",
+        "10.20"
       ],
       [
         "ZTS",
-        "10.40"
+        "10.20"
       ],
       [
         "SKHY",
-        "10.80"
+        "10.50"
       ],
       [
         "BBY",
-        "11.10"
+        "11.00"
       ],
       [
         "EIX",
-        "11.30"
-      ],
-      [
-        "CVS",
-        "11.70"
+        "11.20"
       ],
       [
         "CQP",
-        "11.70"
+        "11.50"
       ],
       [
         "VICI",
-        "11.90"
+        "11.80"
+      ],
+      [
+        "CVS",
+        "12.00"
+      ],
+      [
+        "KR",
+        "12.20"
       ],
       [
         "VZ",
         "12.20"
       ],
       [
-        "KR",
-        "12.20"
+        "UPS",
+        "12.30"
       ],
       [
         "BTI",
@@ -763,71 +759,75 @@
         "12.50"
       ],
       [
-        "UPS",
-        "12.60"
-      ],
-      [
         "LNG",
         "13.00"
+      ],
+      [
+        "GEHC",
+        "13.40"
       ],
       [
         "FIS",
         "13.70"
       ],
       [
+        "OKE",
+        "13.90"
+      ],
+      [
         "KVUE",
         "14.00"
       ],
       [
-        "EXEL",
-        "14.20"
-      ],
-      [
         "LOW",
-        "14.30"
-      ],
-      [
-        "LOGI",
-        "14.80"
-      ],
-      [
-        "FDX",
-        "14.80"
-      ],
-      [
-        "SSNC",
-        "15.00"
+        "14.10"
       ],
       [
         "OTIS",
-        "15.00"
+        "14.60"
+      ],
+      [
+        "FDX",
+        "14.60"
+      ],
+      [
+        "SSNC",
+        "14.60"
       ],
       [
         "UL",
         "15.50"
+      ],
+      [
+        "ULTA",
+        "15.90"
+      ],
+      [
+        "PHG",
+        "16.50"
       ]
     ],
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "news_ej": {
-    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nWednesday 9/23/2026 a.m.\nMarkets trade slightly lower with economic activity in focus \u2013\nU.S. equity markets are trading modestly lower Wednesday morning following the release of September S&P Global PMI data, which showed that economic activity remains healthy despite elevated oil prices. From a leadership perspective, most S&P 500 sectors are opening the day flat to lower, with energy the notable outperformer amid a modest rise in oil prices. Treasury yields are moving higher to start the day, with the 10-year yield back above 5% and the 2-year yield rising to 4.84%. Higher U.S. Treasury yields and resilient economic data are supporting a stronger U.S. dollar against a basket of developed-market currencies, extending the dollar\u2019s recent strength.\nGlobal economic activity remains firm in September \u2013\nThis morning brought an update on global economic trends with the preliminary September S&P Global Purchasing Managers\u2019 Index (PMI) readings. PMIs measure business activity, with readings above 50 indicating expansion and readings below 50 indicating contraction. Overnight, the eurozone composite PMI rose to 53.1 in September, its highest level since April 2023, supported primarily by improvement in the services sector. Activity also continued to expand in the United Kingdom. Although the U.K. composite PMI declined modestly, it remained above 50 at 51.7. In the U.S., activity remained firm as well, with the composite PMI rising to 58.4, the highest level in over five years. For all three regions, the downside of the September data was persistent price pressure, as input costs increased amid higher oil prices. Despite this headwind, economic activity has proven resilient in 2026, helping support a 12% gain in international developed large-cap stocks and a 14% gain in the S&P 500 through yesterday\u2019s close. We continue to see attractive opportunities in equity markets over the coming months, supported by resilient economic activity and strong profit growth.\nMidterm elections and implications for investors \u2013\nMidterm Election Day is just over one month away, providing an opportunity to review how markets have historically performed around midterm elections. For the full year, equity returns have historically been modest during midterm election years. Since 1970, the S&P 500 has generated an average total return of 3.6% during midterm election years, compared to an average annual return of 12.5% across all years from 1970\u20132025.* The two most recent midterm years were particularly challenging for stocks, with the index declining 18.1% in 2022 and 4.4% in 2018.* Stocks have bucked that historical pattern in 2026, however, with the S&P 500 up roughly 14% year to date including dividends. Looking ahead, the month immediately preceding midterm elections and the six months following Election Day have historically been favorable periods for the market. The S&P 500 has gained an average of 4.5% during the month leading up to Election Day, with positive returns in 78.6% of midterm election years.* Over the subsequent six months, the index has generated an average return of 15.5% and posted gains following all 14 midterm elections since 1970.* While there is no guarantee that history will repeat itself this election cycle, we believe these results help reinforce the importance of maintaining a disciplined investment strategy and resisting the temptation to play politics with your portfolio.\nBrock Weimer, CFA\n;\nInvestment Strategy\nSource for all data not cited: FactSet.\nSource for cited data: *FactSet, Edward Jones calculations, history.house.gov. S&P 500 total return index. Midterm election years span 1970 \u2013 2022.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
-    "fetched": "2026-09-23"
+    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nFriday 9/25/2026 p.m.\nStocks trade higher to close out the week\n\u2013 U.S. equity markets closed higher on Friday, supported by a stabilization in Treasury yields, lower oil prices, and another sign of resilient economic momentum. Headline durable goods orders were unchanged in August. However, core capital goods orders, which exclude defense spending and aircraft, rose a healthy 1.6% on the month, signaling solid underlying business investment trends, in our view. On the geopolitical front, Iran has reportedly proposed a seven-day plan to reopen the Strait of Hormuz and restart negotiations if the U.S. accepts certain conditions, with the prospect of renewed diplomatic negotiations supporting a decline in oil prices. Lower oil prices also provided some relief to Treasury markets on Friday after what was a volatile week for bonds that saw the 10-year Treasury yield reach its highest level since 2007. The 10-year yield closed slightly lower on Friday at 5.16% while the 2-year yield fell to 4.85%.\nHistorical performance following a sharp rise in interest rates \u2013\nDespite a reprieve on Friday, bond yields have moved sharply higher in recent weeks. The 10-year Treasury yield has risen more than 0.4 percentage points in September, reaching its highest level since 2007, while the 2-year yield has increased by more than 0.5 percentage points. Since 1990, there have been only 16 months (including September) in which the 2-year Treasury yield rose by 0.5 percentage points or more.* Historically, equity returns following these episodes have been mixed. The S&P 500 has fallen by 2% on average over the subsequent three months with a median return of -0.5%.* Performance over longer horizons was also muted, with average six- and 12-month returns of -5.8% and 0.5%, respectively.* However, historically, the economic backdrop appears to be an important differentiator. When excluding the two periods in which nonfarm payrolls declined over the preceding three months (March 2002 & April 2008), forward returns were considerably stronger.* When payroll growth was positive, the S&P 500 generated an average three-month gain of 0.4%, while average returns over the subsequent six and 12 months improved to 1% and 9.5%, respectively.* Current conditions more closely resemble this more favorable subset, with nonfarm payrolls increasing by 214,000 over the past three months. Recent data also suggest that higher interest rates have not materially disrupted economic activity or corporate profit growth, in our view. Therefore, while continued bond-market volatility may contribute to periods of volatility in stocks, we believe the longer-term backdrop for stocks remains supportive.\nBusiness investment remained resilient in August \u2013\nFriday's durable goods report provided another indication of healthy economic momentum in the U.S. Headline orders were unchanged in August, but core capital goods orders, which exclude the more volatile aircraft and defense categories and serve as a useful leading indicator of business investment, rose a solid 1.6% on the month and 14.9% from a year ago. Investment related to the buildout of artificial intelligence infrastructure has been a notable source of strength, with orders for computers and related products rising more than 17% from August 2025. Despite elevated oil prices and higher borrowing costs, economic activity and corporate profit growth have remained resilient. We believe these factors should continue to provide important support for equity markets through year-end.\nBrock Weimer, CFA\n;\nInvestment Strategy\nSource for all data not cited: FactSet.\nSource for all data cited: *FactSet, Edward Jones S&P 500 price index. Performance excludes qualifying months that occurred within the same calendar year of another qualifying month to avoid performance overlap. Qualifying months calculated as having a 0.5 percentage point rise or more in the 2-year Treasury yield.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
+    "fetched": "2026-09-28"
   },
   "news_cnbc": {
     "value": "5 things to know before the market opens Thursday\nVIEW IN BROWSER\n|\nCNBC NEWSLETTERS\nTHU, SEP 03, 2026\nDOW\nFUTURES\n+0.42%\nS&P 500 FUTURES\n+0.19%\nNASDAQ 100 FUTURES\n+0.02%\nData as of 8:30 a.m. ET\nThink a friend or colleague should be getting this newsletter? Share\nthis link\nwith them to sign up.\nAlex Harring\nCNBC Reporter & Morning Squawk Writer\nHappy Thursday. Breaking news this morning:\u00a0Nvidia\u00a0has agreed to buy open-source artificial intelligence platform Hugging Face\nfor nearly $13 billion.\nStock futures\nare mixed this morning after a\nwinning day\non Wall Street.\nHere are five key things investors need to know to start the trading day:\n1. Summit up\nThe G20 wrapped up its two-day Innovation Ministerial yesterday, where technology leaders and government representatives talked artificial intelligence, data centers and tariffs.\nHere are some of the biggest headlines out of the gathering:\nNvidia CEO Jensen Huang said that AI will \u201cdemocratize intelligence\u201d for G20 countries and called the technology \u201cthe great equalizer.\u201d\nOpenAI CEO Sam Altman, meanwhile, said using AI is a \u201cnon-negotiable\u201d for countries, comparing the adoption of AI to the adoption of electricity.\nPalantir\u00a0CEO Alex Karp acknowledged that there are \u201chuge dangers\u201d to the technology but pushed back on what he called the \u201cdoom message\u201d around AI. He appeared to allude to Anthropic and its CEO, who have warned about the technology\u2019s risks.\nOn the data center front, Anthropic co-founder Tom Brown said he \u201creally loved\u201d President Donald Trump\u2019s Monday Truth Social post, in which the president said communities who opposed data centers \u201cwant to end up being backwards and poor.\u201d\nCommerce Secretary Howard Lutnick said that data centers will \u201cbring prosperity\u201d and are \u201cgetting a bad rap.\u201d He also downplayed the facilities\u2019 water consumption.\nCatch up on all the biggest moments here.\n2. Bond, John Bond\nAfter hitting its\nhighest level since 2023\n, the\u00a010-year U.S. Treasury\u00a0yield pulled back in Wednesday\u2019s session, providing relief for other corners of the market.\nNew York Federal Reserve President John Williams\u00a0told CNBC yesterday\u00a0that the recent yield jumps should be seen as\na sign of a strong economy\nrather than as market dysfunction. Williams also said he would have to \u201cwait and see\u201d before deciding whether an interest rate hike would be necessary to calm inflation.\nThe three major averages snapped three-day losing streaks yesterday.\nFollow live market updates here.\n3. Snow forecast\nSnowflake\u00a0soared 24%",
-    "fetched": "2026-09-23"
+    "fetched": "2026-09-28"
   },
   "news_yahoo": {
-    "value": "Plus: Automakers are very worried about Xi's US visit and crypto winter is over.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nWednesday, September 23 \u00a0 |\nView in your browser\nGood morning!\nMr. Xi arrives in Washington this afternoon, and markets are carefully watching US-China relations after preliminary talks were reportedly \"successful,\" according to the Treasury secretary.\nTuesday's oil price declines bounced a little after President Trump failed to provide details on progress with Iran, but most of Monday's optimism remained as investors stay bullish.\nWhile the S&P 500 (\n^GSPC\n) closed flat and the Dow (\n^DJI\n) fell 0.4%, the Nasdaq (\n^IXIC\n) posted another all-time high after gaining 0.5%.\nIn today's issue\nMeta is barnstorming to the top of the AI charts ahead of its big conference\nMuse is a shot across the labor market's bow\nAutomakers are very worried about Xi's US visit\nAnalysts think crypto winter is over\nWhat we're watching Wednesday:\nBesides Xi and Trump, we'll be watching the start of Meta's Connect conference and more news from Qualcomm's conference in Hawaii (must be nice!).\nIt's a light day on the calendar, but we'll be watching for any economic surprises in S&P Global's economic activity data for September.\nHeadlines\nRichmond Fed's Barkin says supply shocks aren't proving short-lived,\nleaving door open to further rate hikes.\n'Let's not send out the diesel':\nTrump floats ban on US diesel exports, which analysts say 'will backfire.'\nNvidia's stock is flashing a warning sign\nas valuation falls.\nQualcomm debuts latest smartphone chip with a focus on agentic AI.\nAs if you needed yet another sign of agentic AI's surge.\nAnthropic launches Opus 5.5, its first model since CEO Amodei called for AI slowdown.\nIt's about as powerful as 5.1, but it's much cheaper.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nMeta's Muse is barnstorming to the top of the AI charts ahead of its big conference\nStrong demand for Meta Platforms' (NASDAQ: META) Muse AI assistant has renewed investor enthusiasm for artificial intelligence ahead of the company's Connect conference. (Cheng Xin/Getty Images)\nHeading into Meta Connect, Mark Zuckerberg and company\nhave a massive hit on their hands\n.\nMeta\u2019s new artificial intelligence agent, Muse, has quickly risen to the top of the app charts, garnering glowing reviews from users and effusive praise from tech and business heavyweights.\n(Meanwhile, SpaceXAI's Grok has \"\nmodest demand\n.\")\nChatGPT changed the narrative back in 2022. But sometimes not being first is the better place to be. And improbably, Meta's AI efforts have public sentiment on their side.\nMuse isn\u2019t a chatbot. And it's not powered by the most sophisticated LLM. Its early success suggests that consumers, when it comes to new AI tools,\nwant a particular kind of help\nfrom a\nspecial set of skills\n.\nMuse allows people to create personalized AI agents, a multitasking go-getter that does things for you on the internet.\nInitial impressions have reflected well on Meta, which had been rocked by personnel changes, corporate reshufflings, and criticism of bottomless AI spending.\nBut Muse\u2019s out-the-gate momentum has fueled a double-digit stock price surge, and underscored how Meta\u2019s massive social platforms and advertising prowess could be the most viable path to AI profitability.\nIn Facebook, Instagram, and WhatsApp, Meta has a massive built-in marketing operation, given that it owns the means of communication/marketing and all the data to be gleaned from our soc",
-    "fetched": "2026-09-23"
+    "value": "The big things you need to know for the week ahead.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nMonday, September 28 \u00a0 |\nView in your browser\nGood morning!\nThe first full week of fall is upon us, and I (Ethan), like many Americans, am facing pressure to turn the heat on \u2014 and pressure from sticker shock from oil and gas.\nMarkets have a lot to watch this week, but signs of progress toward some sort of Iran agreement remain near the top.\nIn today's issue\nThe earnings and economic calendar is back in the driver's seat\nMeta wants your data \u2014 and your trust\nThe September jobs report has a high bar to clear\nShort-term certainy with China, but nothing long-term \u2014 yet\nWhat we're watching Monday:\nBesides Iran and yields, the calendar is light. But as someone (Ethan again) living in a snowy place, I have my eye on Vail's (\nMTN\n) earnings, as well as the weather.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman Sachs just gave AI stock fans a cold, hard reality check.\nThe dream of breaking even \u2014 or making real profits \u2014 is years away.\nPopping up out of nowhere: How Wall Street is digesting\nMeta's late entrance to the AI agent world.\nThe full list of goods that the US and China have\nagreed on for tariff cuts.\nWhat is the bond yield rise\ntelling us about the economy?\nNew financing laws are about to make condo transactions\nmore complicated\n.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe earnings and economic calendar is back in the driver's seat\nWall Street is wondering if Nike can still \"do it.\" (Photo by Zamek/VIEWpress)\nLast week saw two big headlines dominate the conversation. First, the explosion of Meta's Muse and its wearable AI \"Charm,\" then Chinese president Xi Jinping's state visit to Washington \u2014 both closely watched by investors for their implications on both the AI trade and the state of play between the world's two largest economies.\nNevertheless, they didn\u2019t do much to markets for the week, with stocks holding mostly steady despite all the headlines and market forces swirling around.\nThis week, however, will pivot back to the earnings calendar, with Wednesday having the biggest event.\nMemory giant Micron (\nMU\n) reports fiscal fourth quarter earnings. After the waffling of the AI infrastructure trade over the past two weeks, investors will be looking for signs of continued demand in the memory trade, which has emerged as one of the most significant bottlenecks for the AI build-out.\nElsewhere in the calendar, Nike (\nNKE\n) reports earnings on Thursday, where embattled CEO Elliott Hill will look to assuage concerns from investors that Nike has lost its spark. One thing that'll be hot on everyone's minds: French soccer star Kylian Mbapp\u00e9's decision to leave Nike and join the team at On (\nON\n), a tough loss for the American sportswear giant.\nOn the economic data front, it's jobs week! Last month's report of 162,000 jobs added in August \u2014 roughly three times expectations \u2014 has set a high bar for the September numbers, where economists are looking for 100,000 jobs added in Friday's report. Also on the calendar is PCE inflation data on Wednesday. As the Fed's preferred metric, the PCE data is set to be closely watched for a read on whether the FOMC will indeed hike rates again in 2026.\nMeta wants your data \u2014 and your trust\nMark Zuckerberg, CEO of the Facebook parent company Meta, takes the stage at the Meta Connect developer conference. Behind him is a personalized mascot of the AI assistant Muse.",
+    "fetched": "2026-09-28"
   },
   "news_yahoo_calendar": {
-    "value": "Earnings and economic calendar\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 18 (-4.1% previously); S&P Global US manufacturing PMI, September preliminary reading (53.6 expected, 53.9 previously); S&P Global US services PMI, September preliminary reading (56 expected, 56.5 previously); S&P Global US composite PMI, September preliminary reading (56 previously)\nEarnings calendar:\nCintas Corporation (\nCTAS\n), Paychex (\nPAYX\n), General Mills (\nGIS\n), H.B. Fuller Company (\nFUL\n), Cracker Barrel Old Country Store (\nCBRL\n)\nThursday\nEconomic data:\nCurrent account balance, second quarter (-$226.8 billion previously); Initial jobless claims, week ended Sept. 19 (196,000 previously); Continuing claims, week ended Sept. 12 (1.73 million previously); New home sales, month-on-month, August (+1.3% expected, -10.5% previously); Building permits, month-on-month, August final reading (-2.7% previously); Kansas City Fed manufacturing activity, September (10 previously)\nEarnings calendar:\nCostco Wholesale Corporation (\nCOST\n), Darden Restaurants (\nDRI\n), Uranium Energy Corp. (\nUEC\n), BlackBerry (\nBB\n), Scholastic Corporation (\nSCHL\n)\nFriday\nEconomic data:\nDurable goods orders, August preliminary reading (-0.3% expected, +1.1% previously); Kansas City Fed services activity, September (-3 previously); U. Mich. sentiment, September final reading (47.8 expected, 47.8 previously); U. Mich. current conditions, September final reading (50.9 previously); U. Mich. expectations, September final reading (45.8 previously); U. Mich. 1-year inflation, September final reading (+4.6% previously); U. Mich. 5-10 year inflation, September final reading (+3.4% previously)\nEarnings calendar:\nTamboran Resources Corporation (\nTBN\n)",
-    "fetched": "2026-09-23"
+    "value": "earnings and economic calendar is back in the driver's seat\nMeta wants your data \u2014 and your trust\nThe September jobs report has a high bar to clear\nShort-term certainy with China, but nothing long-term \u2014 yet\nWhat we're watching Monday:\nBesides Iran and yields, the calendar is light. But as someone (Ethan again) living in a snowy place, I have my eye on Vail's (\nMTN\n) earnings, as well as the weather.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman Sachs just gave AI stock fans a cold, hard reality check.\nThe dream of breaking even \u2014 or making real profits \u2014 is years away.\nPopping up out of nowhere: How Wall Street is digesting\nMeta's late entrance to the AI agent world.\nThe full list of goods that the US and China have\nagreed on for tariff cuts.\nWhat is the bond yield rise\ntelling us about the economy?\nNew financing laws are about to make condo transactions\nmore complicated\n.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe earnings and economic calendar is back in the driver's seat\nWall Street is wondering if Nike can still \"do it.\" (Photo by Zamek/VIEWpress)\nLast week saw two big headlines dominate the conversation. First, the explosion of Meta's Muse and its wearable AI \"Charm,\" then Chinese president Xi Jinping's state visit to Washington \u2014 both closely watched by investors for their implications on both the AI trade and the state of play between the world's two largest economies.\nNevertheless, they didn\u2019t do much to markets for the week, with stocks holding mostly steady despite all the headlines and market forces swirling around.\nThis week, however, will pivot back to the earnings calendar, with Wednesday having the biggest event.\nMemory giant Micron (\nMU\n) reports fiscal fourth quarter earnings. After the waffling of the AI infrastructure trade over the past two weeks, investors will be looking for signs of continued demand in the memory trade, which has emerged as one of the most significant bottlenecks for the AI build-out.\nElsewhere in the calendar, Nike (\nNKE\n) reports earnings on Thursday, where embattled CEO Elliott Hill will look to assuage concerns from investors that Nike has lost its spark. One thing that'll be hot on everyone's minds: French soccer star Kylian Mbapp\u00e9's decision to leave Nike and join the team at On (\nON\n), a tough loss for the American sportswear giant.\nOn the economic data front, it's jobs week! Last month's report of 162,000 jobs added in August \u2014 roughly three times expectations \u2014 has set a high bar for the September numbers, where economists are looking for 100,000 jobs added in Friday's report. Also on the calendar is PCE inflation data on Wednesday. As the Fed's preferred metric, the PCE data is set to be closely watched for a read on whether the FOMC will indeed hike rates again in 2026.\nMeta wants your data \u2014 and your trust\nMark Zuckerberg, CEO of the Facebook parent company Meta, takes the stage at the Meta Connect ",
+    "fetched": "2026-09-28"
   },
   "weekly_calendar": {
-    "week_of": "2026-09-21",
-    "text": "Earnings and economic calendar\nMonday\nEconomic data:\nChicago Fed national activity index, August (-0.06 expected, -0.08 previously)\nEarnings calendar:\nNo notable earnings.\nTuesday\nEconomic data:\nADP weekly employment change, week ended Sept. 5 (+16,250 previously); Philadelphia Fed non-manufacturing index, September (-10.6 previously); Richmond Fed manufacturing index, September (4 previously); Richmond Fed business conditions, September (-12 previously)\nEarnings calendar:\nTHOR Industries (\nTHO\n), KB Home (\nKBH\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 18 (-4.1% previously); S&P Global US manufacturing PMI, September preliminary reading (53.6 expected, 53.9 previously); S&P Global US services PMI, September preliminary reading (56 expected, 56.5 previously); S&P Global US composite PMI, September preliminary reading (56 previously)\nEarnings calendar:\nCintas Corporation (\nCTAS\n), Paychex (\nPAYX\n), General Mills (\nGIS\n), H.B. Fuller Company (\nFUL\n), Cracker Barrel Old Country Store (\nCBRL\n)\nThursday\nEconomic data:\nCurrent account balance, second quarter (-$226.8 billion previously); Initial jobless claims, week ended Sept. 19 (196,000 previously); Continuing claims, week ended Sept. 12 (1.73 million previously); New home sales, month-on-month, August (+1.3% expected, -10.5% previously); Building permits, month-on-month, August final reading (-2.7% previously); Kansas City Fed manufacturing activity, September (10 previously)\nEarnings calendar:\nCostco Wholesale Corporation (\nCOST\n), Darden Restaurants (\nDRI\n), Uranium Energy Corp. (\nUEC\n), BlackBerry (\nBB\n), Scholastic Corporation (\nSCHL\n)\nFriday\nEconomic data:\nDurable goods orders, August preliminary reading (-0.3% expected, +1.1% previously); Kansas City Fed services activity, September (-3 previously); U. Mich. sentiment, September final reading (47.8 expected, 47.8 previously); U. Mich. current conditions, September final reading (50.9 previously); U. Mich. expectations, September final reading (45.8 previously); U. Mich. 1-year inflation, September final reading (+4.6% previously); U. Mich. 5-10 year inflation, September final reading (+3.4% previously)\nEarnings calendar:\nTamboran Resources Corporation (\nTBN\n)"
+    "week_of": "2026-09-28",
+    "text": "earnings and economic calendar is back in the driver's seat\nMeta wants your data \u2014 and your trust\nThe September jobs report has a high bar to clear\nShort-term certainy with China, but nothing long-term \u2014 yet\nWhat we're watching Monday:\nBesides Iran and yields, the calendar is light. But as someone (Ethan again) living in a snowy place, I have my eye on Vail's (\nMTN\n) earnings, as well as the weather.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman Sachs just gave AI stock fans a cold, hard reality check.\nThe dream of breaking even \u2014 or making real profits \u2014 is years away.\nPopping up out of nowhere: How Wall Street is digesting\nMeta's late entrance to the AI agent world.\nThe full list of goods that the US and China have\nagreed on for tariff cuts.\nWhat is the bond yield rise\ntelling us about the economy?\nNew financing laws are about to make condo transactions\nmore complicated\n.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe earnings and economic calendar is back in the driver's seat\nWall Street is wondering if Nike can still \"do it.\" (Photo by Zamek/VIEWpress)\nLast week saw two big headlines dominate the conversation. First, the explosion of Meta's Muse and its wearable AI \"Charm,\" then Chinese president Xi Jinping's state visit to Washington \u2014 both closely watched by investors for their implications on both the AI trade and the state of play between the world's two largest economies.\nNevertheless, they didn\u2019t do much to markets for the week, with stocks holding mostly steady despite all the headlines and market forces swirling around.\nThis week, however, will pivot back to the earnings calendar, with Wednesday having the biggest event.\nMemory giant Micron (\nMU\n) reports fiscal fourth quarter earnings. After the waffling of the AI infrastructure trade over the past two weeks, investors will be looking for signs of continued demand in the memory trade, which has emerged as one of the most significant bottlenecks for the AI build-out.\nElsewhere in the calendar, Nike (\nNKE\n) reports earnings on Thursday, where embattled CEO Elliott Hill will look to assuage concerns from investors that Nike has lost its spark. One thing that'll be hot on everyone's minds: French soccer star Kylian Mbapp\u00e9's decision to leave Nike and join the team at On (\nON\n), a tough loss for the American sportswear giant.\nOn the economic data front, it's jobs week! Last month's report of 162,000 jobs added in August \u2014 roughly three times expectations \u2014 has set a high bar for the September numbers, where economists are looking for 100,000 jobs added in Friday's report. Also on the calendar is PCE inflation data on Wednesday. As the Fed's preferred metric, the PCE data is set to be closely watched for a read on whether the FOMC will indeed hike rates again in 2026.\nMeta wants your data \u2014 and your trust\nMark Zuckerberg, CEO of the Facebook parent company Meta, takes the stage at the Meta Connect "
   },
   "mhs_history": [
     {
@@ -883,6 +883,21 @@
     {
       "date": "2026-09-23",
       "score": 86,
+      "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-24",
+      "score": 86,
+      "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-25",
+      "score": 94,
+      "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-28",
+      "score": 94,
       "label": "EXTREME OVERHEATED"
     }
   ]
