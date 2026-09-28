@@ -1,4 +1,4 @@
-# Mean Reversion Macro Insights -- Session Log 12
+# Mean Reversion Macro Insights -- Session Log 13
 
 Paste this file at the start of any new session so Claude has full context.
 No need to summarize the previous chat.
@@ -301,7 +301,7 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 - Monday: Friday's data correctly shows as stale until pipeline runs at 7:50am MT
 - Weekends: no badges shown (expected -- no weekend runs)
 - Determined by comparing cache["fred_{label}"]["fetched"] date to today UTC
-- ⚠️ in Insights column = fred.py interpretive sig text prefix (separate from amber badge)
+- Warning in Insights column = fred.py interpretive sig text prefix (separate from amber badge)
   Stripped with re.sub() in td rendering. Subtitle clarifies the difference.
 
 **McClellan Oscillator:** Fully removed Sep 2026. Paid teaser only.
@@ -324,7 +324,7 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 - VIX moved OUT of Market Performance card INTO Market Sentiment table
 - Sentiment table now has 3 rows: VIX | Fear & Greed | Consumer Sentiment
 - VIX note: "CBOE Volatility · fear gauge · <15=calm · 20-25=cautious · >30=panic"
-- Pulse line (⚡ S&P +X% · Russell +X% · VIX X.X ...) remains at bottom of Market Performance
+- Pulse line (S&P +X% · Russell +X% · VIX X.X ...) remains at bottom of Market Performance
 
 **Header:**
 - URL removed (redundant with address bar)
@@ -391,6 +391,15 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - For now: raw URL fetch for reading works today (Option A above)
 - Writing still requires Claude Code CLI or manual paste-commit
 
+**Claude Skills (claude.ai) vs Cowork plugins:**
+- Skills in claude.ai: add them from the tools menu in this interface. No Cowork needed.
+  They trigger automatically when you describe a task that matches their description.
+  Good for: repeatable workflows, house style, specialized domain tasks.
+- Cowork plugins: bundle skills + connectors + commands together for agentic desktop automation.
+  More powerful but require Cowork mode to be active.
+- For the learning session demo: triggering a skill naturally by describing a task
+  (without naming the skill) is a good talking point about how the system works.
+
 ---
 
 ## GITHUB ACTIONS NOTES
@@ -404,6 +413,47 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Workflow dispatch (manual trigger): repo -> Actions -> MarketPulse Daily Briefing -> Run workflow
 - Manual trigger re-runs the FULL pipeline every time -- all steps, all modules. No partial runs.
   For fast HTML iteration, test locally with `python main.py` in VS Code terminal before pushing.
+
+---
+
+## FUTURE INDICATORS TO ADD (planned, not yet coded)
+
+These three indicators were discussed in Session 13 and agreed as the right additions
+for the mean reversion / cycle direction gap in the current macro coverage.
+None of these touch MHS (framework locked). They add new rows to the Macro Indicators table.
+Add all three to fred.py in one session when ready.
+
+**1. Initial Jobless Claims (ICSA) -- HIGHEST PRIORITY**
+- FRED series: ICSA (weekly, seasonally adjusted, updates every Thursday)
+- What it tells you: fastest real-time read on labor market health
+- Why it matters for mean reversion: a stock screening cheap on depressed earnings
+  in a cracking labor market may deteriorate further before recovery
+- Signal: 200-250K = healthy, >300K = stress emerging, >400K = recession territory
+- Display: raw weekly value + 4-week moving average + trend direction (up/down)
+- Key to show: not just the number but whether it is trending up or down
+
+**2. ISM Manufacturing PMI -- SECOND PRIORITY**
+- FRED series: confirm the correct series ID before coding (NAPM may be stale).
+  Check FRED for "ISM Manufacturing" or use S&P Global US Manufacturing PMI as proxy.
+  Alternative: scrape ISM press release directly (released first business day of each month).
+- What it tells you: leading indicator of manufacturing sector health, monthly
+- Why it matters: Magic Formula and Acquirer's Multiple screens surface beaten-down
+  cyclicals and industrials. ISM tells you if those sectors are still contracting
+  (value trap risk) or bottoming (mean reversion opportunity).
+- Signal: above 50 = expanding, below 50 = contracting, below 45 = broad stress
+
+**3. GDP Growth Rate YoY (GDPC1) -- THIRD PRIORITY**
+- FRED series: GDPC1 (real GDP, quarterly, chained 2017 dollars)
+- Compute: year-over-year percent change (compare to same quarter prior year)
+- What it tells you: regime anchor -- is the economy expanding or contracting
+- Why it matters: sets context for how long a value trap may persist
+- Signal: above 2% = at/above trend expansion, below 1% = stagnation, negative = recession
+- Note: quarterly and lagging -- useful for regime context, not timing
+- Display: "US Economy Growing X.X% YoY (QX YYYY)" with trend arrow
+
+**Also worth considering later:**
+- Atlanta Fed GDPNow (real-time GDP estimate, updates frequently, not on FRED directly)
+- Conference Board LEI (composite of 10 leading indicators, not freely available)
 
 ---
 
@@ -424,14 +474,24 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 4. **ubuntu-24.04 deadline** -- Oct 19 2026, GitHub migrates ubuntu-latest to Ubuntu 26.
    If any pip packages break after that date, check Ubuntu 26 compatibility.
 
-5. **Future: SEC EDGAR 13F API as Dataroma backup.**
+5. **Future: add ICSA + ISM PMI + GDP growth rate to fred.py** (see Future Indicators above).
+   Add all three in one session. Confirm ISM FRED series ID before coding.
+
+6. **Future: SEC EDGAR 13F API as Dataroma backup.**
    Dataroma working fine. EDGAR full-text search provides same 13F data if it goes down.
 
-6. **Future: Chrome extension #market-context div compression (~60% reduction possible).**
+7. **Future: Chrome extension #market-context div compression (~60% reduction possible).**
    Low priority. Current div works fine.
 
-7. **Future: Claude Code CLI setup** for direct repo read/write without paste workflow.
+8. **Future: Claude Code CLI setup** for direct repo read/write without paste workflow.
    Install in VS Code terminal: `npm install -g @anthropic-ai/claude-code` then `claude`
+
+9. **Future: Chrome extension for stock-specific mean reversion analysis.**
+   Extension reads #market-context div (macro) + stock-specific page data (valuation,
+   52-week range, revenue trend, balance sheet, insider buying).
+   Combined context fed to Claude for buy/hold/avoid analysis.
+   Key stock metrics needed: trailing P/E, P/B, EV/EBIT, EV/FCF, debt/equity,
+   interest coverage, return on capital, 52-week range position, insider activity.
 
 ---
 
@@ -623,7 +683,7 @@ Not needed for this project. Relevant for new projects started from scratch in C
 **VIX moved to Sentiment card:**
 - Removed VIX block from gauge_section (Market Performance card)
 - Added VIX as first row in Sentiment table: VIX | Fear & Greed | Consumer Sentiment
-- Pulse line (⚡) kept at bottom of Market Performance card for index context
+- Pulse line kept at bottom of Market Performance card for index context
 
 **Confirmed working:** Sep 23 2026 run
 MHS: 99/100 EXTREME OVERHEATED
@@ -641,40 +701,86 @@ AI synthesis: Haiku fallback, $0.0074 (3,371 in + 804 out tokens)
 - If GitHub hasn't propagated the 7:44am routine commit before checkout runs,
   pipeline sees yesterday's file and flags stale
 - Fix: added `git pull origin main` step in daily.yml after actions/checkout@v5
-- This is the only change to daily.yml
 
 **Issue 2: Routine pushing to side branch instead of main**
 - Claude Code Remote initializes every session on a new branch by default
-- "Push to main branch" was ambiguous -- Claude committed locally then failed to push main
-- Root cause of 4+ minute runtime: stash/rebase/conflict retry loop (4 failures observed)
 - Fix: Step 3 of routine instructions replaced with explicit git command sequence
-  (see clauderoutinedata.json schema section above for full sequence)
 - After fix: routine completes in under 90 seconds, 2 commands, zero failures
 
-**Other routine improvements in Session 12:**
+**Other routine improvements:**
 - Model changed from Opus 5.5 to Sonnet 4.6 (faster, lower cost, same output quality)
-- Treasury yield cross-check added: if yield differs >0.5% from prior day, verify second source
-- source_time_et now records actual ET collection time (was using template placeholder)
-- Hard stop after push: do not respond to hook prompts, no further commands or branches
-- ETF PE source field now records whichever source was actually used
+- Treasury yield cross-check added
+- source_time_et now records actual ET collection time
+- Hard stop after push: do not respond to hook prompts
 
 **AFC warning (confirmed non-issue):**
-- Google SDK emits advisory warning for Models.generate_content -- not an error
-- Appears as "Direct use of AFC in Models.generate_content is not recommended" in run log
-- Gemini still falls through correctly to Haiku when 503 occurs. No code change needed.
+- Advisory only. Gemini still falls through correctly to Haiku. No code change needed.
 
 **Session start improvement:**
-- Old method: paste SESSION_LOG.md as file upload every session
-- New method: "Fetch the session log from
-  https://raw.githubusercontent.com/anil2040/market-pulse-ai/main/SESSION_LOG.md"
-- Claude fetches live file from GitHub raw URL -- no file management needed
-- Requires SESSION_LOG.md to be committed to main at end of each session
+- New method: fetch SESSION_LOG.md from raw GitHub URL at start of each session
 
-**Verification checklist for Sep 24 2026 scheduled run:**
-1. clauderoutinedata.json date = 2026-09-24 on main, no side branch
-2. Pipeline run log: no stale routine warning
-3. Dashboard: Market Performance shows "via Claude Routine" label
-4. Routine runtime: under 90 seconds, no red failure lines
+---
+
+### Session 13 -- Architecture visualization, PPTX slide, macro gap analysis
+**Date:** Sep 24 2026
+**Files changed:** SESSION_LOG.md only (no code changes this session)
+
+**Sep 24 2026 run verification (confirmed):**
+- Session 12 fixes working. Sep 24 scheduled run passed all 4 checklist items.
+- Routine date = 2026-09-24 on main, no side branch
+- No stale routine warning in pipeline log
+- Dashboard shows "via Claude Routine" label on Market Performance
+- Routine runtime under 90 seconds
+
+**Architecture visualization (for learning session Sep 25 2026):**
+- Built two visualizations of the full pipeline:
+  (1) Long-form interactive SVG flowchart with all details, sections, and stat strip
+  (2) Compact single-row 7-box PPTX slide (16:9, landscape) for work presentation
+- PPTX exported as market_pulse_ai.pptx (Calibri font, LAYOUT_WIDE 13.3"x7.5")
+- 7 pipeline boxes (Chrome extension omitted as "next step"):
+  Claude Routine | GitHub Actions | Data fetch | Value screens |
+  AI synthesis | Build & publish | Live dashboard
+- Stat strip: ~3,000 lines | 8 modules | 3 AI models | $0-$3/month | 9 API secrets | Agency $25-50K
+- Agency cost estimate confirmed at $25-50K (design + build). Monthly retainer $2-5K.
+  Previous session estimate of $100K+ was for a more enterprise-grade scope with mobile app,
+  enterprise auth, and dedicated support. $25-50K is the right bracket for this project scope.
+- Copilot prompt written for generating company-branded version of the slide
+- Live demo sequence for the learning session:
+  1. Show the PPTX slide
+  2. Open anil2040.github.io/market-pulse-ai ("this ran this morning at 7:58 AM")
+  3. Show page source / #market-context hidden div
+  4. Trigger Chrome extension on a stock page to show macro + stock combined analysis
+
+**Macro coverage gap analysis (no code changes, planned for future session):**
+- Current 15 indicators cover: valuation (CAPE, ERP, ETF PE), sentiment (VIX, Fear & Greed),
+  credit (HY spread), monetary (Fed posture, yield curve), inflation (Core PCE), composite (MHS)
+- Gap identified: NO cycle direction indicator -- nothing that says where we are
+  in the economic cycle or whether it is turning
+- Three additions agreed (see Future Indicators section above):
+  Priority 1: ICSA (initial jobless claims, weekly, FRED, fastest leading signal)
+  Priority 2: ISM Manufacturing PMI (monthly, leading, relevant to screened stock types)
+  Priority 3: GDPC1 GDP growth rate YoY (quarterly, regime anchor)
+- PPI explicitly skipped: redundant with Core PCE for this use case
+- None of these touch MHS (framework locked V1.0)
+
+**div explained (for future reference):**
+- "div" = HTML division element, generic container
+- #market-context is a hidden div at bottom of index.html
+- Contains machine-readable summary of all 15 macro indicators
+- Chrome extension reads it and passes to Claude alongside stock-specific data
+- Planned stock metrics for extension: trailing P/E, P/B, EV/EBIT, EV/FCF,
+  52-week range position, revenue/earnings trend, debt/equity, interest coverage,
+  return on capital, insider buying activity
+
+**Claude Skills (discussed for learning session):**
+- Skills in claude.ai: add from tools menu, no Cowork required
+- Trigger automatically when task description matches skill description
+- Cowork plugins: bundle skills + connectors + commands for agentic desktop automation
+- Good demo moment: trigger a skill naturally without naming it
+
+**Context window note:**
+- Session 13 ended near context window limit
+- Start Session 14 fresh using Option A (fetch from raw GitHub URL)
 
 ---
 
@@ -727,3 +833,4 @@ overhead not worth it). Ready to implement if a daily JS-rendered source is need
 - No repeated news stories across days (e.g. same Nvidia headline daily)
 - No em dashes, no en dashes in Claude responses
 - Windows 11 Home -- never give Mac instructions or shortcuts
+- US stocks primary focus, mean reversion style, NOT interested in FOMO or growth stocks
