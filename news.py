@@ -164,6 +164,14 @@ def _extract_calendar(body_text):
       - "The week ahead"                (narrative opener)
       - "Week ahead"                    (shorter form)
       - Bare weekday names at line start (last resort: Mon/Tue etc.)
+
+    IMPORTANT -- use LAST match, not first:
+      Yahoo sometimes uses the calendar header phrase as an article title earlier
+      in the email (e.g. "The earnings and economic calendar is back in the
+      driver's seat"). re.search() would latch onto that early occurrence and
+      start extracting article body text, missing the actual Mon-Fri data
+      which is always near the END of the email.
+      Using re.finditer() + [-1] ensures we always anchor to the actual section.
     """
     start_patterns = [
         r"Earnings and economic calendar",
@@ -188,8 +196,11 @@ def _extract_calendar(body_text):
     start_idx = None
     matched_pattern = None
     for pattern in start_patterns:
-        m = re.search(pattern, body_text, re.IGNORECASE)
-        if m:
+        # Use the LAST match -- the actual calendar section is always at the END
+        # of the email. Earlier matches are article titles, not data.
+        matches = list(re.finditer(pattern, body_text, re.IGNORECASE))
+        if matches:
+            m = matches[-1]
             start_idx = m.start()
             matched_pattern = pattern
             break
