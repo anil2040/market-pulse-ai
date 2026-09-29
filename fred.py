@@ -103,18 +103,16 @@ FRED_SERIES = [
      "no_pct": True,
      "insight": "Cyclically Adj PE · 10yr smoothed · hist avg 17x · ~41 = 2nd highest ever"},
     # ---- LEADING INDICATORS (added Sep 2026) ----
-    # ICSA: weekly initial jobless claims -- fastest real-time labor leading signal
-    {"label": "Jobless Claims (ICSA)", "id": "ICSA",         "is_index": False, "group": "LEADING",
+    # ICSA: Initial Jobless Claims (weekly) -- placed in LABOR alongside Unemployment.
+    # ICSA leads the monthly unemployment rate by 6-8 weeks: layoffs show up in claims
+    # before BLS counts them in the payroll survey. <250K=healthy, >300K=stress.
+    {"label": "Jobless Claims (ICSA)", "id": "ICSA",   "is_index": False, "group": "LABOR",
      "no_pct": True,
-     "insight": "Weekly initial claims · <250K=healthy · >300K=stress emerging · rising=labor cracking"},
-    # NAPM: ISM Manufacturing PMI -- leading indicator for cyclicals / industrials
-    # NOTE: Series ID "NAPM" should be verified in FRED. If N/A, check ISM direct or S&P Global PMI.
-    {"label": "ISM Mfg PMI",          "id": "NAPM",          "is_index": False, "group": "LEADING",
-     "no_pct": True,
-     "insight": "ISM Manufacturing · >50=expanding · <50=contracting · <45=broad stress"},
-    # GDPC1: Real GDP quarterly -- regime anchor, lagging but essential context
-    # Special handling: YoY % computed in _fetch_one_fred, date shown as "Q2 2026"
-    {"label": "GDP Growth YoY",       "id": "GDPC1",         "is_index": False, "group": "LEADING",
+     "insight": "Weekly initial claims · <250K=healthy · >300K=stress · leads unemployment 6-8wk"},
+    # GDPC1: Real GDP (quarterly). Placed in its own GROWTH section.
+    # Special handling in _fetch_one_fred: YoY % = v0 vs 4 quarters ago.
+    # Date shown as "Q2 2026" (quarter label). 3mo col = prior quarter's YoY.
+    {"label": "GDP Growth YoY",       "id": "GDPC1",   "is_index": False, "group": "GROWTH",
      "insight": "Real GDP YoY · >2%=above trend · <1%=stagnation · negative=recession"},
 ]
 
@@ -127,7 +125,7 @@ GROUP_META = {
     "CURRENCY":       {"icon": "💵", "color": "#6366f1", "label": "Currency"},
     "SENTIMENT_FRED": {"icon": "🎭", "color": "#059669", "label": "Consumer Sentiment"},
     "VALUATION":      {"icon": "📐", "color": "#7c3aed", "label": "Valuation"},
-    "LEADING":        {"icon": "📡", "color": "#0891b2", "label": "Leading Indicators"},
+    "GROWTH":         {"icon": "📈", "color": "#059669", "label": "Economic Growth"},
 }
 
 
@@ -158,17 +156,9 @@ def trend_color(label, group, trend):
         return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
     elif group == "VALUATION":
         return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
-    elif group == "LEADING":
-        # Jobless Claims: rising = bad
-        if "Jobless" in label or "ICSA" in label:
-            return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
-        # ISM PMI: rising = good (expansion)
-        if "PMI" in label or "ISM" in label:
-            return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
-        # GDP: rising = good
-        if "GDP" in label:
-            return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
-        return "#6b7280"
+    elif group == "GROWTH":
+        # GDP: rising YoY = good for equities
+        return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
     return "#6b7280"
 
 
@@ -469,21 +459,6 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
             return "✅ Very tight labor -- consumer spending well supported; wage inflation risk remains"
         return "✅ Healthy labor market -- no early recession warning from initial claims data"
 
-    elif label == "ISM Mfg PMI":
-        # cur is the PMI value (e.g. 50.3)
-        if cur >= 55 and rising3:
-            return "✅ Strong expansion -- cyclicals and industrials in earnings acceleration phase"
-        elif cur >= 50 and rising3:
-            return "✅ Expanding and accelerating -- beaten-down cyclicals may be turning; mean reversion window opening"
-        elif cur >= 50:
-            return "→ Still expanding but losing momentum -- watch for sub-50 contraction signal next month"
-        elif cur >= 45 and falling3:
-            return "⚠️ Contracting and deepening -- value trap risk for cheap cyclicals; wait for PMI inflection"
-        elif cur >= 45:
-            return "⚠️ Contracting -- bearish for industrials and cyclicals; cheap may get cheaper"
-        elif cur < 45:
-            return "⚠️ Deep contraction -- broad manufacturing stress; mean reversion in cyclicals requires patience"
-        return "→ Near the 50 expansion/contraction threshold -- direction is the key signal"
 
     elif label == "GDP Growth YoY":
         # cur is the YoY % change (e.g. 2.3)
@@ -756,7 +731,7 @@ def fetch_fred_data():
     start = (date.today() - timedelta(days=460)).strftime("%Y-%m-%d")
     rmap  = {}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=18) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=17) as ex:
         futs = {ex.submit(_fetch_one_fred, cfg, start, end): cfg for cfg in FRED_SERIES}
         for f in concurrent.futures.as_completed(futs):
             r    = f.result()

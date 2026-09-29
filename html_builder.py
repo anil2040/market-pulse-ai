@@ -175,7 +175,7 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
     from fred import GROUP_META
     group_order = [
         "INFLATION", "RATES", "CREDIT", "LABOR",
-        "COMMODITIES", "CURRENCY", "SENTIMENT_FRED", "VALUATION",
+        "COMMODITIES", "CURRENCY", "SENTIMENT_FRED", "VALUATION", "GROWTH",
     ]
     rows = ""
     rn   = 1
