@@ -134,11 +134,11 @@
       "is_index": false,
       "group": "CREDIT",
       "insight": "Junk bond premium \u00b7 <3%=calm \u00b7 >6%=credit fear/stress",
-      "current": "2.80%",
-      "mo3": "2.78%",
-      "mo12": "2.74%",
-      "trend": "\u2192",
-      "date": "Sep 24 2026",
+      "current": "2.93%",
+      "mo3": "2.83%",
+      "mo12": "2.80%",
+      "trend": "\u25b2",
+      "date": "Sep 25 2026",
       "sig": "\u2192 Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
     "fetched": "2026-09-28"
@@ -185,7 +185,7 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,188",
+      "current": "$4,154",
       "mo3": "$4,096",
       "mo12": "$3,725",
       "trend": "\u25b2",
@@ -202,12 +202,12 @@
       "group": "CURRENCY",
       "no_pct": true,
       "insight": "Dollar strength \u00b7 weak dollar = tailwind for intl ADRs (EQNR,PBR,SNY etc)",
-      "current": "119.5",
-      "mo3": "119.3",
-      "mo12": "120.8",
-      "trend": "\u25b2",
-      "date": "Sep 18 2026",
-      "sig": "\u26a0\ufe0f Strong dollar headwind -- crushes earnings of multinationals and makes intl ADRs cheaper in USD"
+      "current": "120.3",
+      "mo3": "121.4",
+      "mo12": "120.0",
+      "trend": "\u25bc",
+      "date": "Sep 25 2026",
+      "sig": "\u2192 Dollar softening -- gradually improving backdrop for international ADR positions"
     },
     "fetched": "2026-09-28"
   },
@@ -247,7 +247,7 @@
   },
   "fear_greed": {
     "value": {
-      "score": 37,
+      "score": 34,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
@@ -262,18 +262,18 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "16.03",
+        "value": "16.06",
         "label": "NORMAL",
         "color": "#6b7280",
         "signal": "\u2192 Normal -- market calm, no stress signal",
-        "prev": "16.03"
+        "prev": "16.06"
       },
       "spx": {
-        "value": "7,711",
+        "value": "7,684",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,711"
+        "prev": "7,684"
       },
       "rut": {
         "value": "2,818",
@@ -290,7 +290,7 @@
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 16.0 (NORMAL) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 16.1 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
     "fetched": "2026-09-28"
   },
@@ -376,8 +376,8 @@
       "CME": 4,
       "AMD": 4,
       "FBIN": 3,
-      "KKR": 3,
       "ZTS": 3,
+      "KKR": 3,
       "Z": 1,
       "ELV": 6,
       "UNP": 4,
@@ -620,7 +620,7 @@
       ],
       [
         "CF",
-        "7.10"
+        "7.00"
       ],
       [
         "BP",
@@ -628,11 +628,11 @@
       ],
       [
         "YPF",
-        "7.30"
+        "7.20"
       ],
       [
         "CTSH",
-        "7.50"
+        "7.60"
       ],
       [
         "DINO",
@@ -640,18 +640,18 @@
       ],
       [
         "NVO",
-        "7.80"
+        "7.90"
       ],
       [
         "SHEL",
-        "8.00"
-      ],
-      [
-        "SNY",
-        "8.20"
+        "7.90"
       ],
       [
         "FOXA",
+        "8.20"
+      ],
+      [
+        "SNY",
         "8.20"
       ],
       [
@@ -660,7 +660,7 @@
       ],
       [
         "HPQ",
-        "8.40"
+        "8.50"
       ],
       [
         "CMCSA",
@@ -668,31 +668,31 @@
       ],
       [
         "CI",
-        "8.90"
+        "9.00"
+      ],
+      [
+        "FSLR",
+        "9.10"
+      ],
+      [
+        "ERIC",
+        "9.10"
       ],
       [
         "CHTR",
         "9.10"
       ],
       [
-        "ERIC",
-        "9.20"
-      ],
-      [
-        "FSLR",
-        "9.20"
-      ],
-      [
         "MO",
-        "9.50"
+        "9.40"
       ],
       [
         "PHM",
-        "9.60"
+        "9.50"
       ],
       [
         "OMC",
-        "9.60"
+        "9.50"
       ],
       [
         "FMX",
@@ -700,23 +700,23 @@
       ],
       [
         "RYAAY",
-        "9.90"
+        "10.00"
       ],
       [
         "SBS",
-        "10.10"
+        "10.20"
       ],
       [
         "BMY",
-        "10.20"
+        "10.30"
       ],
       [
         "ZTS",
-        "10.20"
+        "10.40"
       ],
       [
         "SKHY",
-        "10.50"
+        "10.40"
       ],
       [
         "BBY",
@@ -728,7 +728,7 @@
       ],
       [
         "CQP",
-        "11.50"
+        "11.40"
       ],
       [
         "VICI",
@@ -736,19 +736,19 @@
       ],
       [
         "CVS",
-        "12.00"
-      ],
-      [
-        "KR",
-        "12.20"
+        "11.80"
       ],
       [
         "VZ",
         "12.20"
       ],
       [
-        "UPS",
+        "KR",
         "12.30"
+      ],
+      [
+        "UPS",
+        "12.40"
       ],
       [
         "BTI",
@@ -756,11 +756,11 @@
       ],
       [
         "SONY",
-        "12.50"
+        "12.60"
       ],
       [
         "LNG",
-        "13.00"
+        "12.90"
       ],
       [
         "GEHC",
@@ -768,18 +768,18 @@
       ],
       [
         "FIS",
-        "13.70"
+        "13.60"
       ],
       [
         "OKE",
         "13.90"
       ],
       [
-        "KVUE",
-        "14.00"
+        "LOW",
+        "14.10"
       ],
       [
-        "LOW",
+        "KVUE",
         "14.10"
       ],
       [
@@ -787,20 +787,20 @@
         "14.60"
       ],
       [
-        "FDX",
-        "14.60"
+        "SSNC",
+        "14.70"
       ],
       [
-        "SSNC",
-        "14.60"
+        "FDX",
+        "14.70"
       ],
       [
         "UL",
-        "15.50"
+        "15.60"
       ],
       [
         "ULTA",
-        "15.90"
+        "16.10"
       ],
       [
         "PHG",
@@ -810,7 +810,7 @@
     "fetched": "2026-09-28"
   },
   "news_ej": {
-    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nFriday 9/25/2026 p.m.\nStocks trade higher to close out the week\n\u2013 U.S. equity markets closed higher on Friday, supported by a stabilization in Treasury yields, lower oil prices, and another sign of resilient economic momentum. Headline durable goods orders were unchanged in August. However, core capital goods orders, which exclude defense spending and aircraft, rose a healthy 1.6% on the month, signaling solid underlying business investment trends, in our view. On the geopolitical front, Iran has reportedly proposed a seven-day plan to reopen the Strait of Hormuz and restart negotiations if the U.S. accepts certain conditions, with the prospect of renewed diplomatic negotiations supporting a decline in oil prices. Lower oil prices also provided some relief to Treasury markets on Friday after what was a volatile week for bonds that saw the 10-year Treasury yield reach its highest level since 2007. The 10-year yield closed slightly lower on Friday at 5.16% while the 2-year yield fell to 4.85%.\nHistorical performance following a sharp rise in interest rates \u2013\nDespite a reprieve on Friday, bond yields have moved sharply higher in recent weeks. The 10-year Treasury yield has risen more than 0.4 percentage points in September, reaching its highest level since 2007, while the 2-year yield has increased by more than 0.5 percentage points. Since 1990, there have been only 16 months (including September) in which the 2-year Treasury yield rose by 0.5 percentage points or more.* Historically, equity returns following these episodes have been mixed. The S&P 500 has fallen by 2% on average over the subsequent three months with a median return of -0.5%.* Performance over longer horizons was also muted, with average six- and 12-month returns of -5.8% and 0.5%, respectively.* However, historically, the economic backdrop appears to be an important differentiator. When excluding the two periods in which nonfarm payrolls declined over the preceding three months (March 2002 & April 2008), forward returns were considerably stronger.* When payroll growth was positive, the S&P 500 generated an average three-month gain of 0.4%, while average returns over the subsequent six and 12 months improved to 1% and 9.5%, respectively.* Current conditions more closely resemble this more favorable subset, with nonfarm payrolls increasing by 214,000 over the past three months. Recent data also suggest that higher interest rates have not materially disrupted economic activity or corporate profit growth, in our view. Therefore, while continued bond-market volatility may contribute to periods of volatility in stocks, we believe the longer-term backdrop for stocks remains supportive.\nBusiness investment remained resilient in August \u2013\nFriday's durable goods report provided another indication of healthy economic momentum in the U.S. Headline orders were unchanged in August, but core capital goods orders, which exclude the more volatile aircraft and defense categories and serve as a useful leading indicator of business investment, rose a solid 1.6% on the month and 14.9% from a year ago. Investment related to the buildout of artificial intelligence infrastructure has been a notable source of strength, with orders for computers and related products rising more than 17% from August 2025. Despite elevated oil prices and higher borrowing costs, economic activity and corporate profit growth have remained resilient. We believe these factors should continue to provide important support for equity markets through year-end.\nBrock Weimer, CFA\n;\nInvestment Strategy\nSource for all data not cited: FactSet.\nSource for all data cited: *FactSet, Edward Jones S&P 500 price index. Performance excludes qualifying months that occurred within the same calendar year of another qualifying month to avoid performance overlap. Qualifying months calculated as having a 0.5 percentage point rise or more in the 2-year Treasury yield.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
+    "value": "Stock Market News Today | Edward Jones\nUnited States | English\nCanada | English\nCanada | French\nMonday 9/28/2026 a.m.\nMarkets falter as oil prices rise\n\u2013 U.S. equity markets have opened on the back foot this morning as waning hopes for a diplomatic breakthrough in the Middle East push crude prices higher. The S&P 500 is down 0.4% in early trading, while the small-cap Russell 2000 index is 0.7% lower. One noteworthy exception to the early sell-off was Nvidia, which is up 3% at the open, boosted by headlines of larger share buybacks. Higer energy prices are also hitting bond markets, adding to the sell-off seen last week. The benchmark 10-year U.S. Treasury yield is up 6 basis points (0.06%) this morning to return to new 20-year highs. Rising rates continue to lift the dollar and pressure gold prices, with the precious metal now down more than 6% in September so far.\nDiplomatic stalemate in the Middle East \u2013\nHopes for a breakthrough at the United Nations meetings last week have been dashed, with the U.S. and Iran seemingly still deadlocked on a range of key issues. President Trump reportedly rejected a proposal from Iran for a seven-day ceasefire and told aides that he planned to resume military action after the midterms. In response, oil prices are rising again, approaching last week's highs. However, there has been some better news around energy supply in recent weeks. Oil and liquefied natural gas (LNG) flows through the Strait of Hormuz have been rising, suggesting that Iran's blockade is becoming less effective at crimping energy supply. Reports suggest that Middle East crude exports will reach nearly 13 million barrels per day in September, the highest since the war started, if still down 6 million from pre-war levels. Rising supply, if sustained, could help ease the crunch in global energy markets and lessen Iran's leverage in negotiations, especially as the U.S. blockade of Iranian crude exports continues to hurt fiscal revenues.\nPayrolls the highlight of a busy data week \u2013\nThe Fed will likely be watching this week's data with interest as it considers the merits of a follow-up interest-rate hike in October. A strong payrolls report could argue in favor of further tightening, although the Bloomberg consensus is anticipating a healthy if unspectacular gain of 90,000 payrolls in September and stable unemployment. Elsewhere, the Fed's preferred measure of inflation, the personal consumption expenditures (PCE) deflator, will be released as part of the broader August personal spending and income report. And we will get a first look at Conference Board consumer confidence and ISM manufacturing sentiment surveys for September. At present markets are pricing close to a 70% chance of a 25 basis points (0.25%) Fed hike on October 28, and a hot run of data ahead of the meeting could see the central bank raise rates.\nJames McCann\n;\nInvestment Strategy\nSource for all data: FactSet, Bloomberg.\nInvestment Policy Committee\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nThe Investment Policy Committee (IPC) defines and upholds Edward Jones investment philosophy, which is grounded in the principles of quality, diversification and a long-term focus.\nThe IPC meets regularly to talk about the markets, the economy and the current environment, propose new policies and review existing guidance \u2014 all with your financial needs at the center.\nThe IPC members \u2014 experts in economics, market strategy, asset allocation and financial solutions\u00a0\u2014 each bring a unique perspective to developing recommendations that can help you achieve your financial goals.\nLearn More\nImportant information:\nThis is for informational\u00a0purposes only and should not be interpreted as specific investment advice. Investors should make\u00a0investment decisions based on their unique investment objectives and financial situation. While the information is believed to be accurate, it is not guaranteed and is subject to change without notice.\nInvestors should understand the risks involved in owning investments, including interest rate risk, credit risk and market risk. The value of investments fluctuates and investors can lose some or all of their principal.\nPast performance does not guarantee future results.\nMarket indexes are unmanaged and cannot be invested into directly and are not meant to depict an actual investment.\nDiversification does not guarantee a profit or protect against loss.\nSystematic investing does not guarantee a profit or protect against loss. Investors should consider their willingness to keep investing when share prices are declining.\nDividends may be increased, decreased or eliminated at any time without notice.\nSpecial risks are inherent in international investing, including those related to currency fluctuations and foreign political and economic events.\nBack to Top",
     "fetched": "2026-09-28"
   },
   "news_cnbc": {
@@ -822,12 +822,12 @@
     "fetched": "2026-09-28"
   },
   "news_yahoo_calendar": {
-    "value": "earnings and economic calendar is back in the driver's seat\nMeta wants your data \u2014 and your trust\nThe September jobs report has a high bar to clear\nShort-term certainy with China, but nothing long-term \u2014 yet\nWhat we're watching Monday:\nBesides Iran and yields, the calendar is light. But as someone (Ethan again) living in a snowy place, I have my eye on Vail's (\nMTN\n) earnings, as well as the weather.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman Sachs just gave AI stock fans a cold, hard reality check.\nThe dream of breaking even \u2014 or making real profits \u2014 is years away.\nPopping up out of nowhere: How Wall Street is digesting\nMeta's late entrance to the AI agent world.\nThe full list of goods that the US and China have\nagreed on for tariff cuts.\nWhat is the bond yield rise\ntelling us about the economy?\nNew financing laws are about to make condo transactions\nmore complicated\n.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe earnings and economic calendar is back in the driver's seat\nWall Street is wondering if Nike can still \"do it.\" (Photo by Zamek/VIEWpress)\nLast week saw two big headlines dominate the conversation. First, the explosion of Meta's Muse and its wearable AI \"Charm,\" then Chinese president Xi Jinping's state visit to Washington \u2014 both closely watched by investors for their implications on both the AI trade and the state of play between the world's two largest economies.\nNevertheless, they didn\u2019t do much to markets for the week, with stocks holding mostly steady despite all the headlines and market forces swirling around.\nThis week, however, will pivot back to the earnings calendar, with Wednesday having the biggest event.\nMemory giant Micron (\nMU\n) reports fiscal fourth quarter earnings. After the waffling of the AI infrastructure trade over the past two weeks, investors will be looking for signs of continued demand in the memory trade, which has emerged as one of the most significant bottlenecks for the AI build-out.\nElsewhere in the calendar, Nike (\nNKE\n) reports earnings on Thursday, where embattled CEO Elliott Hill will look to assuage concerns from investors that Nike has lost its spark. One thing that'll be hot on everyone's minds: French soccer star Kylian Mbapp\u00e9's decision to leave Nike and join the team at On (\nON\n), a tough loss for the American sportswear giant.\nOn the economic data front, it's jobs week! Last month's report of 162,000 jobs added in August \u2014 roughly three times expectations \u2014 has set a high bar for the September numbers, where economists are looking for 100,000 jobs added in Friday's report. Also on the calendar is PCE inflation data on Wednesday. As the Fed's preferred metric, the PCE data is set to be closely watched for a read on whether the FOMC will indeed hike rates again in 2026.\nMeta wants your data \u2014 and your trust\nMark Zuckerberg, CEO of the Facebook parent company Meta, takes the stage at the Meta Connect ",
+    "value": "Earnings and economic calendar\nMonday\nEconomic data:\nDallas Fed manufacturing activity, September (7.3 expected, 11.6 previously)\nEarnings calendar:\nJefferies Financial Group (\nJEF\n), Vail Resorts (\nMTN\n)\nTuesday\nEconomic data:\nFHFA house price index, month-on-month, July (+0% previously); Conference Board consumer confidence, September (90 expected, 89.4 previously); Conference Board present situation, September (121.2 previously), JOLTS job openings, August (7.225 million expected, 7.271 million previously); JOLTS quits rate, August (1.9% previously); JOLTS layoffs rate, August (1% previously); Dallas Fed services activity, September (4.2 previously)\nEarnings calendar:\nCarnival Corporation (\nCCL\n), CarMax (\nKMX\n), AAR (\nAIR\n), Uranium Energy Corp. (\nUEC\n), Concentrix Corporation (\nCNXC\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 25 (-1.5% previously); ADP employment change, September (+70,000 expected, +38,000 previously); Retail inventories, month-on-month, August (+0.8% previously); Personal income, August (+0.5% expected, +0.4% previously); Personal spending, August (+0.9% expected, +0.2% previously); PCE price index, month-on-month, August (+0.4% expected, +0.2% previously); PCE price index, year-on-year, August (+3.7% expected, +3.7% previously); Core PCE price index, month-on-month, August (+0.3% expected, +0.2% previously); Core PCE price index, year-on-year, August (+3.3% expected, +3.3% previously); GDP annualized, quarter-on-quarter, second quarter (+1.5% expected, +1.5% previously); Personal consumption, second quarter (+3.4% expected, +3.4% previously); MNI Chicago PMI, September (51.2 expected, 47.1 previously)\nEarnings calendar:\nMicron Technology (\nMU\n), Jabil (\nJBL\n), FactSet Research Systems (\nFDS\n), Conagra Brands (\nCAG\n)\nThursday\nEconomic data:\nChallenger job cuts, year-on-year, September (-38.5% previously); Initial jobless claims, week ended Sept. 26 (197,000 previously); Continuing claims, week ended Sept. 19 (1.719 million previously); S&P Global US manufacturing PMI, September final reading (57 previously); ISM manufacturing, September (55 expected, 54.6 previously); ISM prices paid, September (72 expected, 71.1 previously); ISM new orders, September (53.7 previously); ISM employment, September (51.2 previously); Construction spending, month-on-month, August (+0.1% expected, -0.5% previously); Omdia total vehicle sales, September (16.59 million expected, 16.76 million previously)\nEarnings calendar:\nAccenture (\nACN\n), NIKE (\nNKE\n), McCormick & Company (\nMKC\n), Acuity (\nAYI\n)\nFriday\nEconomic data:\nChange in nonfarm payrolls, September (+100,000 expected, +162,000 previously); Change in private payrolls, September (+90,000 expected, +127,000 previously); Change in manufacturing payrolls, September (+10,000 expected, +16,000 previously); Average hourly earnings, month-on-month, September (+0.3% expected, +0.3% previously); Average hourly earnings, year-on-year, September (+3.2% expected, +3.1% previ",
     "fetched": "2026-09-28"
   },
   "weekly_calendar": {
     "week_of": "2026-09-28",
-    "text": "earnings and economic calendar is back in the driver's seat\nMeta wants your data \u2014 and your trust\nThe September jobs report has a high bar to clear\nShort-term certainy with China, but nothing long-term \u2014 yet\nWhat we're watching Monday:\nBesides Iran and yields, the calendar is light. But as someone (Ethan again) living in a snowy place, I have my eye on Vail's (\nMTN\n) earnings, as well as the weather.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman Sachs just gave AI stock fans a cold, hard reality check.\nThe dream of breaking even \u2014 or making real profits \u2014 is years away.\nPopping up out of nowhere: How Wall Street is digesting\nMeta's late entrance to the AI agent world.\nThe full list of goods that the US and China have\nagreed on for tariff cuts.\nWhat is the bond yield rise\ntelling us about the economy?\nNew financing laws are about to make condo transactions\nmore complicated\n.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe earnings and economic calendar is back in the driver's seat\nWall Street is wondering if Nike can still \"do it.\" (Photo by Zamek/VIEWpress)\nLast week saw two big headlines dominate the conversation. First, the explosion of Meta's Muse and its wearable AI \"Charm,\" then Chinese president Xi Jinping's state visit to Washington \u2014 both closely watched by investors for their implications on both the AI trade and the state of play between the world's two largest economies.\nNevertheless, they didn\u2019t do much to markets for the week, with stocks holding mostly steady despite all the headlines and market forces swirling around.\nThis week, however, will pivot back to the earnings calendar, with Wednesday having the biggest event.\nMemory giant Micron (\nMU\n) reports fiscal fourth quarter earnings. After the waffling of the AI infrastructure trade over the past two weeks, investors will be looking for signs of continued demand in the memory trade, which has emerged as one of the most significant bottlenecks for the AI build-out.\nElsewhere in the calendar, Nike (\nNKE\n) reports earnings on Thursday, where embattled CEO Elliott Hill will look to assuage concerns from investors that Nike has lost its spark. One thing that'll be hot on everyone's minds: French soccer star Kylian Mbapp\u00e9's decision to leave Nike and join the team at On (\nON\n), a tough loss for the American sportswear giant.\nOn the economic data front, it's jobs week! Last month's report of 162,000 jobs added in August \u2014 roughly three times expectations \u2014 has set a high bar for the September numbers, where economists are looking for 100,000 jobs added in Friday's report. Also on the calendar is PCE inflation data on Wednesday. As the Fed's preferred metric, the PCE data is set to be closely watched for a read on whether the FOMC will indeed hike rates again in 2026.\nMeta wants your data \u2014 and your trust\nMark Zuckerberg, CEO of the Facebook parent company Meta, takes the stage at the Meta Connect "
+    "text": "Earnings and economic calendar\nMonday\nEconomic data:\nDallas Fed manufacturing activity, September (7.3 expected, 11.6 previously)\nEarnings calendar:\nJefferies Financial Group (\nJEF\n), Vail Resorts (\nMTN\n)\nTuesday\nEconomic data:\nFHFA house price index, month-on-month, July (+0% previously); Conference Board consumer confidence, September (90 expected, 89.4 previously); Conference Board present situation, September (121.2 previously), JOLTS job openings, August (7.225 million expected, 7.271 million previously); JOLTS quits rate, August (1.9% previously); JOLTS layoffs rate, August (1% previously); Dallas Fed services activity, September (4.2 previously)\nEarnings calendar:\nCarnival Corporation (\nCCL\n), CarMax (\nKMX\n), AAR (\nAIR\n), Uranium Energy Corp. (\nUEC\n), Concentrix Corporation (\nCNXC\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 25 (-1.5% previously); ADP employment change, September (+70,000 expected, +38,000 previously); Retail inventories, month-on-month, August (+0.8% previously); Personal income, August (+0.5% expected, +0.4% previously); Personal spending, August (+0.9% expected, +0.2% previously); PCE price index, month-on-month, August (+0.4% expected, +0.2% previously); PCE price index, year-on-year, August (+3.7% expected, +3.7% previously); Core PCE price index, month-on-month, August (+0.3% expected, +0.2% previously); Core PCE price index, year-on-year, August (+3.3% expected, +3.3% previously); GDP annualized, quarter-on-quarter, second quarter (+1.5% expected, +1.5% previously); Personal consumption, second quarter (+3.4% expected, +3.4% previously); MNI Chicago PMI, September (51.2 expected, 47.1 previously)\nEarnings calendar:\nMicron Technology (\nMU\n), Jabil (\nJBL\n), FactSet Research Systems (\nFDS\n), Conagra Brands (\nCAG\n)\nThursday\nEconomic data:\nChallenger job cuts, year-on-year, September (-38.5% previously); Initial jobless claims, week ended Sept. 26 (197,000 previously); Continuing claims, week ended Sept. 19 (1.719 million previously); S&P Global US manufacturing PMI, September final reading (57 previously); ISM manufacturing, September (55 expected, 54.6 previously); ISM prices paid, September (72 expected, 71.1 previously); ISM new orders, September (53.7 previously); ISM employment, September (51.2 previously); Construction spending, month-on-month, August (+0.1% expected, -0.5% previously); Omdia total vehicle sales, September (16.59 million expected, 16.76 million previously)\nEarnings calendar:\nAccenture (\nACN\n), NIKE (\nNKE\n), McCormick & Company (\nMKC\n), Acuity (\nAYI\n)\nFriday\nEconomic data:\nChange in nonfarm payrolls, September (+100,000 expected, +162,000 previously); Change in private payrolls, September (+90,000 expected, +127,000 previously); Change in manufacturing payrolls, September (+10,000 expected, +16,000 previously); Average hourly earnings, month-on-month, September (+0.3% expected, +0.3% previously); Average hourly earnings, year-on-year, September (+3.2% expected, +3.1% previ"
   },
   "mhs_history": [
     {
@@ -897,7 +897,7 @@
     },
     {
       "date": "2026-09-28",
-      "score": 94,
+      "score": 86,
       "label": "EXTREME OVERHEATED"
     }
   ]
