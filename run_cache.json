@@ -7,8 +7,8 @@
       "group": "INFLATION",
       "insight": "Headline CPI incl food & energy \u00b7 hist avg ~3%",
       "current": "3.7%",
-      "mo3": "3.9%",
-      "mo12": "3.9%",
+      "mo3": "4.3%",
+      "mo12": "4.3%",
       "trend": "\u25bc",
       "date": "Aug 2026",
       "sig": "\u2192 Above avg but decelerating -- progress toward 2% but not there yet"
@@ -23,11 +23,11 @@
       "group": "INFLATION",
       "insight": "CPI ex food/energy \u00b7 Fed watches this \u00b7 avg ~2.5%",
       "current": "2.8%",
-      "mo3": "2.6%",
-      "mo12": "2.6%",
-      "trend": "\u25b2",
+      "mo3": "3.0%",
+      "mo12": "3.0%",
+      "trend": "\u25bc",
       "date": "Aug 2026",
-      "sig": "\u26a0\ufe0f Re-heating -- service sector inflation erodes real returns and PE expansion"
+      "sig": "\u2192 Moderate -- not forcing Fed's hand in either direction"
     },
     "fetched": "2026-09-29"
   },
@@ -39,9 +39,9 @@
       "group": "INFLATION",
       "insight": "Fed preferred gauge (broader than CPI) \u00b7 avg ~2.2%",
       "current": "3.7%",
-      "mo3": "3.3%",
-      "mo12": "3.3%",
-      "trend": "\u25b2",
+      "mo3": "3.8%",
+      "mo12": "3.8%",
+      "trend": "\u25bc",
       "date": "Jul 2026",
       "sig": "\u26a0\ufe0f Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
     },
@@ -55,11 +55,11 @@
       "group": "INFLATION",
       "insight": "THE key number \u00b7 Fed 2% target \u00b7 >3% = rates stay high",
       "current": "3.3%",
-      "mo3": "2.8%",
-      "mo12": "2.8%",
-      "trend": "\u25b2",
+      "mo3": "3.3%",
+      "mo12": "3.3%",
+      "trend": "\u2192",
       "date": "Jul 2026",
-      "sig": "\u26a0\ufe0f Re-accelerating at 65% above Fed target -- hike risk rising, PE compression ahead"
+      "sig": "\u26a0\ufe0f Stuck 65% above target with no momentum -- rates stay higher for longer"
     },
     "fetched": "2026-09-29"
   },
@@ -185,12 +185,12 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,165",
-      "mo3": "$4,096",
-      "mo12": "$3,725",
+      "current": "$4,194",
+      "mo3": "$4,039",
+      "mo12": "$3,718",
       "trend": "\u25b2",
       "date": "Sep 29 2026",
-      "sig": "\u2192 Gold ++12% yr -- modest hedge; not yet a panic signal"
+      "sig": "\u2192 Gold ++13% yr -- modest hedge; not yet a panic signal"
     },
     "fetched": "2026-09-29"
   },
@@ -247,12 +247,12 @@
   },
   "fear_greed": {
     "value": {
-      "score": 34,
+      "score": 33,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 37,
-      "prev_week": 34,
+      "prev_close": 34,
+      "prev_week": 35,
       "prev_month": 54,
       "prev_year": 51,
       "cached": false
@@ -262,141 +262,40 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "16.07",
+        "value": "15.95",
         "label": "NORMAL",
         "color": "#6b7280",
         "signal": "\u2192 Normal -- market calm, no stress signal",
-        "prev": "16.07"
+        "prev": "15.95"
       },
       "spx": {
-        "value": "7,684",
+        "value": "7,683",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "7,684"
+        "prev": "7,683"
       },
       "rut": {
-        "value": "2,818",
+        "value": "2,822",
         "chg": "+0.00%",
         "label": "FLAT",
         "color": "#6b7280",
-        "prev": "2,818"
+        "prev": "2,822"
       },
-      "urth_pe": 18.85,
+      "urth_pe": 18.86,
       "urth_pe_stale": false,
       "urth_pe_source": "Claude Routine",
-      "efa_pe": 17.98,
+      "efa_pe": 18.71,
       "efa_pe_stale": false,
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 16.1 (NORMAL) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P +0.00% (FLAT) \u00b7 Russell +0.00% (FLAT) \u00b7 VIX 15.9 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
     "fetched": "2026-09-29"
   },
   "screens_si": {
-    "value": {
-      "ASH": 2,
-      "META": 14,
-      "EGO": 1,
-      "MSFT": 18,
-      "SPGI": 9,
-      "MA": 7,
-      "PDD": 3,
-      "WBD": 3,
-      "AMZN": 11,
-      "V": 14,
-      "BRK.B": 11,
-      "BDX": 5,
-      "UBER": 5,
-      "AIIR": 1,
-      "GPI": 2,
-      "AJG": 4,
-      "TSM": 7,
-      "ORLAOL": 2,
-      "GOOGL": 4,
-      "NFLX": 6,
-      "ACN": 5,
-      "AMAT": 2,
-      "XRAY": 2,
-      "FRPT": 1,
-      "KHC": 3,
-      "GOOG": 9,
-      "CR": 1,
-      "HD": 6,
-      "YNDX": 1,
-      "STX": 3,
-      "MDLN": 2,
-      "GEHC": 5,
-      "APP": 2,
-      "MCO": 2,
-      "SPOT": 2,
-      "PVH": 3,
-      "IEP": 1,
-      "APH": 4,
-      "SPUU": 1,
-      "BKNG": 4,
-      "GEV": 5,
-      "DASH": 2,
-      "DVN": 5,
-      "TTMI": 3,
-      "SUNB": 4,
-      "BABA": 4,
-      "AAL": 2,
-      "VGNT": 2,
-      "GPGI": 1,
-      "GPC": 3,
-      "APTV": 2,
-      "LIN": 2,
-      "COF": 8,
-      "KEYS": 2,
-      "XYZ": 2,
-      "ROP": 3,
-      "ABT": 3,
-      "TJX": 3,
-      "TMO": 8,
-      "PFGC": 4,
-      "BFAM": 2,
-      "ICLR": 5,
-      "AZN": 1,
-      "INTU": 5,
-      "MAIR": 1,
-      "TEL": 6,
-      "RKT": 2,
-      "VMC": 3,
-      "TWLO": 2,
-      "FLEX": 2,
-      "LYV": 3,
-      "CRH": 3,
-      "VEEV": 5,
-      "ADP": 4,
-      "BLDR": 4,
-      "NSC": 1,
-      "HHH": 1,
-      "CME": 4,
-      "AMD": 4,
-      "FBIN": 3,
-      "KKR": 3,
-      "ZTS": 3,
-      "Z": 1,
-      "ELV": 6,
-      "UNP": 4,
-      "STRL": 1,
-      "SNOW": 2,
-      "ONON": 2,
-      "DHR": 8,
-      "FERG": 6,
-      "APD": 5,
-      "EFX": 4,
-      "CBRS": 1,
-      "BA": 4,
-      "SAP": 5,
-      "WHK": 1,
-      "GXO": 1,
-      "GPN": 4,
-      "CTSH": 4,
-      "GDS": 2
-    },
+    "value": {},
     "fetched": "2026-09-29"
   },
   "screens_mf": {
@@ -426,35 +325,35 @@
         6
       ],
       [
-        "BBY",
+        "BCRX",
         7
       ],
       [
-        "BCRX",
+        "BAH",
         8
       ],
       [
-        "BAH",
+        "BMY",
         9
       ],
       [
-        "BMY",
+        "BKE",
         10
       ],
       [
-        "BKE",
+        "CARG",
         11
       ],
       [
-        "CARG",
+        "GIB",
         12
       ],
       [
-        "GIB",
+        "CTSH",
         13
       ],
       [
-        "CTSH",
+        "CVSA",
         14
       ],
       [
@@ -612,70 +511,70 @@
       ],
       [
         "EQNR",
-        "3.30"
+        "3.20"
       ],
       [
         "PBR",
         "5.20"
       ],
       [
-        "CF",
+        "BP",
         "7.00"
       ],
       [
-        "BP",
+        "CF",
         "7.10"
       ],
       [
         "YPF",
-        "7.20"
+        "7.10"
       ],
       [
         "CTSH",
-        "7.60"
+        "7.50"
       ],
       [
         "DINO",
-        "7.70"
+        "7.60"
       ],
       [
         "NVO",
-        "7.90"
+        "7.80"
       ],
       [
         "SHEL",
-        "7.90"
-      ],
-      [
-        "FOXA",
-        "8.20"
+        "7.80"
       ],
       [
         "SNY",
-        "8.20"
+        "8.10"
       ],
       [
-        "SQM",
-        "8.30"
+        "FOXA",
+        "8.10"
       ],
       [
         "HPQ",
-        "8.50"
+        "8.40"
+      ],
+      [
+        "SQM",
+        "8.40"
       ],
       [
         "CMCSA",
-        "8.80"
+        "8.70"
       ],
       [
         "CI",
         "9.00"
       ],
       [
-        "FSLR",
-        "9.10"
+        "ERIC",
+        "9.00"
       ],
       [
-        "ERIC",
+        "FSLR",
         "9.10"
       ],
       [
@@ -687,20 +586,20 @@
         "9.40"
       ],
       [
-        "PHM",
-        "9.50"
-      ],
-      [
         "OMC",
         "9.50"
       ],
       [
+        "PHM",
+        "9.50"
+      ],
+      [
         "FMX",
-        "9.80"
+        "9.90"
       ],
       [
         "RYAAY",
-        "10.00"
+        "10.10"
       ],
       [
         "SBS",
@@ -712,15 +611,15 @@
       ],
       [
         "ZTS",
-        "10.40"
+        "10.30"
       ],
       [
         "SKHY",
-        "10.40"
+        "10.50"
       ],
       [
         "BBY",
-        "11.00"
+        "10.80"
       ],
       [
         "EIX",
@@ -728,7 +627,7 @@
       ],
       [
         "CQP",
-        "11.40"
+        "11.30"
       ],
       [
         "VICI",
@@ -743,24 +642,24 @@
         "12.20"
       ],
       [
-        "KR",
+        "BTI",
         "12.30"
+      ],
+      [
+        "KR",
+        "12.40"
       ],
       [
         "UPS",
         "12.40"
       ],
       [
-        "BTI",
-        "12.50"
-      ],
-      [
         "SONY",
-        "12.60"
+        "12.70"
       ],
       [
         "LNG",
-        "12.90"
+        "12.80"
       ],
       [
         "GEHC",
@@ -772,7 +671,7 @@
       ],
       [
         "OKE",
-        "13.90"
+        "13.80"
       ],
       [
         "LOW",
@@ -783,11 +682,11 @@
         "14.10"
       ],
       [
-        "OTIS",
+        "SSNC",
         "14.60"
       ],
       [
-        "SSNC",
+        "OTIS",
         "14.70"
       ],
       [
@@ -796,15 +695,15 @@
       ],
       [
         "UL",
-        "15.60"
+        "15.30"
       ],
       [
         "ULTA",
-        "16.10"
+        "16.20"
       ],
       [
         "PHG",
-        "16.50"
+        "16.20"
       ]
     ],
     "fetched": "2026-09-29"
@@ -818,11 +717,11 @@
     "fetched": "2026-09-29"
   },
   "news_yahoo": {
-    "value": "The big things you need to know for the week ahead.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nMonday, September 28 \u00a0 |\nView in your browser\nGood morning!\nThe first full week of fall is upon us, and I (Ethan), like many Americans, am facing pressure to turn the heat on \u2014 and pressure from sticker shock from oil and gas.\nMarkets have a lot to watch this week, but signs of progress toward some sort of Iran agreement remain near the top.\nIn today's issue\nThe earnings and economic calendar is back in the driver's seat\nMeta wants your data \u2014 and your trust\nThe September jobs report has a high bar to clear\nShort-term certainy with China, but nothing long-term \u2014 yet\nWhat we're watching Monday:\nBesides Iran and yields, the calendar is light. But as someone (Ethan again) living in a snowy place, I have my eye on Vail's (\nMTN\n) earnings, as well as the weather.\nYahoo Finance Morning Brief is written by\nEthan Wolff-Mann\nand\nHamza Shaban\n.\nHeadlines\nGoldman Sachs just gave AI stock fans a cold, hard reality check.\nThe dream of breaking even \u2014 or making real profits \u2014 is years away.\nPopping up out of nowhere: How Wall Street is digesting\nMeta's late entrance to the AI agent world.\nThe full list of goods that the US and China have\nagreed on for tariff cuts.\nWhat is the bond yield rise\ntelling us about the economy?\nNew financing laws are about to make condo transactions\nmore complicated\n.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nThe earnings and economic calendar is back in the driver's seat\nWall Street is wondering if Nike can still \"do it.\" (Photo by Zamek/VIEWpress)\nLast week saw two big headlines dominate the conversation. First, the explosion of Meta's Muse and its wearable AI \"Charm,\" then Chinese president Xi Jinping's state visit to Washington \u2014 both closely watched by investors for their implications on both the AI trade and the state of play between the world's two largest economies.\nNevertheless, they didn\u2019t do much to markets for the week, with stocks holding mostly steady despite all the headlines and market forces swirling around.\nThis week, however, will pivot back to the earnings calendar, with Wednesday having the biggest event.\nMemory giant Micron (\nMU\n) reports fiscal fourth quarter earnings. After the waffling of the AI infrastructure trade over the past two weeks, investors will be looking for signs of continued demand in the memory trade, which has emerged as one of the most significant bottlenecks for the AI build-out.\nElsewhere in the calendar, Nike (\nNKE\n) reports earnings on Thursday, where embattled CEO Elliott Hill will look to assuage concerns from investors that Nike has lost its spark. One thing that'll be hot on everyone's minds: French soccer star Kylian Mbapp\u00e9's decision to leave Nike and join the team at On (\nON\n), a tough loss for the American sportswear giant.\nOn the economic data front, it's jobs week! Last month's report of 162,000 jobs added in August \u2014 roughly three times expectations \u2014 has set a high bar for the September numbers, where economists are looking for 100,000 jobs added in Friday's report. Also on the calendar is PCE inflation data on Wednesday. As the Fed's preferred metric, the PCE data is set to be closely watched for a read on whether the FOMC will indeed hike rates again in 2026.\nMeta wants your data \u2014 and your trust\nMark Zuckerberg, CEO of the Facebook parent company Meta, takes the stage at the Meta Connect developer conference. Behind him is a personalized mascot of the AI assistant Muse.",
+    "value": "Plus: A huge week for Elon Musk, and Muse is a nightmare for friction-based companies.\n\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u2007\u034f \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad \u00ad\nTuesday, September 29 \u00a0 |\nView in your browser\nGood morning!\nThe new normal of what a 10-year Treasury yield (\n^TNX\n) looks like\nshifted again,\nas it jumped to 5.25% on rising tensions with Iran \u2014 and oil prices. Wild to think that we were concerned when it was at 4.5%.\nThe S&P 500 (\n^GSPC\n) fell 0.8%, the Dow (\n^DJI\n) 0.7%, and the Nasdaq (\n^IXIC\n) 0.9%. Imagine if the stock market didn't have\noil and bond yield problems?\nIn today's issue\nNvidia is trading like an oil stock \u2014 and taking advantage of the moment\nA successful orbit is just the beginning of a huge week for the Muskverse\nMuse is a nightmare for friction as a business model\nA prominent economist issues a major warning to the Fed\nWhat we're watching Tuesday:\nIt's a big day for macro data with a few economic checks to monitor. The Job Openings and Labor Turnover survey will give us an update on employer/employee sentiment for August, and the Conference Board's consumer confidence numbers will show if last week's tanking sentiment has legs.\nHeadlines\nOil prices jump after Trump rejects\nIranian proposal.\nUS and China agree to cut tariffs on $60 billion\nworth of goods.\nStrait of Hormuz impasse keeps rate hikes likely,\nsending gold prices down\nand\noil prices up.\nTrump sounds less than sold on a diesel export embargo\nas his team weighs 3 options short of a ban.\nChip stocks are falling \u2014 except Nvidia.\nHere's why.\nMarket snapshot\nKey market moves from last session\nPowered by\nSee the bigger picture.\nNvidia is trading like an oil stock \u2014 and taking advantage of the moment\nJensen Huang looks on as President Trump hosts a state dinner in the East Room of the White House on Sept. 24, 2026, in Washington, D.C. (Kevin Dietsch/Getty Images)\nThe AI chip king is closing in on a record high,\nriding high even as its peers struggle\n. But of all the tech darlings, Nvidia (\nNVDA\n) has the most modest multiple.\nDespite being the heart of the AI trade and a shining example of post-COVID growth in America, every other member of the \"Magnificent Seven\" has been trading at a higher premium. Per FactSet, Nvidia's forward price-to-earnings multiple is even lower than that of the S&P 500.\nIt's almost a certainty that CEO Jensen Huang, clad in his leather jacket of bullish optimism, is not thrilled with his company's valuation ratio, with way more work and profit required to reach that record high.\nBut Huang and Nvidia's board wasted no time and took advantage of the low valuation to execute the largest buyback ever in the US, a\n$150 billion increase to its stock buyback program\n. Yet another instance of Nvidia flexing its cash.\nNvidia's relative cheapness brings an unexpected comparison to mind: ExxonMobil (\nXOM\n). That's the thrust of a new and surprising analysis by DataTrek co-founder Nicholas Colas, who frames the two firms as underrated tickers at the center of scarcity investment stories \u2014 data and oil \u2014 both with forward multiples under the S&P 500.\nAs Colas notes, you might expect a legacy energy company to trade at a discount. But if data is the new oil, why is the linchpin of the AI trade so cheap?\nFor Nvidia bears who believe the hype is overblown, the company's growth trajectory offers a startling rebuttal. As Colas observes, Wall Street analysts' revenue estimates pin the company's fiscal year 2028 sales numbers at close to $700 billion.\nThat brings us back to the Exxon comparison. While the two companies in",
     "fetched": "2026-09-29"
   },
   "news_yahoo_calendar": {
-    "value": "Earnings and economic calendar\nMonday\nEconomic data:\nDallas Fed manufacturing activity, September (7.3 expected, 11.6 previously)\nEarnings calendar:\nJefferies Financial Group (\nJEF\n), Vail Resorts (\nMTN\n)\nTuesday\nEconomic data:\nFHFA house price index, month-on-month, July (+0% previously); Conference Board consumer confidence, September (90 expected, 89.4 previously); Conference Board present situation, September (121.2 previously), JOLTS job openings, August (7.225 million expected, 7.271 million previously); JOLTS quits rate, August (1.9% previously); JOLTS layoffs rate, August (1% previously); Dallas Fed services activity, September (4.2 previously)\nEarnings calendar:\nCarnival Corporation (\nCCL\n), CarMax (\nKMX\n), AAR (\nAIR\n), Uranium Energy Corp. (\nUEC\n), Concentrix Corporation (\nCNXC\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 25 (-1.5% previously); ADP employment change, September (+70,000 expected, +38,000 previously); Retail inventories, month-on-month, August (+0.8% previously); Personal income, August (+0.5% expected, +0.4% previously); Personal spending, August (+0.9% expected, +0.2% previously); PCE price index, month-on-month, August (+0.4% expected, +0.2% previously); PCE price index, year-on-year, August (+3.7% expected, +3.7% previously); Core PCE price index, month-on-month, August (+0.3% expected, +0.2% previously); Core PCE price index, year-on-year, August (+3.3% expected, +3.3% previously); GDP annualized, quarter-on-quarter, second quarter (+1.5% expected, +1.5% previously); Personal consumption, second quarter (+3.4% expected, +3.4% previously); MNI Chicago PMI, September (51.2 expected, 47.1 previously)\nEarnings calendar:\nMicron Technology (\nMU\n), Jabil (\nJBL\n), FactSet Research Systems (\nFDS\n), Conagra Brands (\nCAG\n)\nThursday\nEconomic data:\nChallenger job cuts, year-on-year, September (-38.5% previously); Initial jobless claims, week ended Sept. 26 (197,000 previously); Continuing claims, week ended Sept. 19 (1.719 million previously); S&P Global US manufacturing PMI, September final reading (57 previously); ISM manufacturing, September (55 expected, 54.6 previously); ISM prices paid, September (72 expected, 71.1 previously); ISM new orders, September (53.7 previously); ISM employment, September (51.2 previously); Construction spending, month-on-month, August (+0.1% expected, -0.5% previously); Omdia total vehicle sales, September (16.59 million expected, 16.76 million previously)\nEarnings calendar:\nAccenture (\nACN\n), NIKE (\nNKE\n), McCormick & Company (\nMKC\n), Acuity (\nAYI\n)\nFriday\nEconomic data:\nChange in nonfarm payrolls, September (+100,000 expected, +162,000 previously); Change in private payrolls, September (+90,000 expected, +127,000 previously); Change in manufacturing payrolls, September (+10,000 expected, +16,000 previously); Average hourly earnings, month-on-month, September (+0.3% expected, +0.3% previously); Average hourly earnings, year-on-year, September (+3.2% expected, +3.1% previ",
+    "value": "Earnings and economic calendar\nTuesday\nEconomic data:\nFHFA house price index, month-on-month, July (+0% previously); Conference Board consumer confidence, September (90 expected, 89.4 previously); Conference Board present situation, September (121.2 previously), JOLTS job openings, August (7.225 million expected, 7.271 million previously); JOLTS quits rate, August (1.9% previously); JOLTS layoffs rate, August (1% previously); Dallas Fed services activity, September (4.2 previously)\nEarnings calendar:\nCarnival Corporation (\nCCL\n), CarMax (\nKMX\n), AAR (\nAIR\n), Uranium Energy Corp. (\nUEC\n), Concentrix Corporation (\nCNXC\n)\nWednesday\nEconomic data:\nMBA mortgage applications, week ended Sept. 25 (-1.5% previously); ADP employment change, September (+70,000 expected, +38,000 previously); Retail inventories, month-on-month, August (+0.8% previously); Personal income, August (+0.5% expected, +0.4% previously); Personal spending, August (+0.9% expected, +0.2% previously); PCE price index, month-on-month, August (+0.4% expected, +0.2% previously); PCE price index, year-on-year, August (+3.7% expected, +3.7% previously); Core PCE price index, month-on-month, August (+0.3% expected, +0.2% previously); Core PCE price index, year-on-year, August (+3.3% expected, +3.3% previously); GDP annualized, quarter-on-quarter, second quarter (+1.5% expected, +1.5% previously); Personal consumption, second quarter (+3.4% expected, +3.4% previously); MNI Chicago PMI, September (51.2 expected, 47.1 previously)\nEarnings calendar:\nMicron Technology (\nMU\n), Jabil (\nJBL\n), FactSet Research Systems (\nFDS\n), Conagra Brands (\nCAG\n)\nThursday\nEconomic data:\nChallenger job cuts, year-on-year, September (-38.5% previously); Initial jobless claims, week ended Sept. 26 (197,000 previously); Continuing claims, week ended Sept. 19 (1.719 million previously); S&P Global US manufacturing PMI, September final reading (57 previously); ISM manufacturing, September (55 expected, 54.6 previously); ISM prices paid, September (72 expected, 71.1 previously); ISM new orders, September (53.7 previously); ISM employment, September (51.2 previously); Construction spending, month-on-month, August (+0.1% expected, -0.5% previously); Omdia total vehicle sales, September (16.59 million expected, 16.76 million previously)\nEarnings calendar:\nAccenture (\nACN\n), Nike (\nNKE\n), McCormick & Company (\nMKC\n), Acuity (\nAYI\n)\nFriday\nEconomic data:\nChange in nonfarm payrolls, September (+100,000 expected, +162,000 previously); Change in private payrolls, September (+90,000 expected, +127,000 previously); Change in manufacturing payrolls, September (+10,000 expected, +16,000 previously); Average hourly earnings, month-on-month, September (+0.3% expected, +0.3% previously); Average hourly earnings, year-on-year, September (+3.2% expected, +3.1% previously); Unemployment rate, September (4.1% expected, 4.1% previously); Labor force participation rate, September (61.6% previously); Factory orders, August (-0.1% expected, +",
     "fetched": "2026-09-29"
   },
   "weekly_calendar": {
@@ -899,6 +798,11 @@
       "date": "2026-09-28",
       "score": 86,
       "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-29",
+      "score": 81,
+      "label": "OVERHEATED"
     }
   ],
   "fred_Jobless Claims (ICSA)": {
@@ -910,8 +814,8 @@
       "no_pct": true,
       "insight": "Weekly initial claims \u00b7 <250K=healthy \u00b7 >300K=stress \u00b7 leads unemployment 6-8wk",
       "current": "197,000",
-      "mo3": "231,000",
-      "mo12": "231,000",
+      "mo3": "236,000",
+      "mo12": "259,000",
       "trend": "\u25bc",
       "date": "Sep 19 2026",
       "sig": "4-wk avg: 202,250 | \u2705 Very tight labor -- consumer spending well supported; wage inflation risk remains"
@@ -926,9 +830,9 @@
       "group": "GROWTH",
       "insight": "Real GDP YoY \u00b7 >2%=above trend \u00b7 <1%=stagnation \u00b7 negative=recession",
       "current": "2.1%",
-      "mo3": "1.7%",
-      "mo12": "0.0%",
-      "trend": "\u25b2",
+      "mo3": "2.7%",
+      "mo12": "2.1%",
+      "trend": "\u25bc",
       "date": "Q2 2026",
       "sig": "\u2705 At/above trend growth -- healthy macro backdrop; not a headwind for mean reversion"
     },
