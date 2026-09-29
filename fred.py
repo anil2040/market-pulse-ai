@@ -7,13 +7,27 @@
 #   fetch_fred_data() -> list[dict]
 #
 # WHAT THIS DOES:
-#   Fetches all 15 macro series in parallel (20s timeout each).
+#   Fetches all 18 macro series in parallel (20s timeout each).
 #   Routes to the correct source per series id:
 #     _YAHOO_GCF     -> Yahoo Finance GC=F (gold futures)
 #     _SCRAPE_MULTPL -> multpl.com (Shiller CAPE)
 #     anything else  -> standard FRED API (limit=500, sort desc)
 #   Returns a list of enriched dicts with keys:
 #     label, id, group, current, mo3, mo12, trend, date, sig, insight
+#
+# DATE FORMAT:
+#   Daily series  (WTI, DXY, Gold): "Sep 26 2026" (day matters)
+#   Monthly series (PCE, CPI etc): "Jul 2026"     (month-level precision)
+#   Quarterly (GDPC1): "Q2 2026"                  (quarter label)
+#   Gold / CAPE: existing formats unchanged
+#
+# LEADING INDICATORS (added Sep 2026):
+#   ICSA  -- Initial Jobless Claims, weekly. Fastest labor leading signal.
+#            4-week moving average computed and shown in insight.
+#   NAPM  -- ISM Manufacturing PMI, monthly. Series ID unverified -- check
+#            FRED if this returns N/A (alternative: S&P Global PMI series).
+#   GDPC1 -- Real GDP, quarterly. YoY % computed (v0 vs 4q ago).
+#            Date shown as "Q2 2026" format. 3mo col = prior quarter's YoY.
 #
 # INSIGHT PHILOSOPHY (Sep 2026 rewrite):
 #   The 'sig' field shown in the Insights column must be INTERPRETIVE,
@@ -26,24 +40,10 @@
 # GOLD FIX (Sep 2026):
 #   GOLDAMGBD228NLBM discontinued by FRED in 2025 with no replacement.
 #   Now uses Yahoo Finance GC=F (Comex front-month futures).
-#   Tracks spot gold closely (~$5-10 spread) and updates daily.
 #
 # CAPE FIX (Sep 2026):
 #   SHILLER_CAPE was never a valid FRED series ID.
-#   FRED does not host Shiller CAPE. Now scraped from multpl.com
-#   which pulls directly from Shiller's Yale dataset, updates daily.
-#
-# COLOR LOGIC for trend arrows (what direction is GOOD for equities):
-#   INFLATION:     UP=red(bad)        DOWN=green(good)
-#   RATES:         UP=red(bad)        DOWN=green -- EXCEPT Yield Curve
-#   Yield Curve:   UP=green(steepen)  DOWN=red(flatten/invert)
-#   CREDIT:        UP=red(widen=bad)  DOWN=green(tighten=good)
-#   LABOR:         UP=red(unemp bad)  DOWN=green(tight labor)
-#   WTI:           UP=red(inflation)  DOWN=green
-#   GOLD:          UP=amber(ambiguous -- fear OR inflation signal)
-#   DXY:           UP=amber(helps US stocks, hurts intl ADRs)
-#   CONSUMER SENT: UP=green(confident) DOWN=red
-#   VALUATION/CAPE:UP=red(pricier)   DOWN=green(cheaper)
+#   FRED does not host Shiller CAPE. Now scraped from multpl.com.
 # ============================================================
 
 import os
@@ -102,6 +102,20 @@ FRED_SERIES = [
     {"label": "Shiller CAPE (US)",    "id": "_SCRAPE_MULTPL","is_index": False, "group": "VALUATION",
      "no_pct": True,
      "insight": "Cyclically Adj PE · 10yr smoothed · hist avg 17x · ~41 = 2nd highest ever"},
+    # ---- LEADING INDICATORS (added Sep 2026) ----
+    # ICSA: weekly initial jobless claims -- fastest real-time labor leading signal
+    {"label": "Jobless Claims (ICSA)", "id": "ICSA",         "is_index": False, "group": "LEADING",
+     "no_pct": True,
+     "insight": "Weekly initial claims · <250K=healthy · >300K=stress emerging · rising=labor cracking"},
+    # NAPM: ISM Manufacturing PMI -- leading indicator for cyclicals / industrials
+    # NOTE: Series ID "NAPM" should be verified in FRED. If N/A, check ISM direct or S&P Global PMI.
+    {"label": "ISM Mfg PMI",          "id": "NAPM",          "is_index": False, "group": "LEADING",
+     "no_pct": True,
+     "insight": "ISM Manufacturing · >50=expanding · <50=contracting · <45=broad stress"},
+    # GDPC1: Real GDP quarterly -- regime anchor, lagging but essential context
+    # Special handling: YoY % computed in _fetch_one_fred, date shown as "Q2 2026"
+    {"label": "GDP Growth YoY",       "id": "GDPC1",         "is_index": False, "group": "LEADING",
+     "insight": "Real GDP YoY · >2%=above trend · <1%=stagnation · negative=recession"},
 ]
 
 GROUP_META = {
@@ -113,6 +127,7 @@ GROUP_META = {
     "CURRENCY":       {"icon": "💵", "color": "#6366f1", "label": "Currency"},
     "SENTIMENT_FRED": {"icon": "🎭", "color": "#059669", "label": "Consumer Sentiment"},
     "VALUATION":      {"icon": "📐", "color": "#7c3aed", "label": "Valuation"},
+    "LEADING":        {"icon": "📡", "color": "#0891b2", "label": "Leading Indicators"},
 }
 
 
@@ -143,6 +158,17 @@ def trend_color(label, group, trend):
         return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
     elif group == "VALUATION":
         return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
+    elif group == "LEADING":
+        # Jobless Claims: rising = bad
+        if "Jobless" in label or "ICSA" in label:
+            return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
+        # ISM PMI: rising = good (expansion)
+        if "PMI" in label or "ISM" in label:
+            return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
+        # GDP: rising = good
+        if "GDP" in label:
+            return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
+        return "#6b7280"
     return "#6b7280"
 
 
@@ -197,7 +223,6 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
     except Exception:
         return ""
 
-    # Direction helpers -- used only to inform interpretation, not to display
     rising3  = cur > mo3  + 0.05
     falling3 = cur < mo3  - 0.05
     rising12 = cur > mo12 + 0.05
@@ -207,7 +232,6 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
     # ----------------------------------------------------------
 
     if label == "Core PCE":
-        # THE key number for the Fed
         above_pct = round((cur / 2.0 - 1) * 100)
         if cur <= 2.0:
             return "✅ Fed target achieved -- door open for cuts, tailwind for rate-sensitive equities"
@@ -260,9 +284,9 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
 
     elif label == "10Y Treasury":
         if cur >= 5.0 and rising3:
-            return "⚠️ Surging past 5% -- PE multiples compress mechanically, bond math now competes directly with equities"
+            return "⚠️ Surging past 5% -- PE multiples compress mechanically, bond math competes with equities"
         elif cur >= 5.0:
-            return "⚠️ Above 5% -- discount rate headwind is severe, especially for long-duration growth names"
+            return "⚠️ Above 5% -- discount rate headwind severe, especially for long-duration growth names"
         elif cur >= 4.5 and rising3:
             return "⚠️ Approaching levels where bonds compete with equities on yield -- watch spread compression"
         elif cur >= 4.0 and rising3:
@@ -414,7 +438,7 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
         pct   = round((cur / 17.0 - 1) * 100)
         ratio = round(cur / 17.0, 1)
         if cur >= 40:
-            return (f"⚠️ {ratio}x the 145yr avg -- only dot-com peak (44x) was higher; "
+            return (f"⚠️ {ratio}x the 145yr avg -- only dot-com peak (44.2x, Dec 1999) was higher; "
                     f"10yr forward returns historically near zero from this level")
         elif cur >= 35:
             return (f"⚠️ {pct}% above hist avg -- top decile of all valuations since 1881; "
@@ -425,7 +449,57 @@ def _insight(label, cur_str, mo3_str, mo12_str, trend):
             return f"→ Moderately above avg -- reasonable entry possible with strong Left Leg and MoS"
         return f"✅ Near or below hist avg 17x -- historically one of the most reliable buy signals"
 
-    # Fallback -- should never reach here if all 15 labels are matched above
+    # ----------------------------------------------------------
+    # LEADING INDICATORS GROUP
+    # ----------------------------------------------------------
+
+    elif label == "Jobless Claims (ICSA)":
+        # cur is the raw weekly claims number (e.g. 239000)
+        if cur >= 400000:
+            return "⚠️ Recession-territory claims -- labor market deteriorating rapidly, cyclical value traps ahead"
+        elif cur >= 350000:
+            return "⚠️ Elevated stress -- labor cracking 4-8 weeks before unemployment lags; watch cyclicals"
+        elif cur >= 300000 and rising3:
+            return "⚠️ Rising above 300K -- early labor softening signal; value trap risk in cyclicals growing"
+        elif cur >= 300000:
+            return "→ Above 300K threshold -- stress emerging but not accelerating; monitor weekly"
+        elif cur >= 250000 and rising3:
+            return "→ Trending higher from healthy range -- watch for 300K threshold breach"
+        elif cur <= 220000:
+            return "✅ Very tight labor -- consumer spending well supported; wage inflation risk remains"
+        return "✅ Healthy labor market -- no early recession warning from initial claims data"
+
+    elif label == "ISM Mfg PMI":
+        # cur is the PMI value (e.g. 50.3)
+        if cur >= 55 and rising3:
+            return "✅ Strong expansion -- cyclicals and industrials in earnings acceleration phase"
+        elif cur >= 50 and rising3:
+            return "✅ Expanding and accelerating -- beaten-down cyclicals may be turning; mean reversion window opening"
+        elif cur >= 50:
+            return "→ Still expanding but losing momentum -- watch for sub-50 contraction signal next month"
+        elif cur >= 45 and falling3:
+            return "⚠️ Contracting and deepening -- value trap risk for cheap cyclicals; wait for PMI inflection"
+        elif cur >= 45:
+            return "⚠️ Contracting -- bearish for industrials and cyclicals; cheap may get cheaper"
+        elif cur < 45:
+            return "⚠️ Deep contraction -- broad manufacturing stress; mean reversion in cyclicals requires patience"
+        return "→ Near the 50 expansion/contraction threshold -- direction is the key signal"
+
+    elif label == "GDP Growth YoY":
+        # cur is the YoY % change (e.g. 2.3)
+        if cur < 0:
+            return "⚠️ Recession -- GDP contracting; even cheap stocks face earnings deterioration risk"
+        elif cur < 1.0:
+            return "⚠️ Stagnation -- below-trend growth; mean reversion requires a macro catalyst to materialize"
+        elif cur < 2.0:
+            return "→ Below-trend growth -- recovery slow; value stocks can outperform in this sluggish regime"
+        elif cur >= 3.0 and rising3:
+            return "✅ Above-trend expansion accelerating -- strong backdrop for cyclical value recovery"
+        elif cur >= 2.0:
+            return "✅ At/above trend growth -- healthy macro backdrop; not a headwind for mean reversion"
+        return "→ Near trend -- neutral regime; macro not adding tailwind or headwind"
+
+    # Fallback -- should never reach here if all 18 labels are matched above
     return ""
 
 
@@ -438,6 +512,7 @@ def _fetch_one_fred(cfg, start_date, end_date):
     Fetch a single series. Routes based on id:
       _YAHOO_GCF     -> Yahoo Finance GC=F
       _SCRAPE_MULTPL -> multpl.com Shiller CAPE
+      GDPC1          -> quarterly GDP YoY (special handling)
       anything else  -> FRED API
     """
     label    = cfg["label"]
@@ -450,9 +525,6 @@ def _fetch_one_fred(cfg, start_date, end_date):
 
     # ----------------------------------------------------------
     # GOLD: Yahoo Finance GC=F
-    # GOLDAMGBD228NLBM discontinued by FRED in 2025.
-    # GC=F tracks spot gold closely, updates daily.
-    # range=400d gives ~280 trading days (enough for mo12_idx=260).
     # ----------------------------------------------------------
     if sid == "_YAHOO_GCF":
         try:
@@ -487,9 +559,6 @@ def _fetch_one_fred(cfg, start_date, end_date):
 
     # ----------------------------------------------------------
     # SHILLER CAPE: multpl.com
-    # FRED never hosted Shiller CAPE. SHILLER_CAPE was always invalid.
-    # multpl.com pulls from Shiller's Yale dataset, updates daily.
-    # #current div = today's value. datatable = historical monthly values.
     # ----------------------------------------------------------
     if sid == "_SCRAPE_MULTPL":
         try:
@@ -542,9 +611,10 @@ def _fetch_one_fred(cfg, start_date, end_date):
             return {**empty, "sig": f"CAPE multpl.com failed: {str(e)[:50]}"}
 
     # ----------------------------------------------------------
-    # STANDARD FRED API (all other 13 series)
+    # STANDARD FRED API (all other series)
     # limit=500 handles both daily (WTI, DXY) and monthly series.
     # Auto-detects daily vs monthly by date gap between obs[0..1].
+    # GDPC1 (quarterly GDP) has special YoY handling below.
     # ----------------------------------------------------------
     try:
         url  = (
@@ -567,6 +637,46 @@ def _fetch_one_fred(cfg, start_date, end_date):
             except Exception:
                 is_daily = False
 
+        # ── GDPC1: quarterly GDP YoY special handling ──────────────────────
+        # Standard monthly logic gives mo12_idx=12 = 3 years back. Wrong.
+        # We need v0 vs 4 quarters ago for true YoY.
+        # 3mo col = prior quarter's YoY. 12mo col = 2yr ago YoY for trend context.
+        # Date shown as "Q2 2026" (quarter label) not a day-level date.
+        if sid == "GDPC1":
+            n = len(obs)
+            if n < 5:
+                return {**empty, "sig": "GDP: insufficient observations"}
+            try:
+                v0  = float(obs[0]["value"])
+                v1q = float(obs[min(1, n-1)]["value"])
+                v4q = float(obs[min(4, n-1)]["value"])
+                v5q = float(obs[min(5, n-1)]["value"])
+                v8q = float(obs[min(8, n-1)]["value"]) if n > 8 else v4q
+
+                if not v4q:
+                    return {**empty, "sig": "GDP: zero value in denominator"}
+
+                yoy_cur = (v0  - v4q) / v4q * 100
+                yoy_1q  = (v1q - v5q) / v5q * 100 if v5q else yoy_cur
+                yoy_2yr = (v4q - v8q) / v8q * 100 if v8q else yoy_cur
+
+                dc    = f"{yoy_cur:.1f}%"
+                dm3   = f"{yoy_1q:.1f}%"
+                dm12  = f"{yoy_2yr:.1f}%"
+                trend = ("▲" if yoy_cur > yoy_1q + 0.1
+                         else "▼" if yoy_cur < yoy_1q - 0.1 else "→")
+
+                pub_dt  = datetime.strptime(obs[0]["date"], "%Y-%m-%d")
+                quarter = (pub_dt.month - 1) // 3 + 1
+                pub     = f"Q{quarter} {pub_dt.year}"
+
+                sig = _insight(label, dc, dm3, dm12, trend)
+                return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12,
+                        "trend": trend, "date": pub, "sig": sig}
+            except Exception as e:
+                return {**empty, "sig": f"GDP: {str(e)[:60]}"}
+
+        # ── Standard index / rate / value series ───────────────────────────
         if is_daily:
             mo3_idx  = min(65,  len(obs) - 1)
             mo12_idx = min(260, len(obs) - 1)
@@ -607,8 +717,22 @@ def _fetch_one_fred(cfg, start_date, end_date):
             dm12  = f"{v12:.2f}%"
             trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
 
-        pub = datetime.strptime(obs[0]["date"], "%Y-%m-%d").strftime("%b %d %Y")
+        # Date format: daily series show day-level; monthly show month-year only
+        if is_daily:
+            pub = datetime.strptime(obs[0]["date"], "%Y-%m-%d").strftime("%b %d %Y")
+        else:
+            pub = datetime.strptime(obs[0]["date"], "%Y-%m-%d").strftime("%b %Y")
+
         sig = _insight(label, dc, dm3, dm12, trend)
+
+        # ICSA: prefix insight with 4-week moving average for trend context
+        if sid == "ICSA" and len(obs) >= 4:
+            try:
+                ma4 = round(sum(float(obs[i]["value"]) for i in range(4)) / 4)
+                sig = f"4-wk avg: {ma4:,.0f} | {sig}"
+            except Exception:
+                pass
+
         return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12,
                 "trend": trend, "date": pub, "sig": sig}
 
@@ -622,8 +746,9 @@ def _fetch_one_fred(cfg, start_date, end_date):
 
 def fetch_fred_data():
     """
-    Fetch all 15 FRED series in parallel (20s timeout per call).
+    Fetch all 18 FRED series in parallel (20s timeout per call).
     Gold routes to Yahoo GC=F, CAPE routes to multpl.com.
+    GDPC1 uses quarterly YoY special handling.
     Returns list of enriched dicts in FRED_SERIES definition order.
     """
     print("\n🏦 Fetching FRED macro indicators (parallel, 20s timeout)...")
@@ -631,7 +756,7 @@ def fetch_fred_data():
     start = (date.today() - timedelta(days=460)).strftime("%Y-%m-%d")
     rmap  = {}
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=15) as ex:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=18) as ex:
         futs = {ex.submit(_fetch_one_fred, cfg, start, end): cfg for cfg in FRED_SERIES}
         for f in concurrent.futures.as_completed(futs):
             r    = f.result()

@@ -21,22 +21,50 @@
 #   this provides today's context. When stale, it is included
 #   with a staleness note so the AI can weight it accordingly.
 #
-# FALLBACK CHAIN:
-#   1. gemini-3.6-flash  (free, 20 RPD confirmed from AI Studio dashboard)
+# FALLBACK CHAIN (one attempt per model, no retries):
+#   1. gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard)
 #   2. gemini-3.5-flash  (free, 1,500 RPD -- confirmed stable Sep 2026)
 #   3. claude-haiku-4-5  (paid ~$0.01-0.02/run -- varies with prompt size)
 #   4. structured text   (always works, no AI narrative)
+#   No retries within any model. No Sonnet in chain.
+#   Blank response (empty/whitespace) treated as failure, falls through.
 #
 # GEMINI API NOTE:
 #   Uses generate_content (legacy but fully supported, stable, low latency).
-#   interactions.create is the new API but had 90s+ timeout issues in production.
+#   interactions.create had 90s+ timeout issues -- do not use.
 #   google.genai SDK: client.models.generate_content(model, contents=[prompt])
+#
+# 90-SECOND TIMEOUT:
+#   Implemented via concurrent.futures fut.result(timeout=90).
+#   If a model call hangs, TimeoutError is caught and next model is tried.
+#   Blank responses also treated as failure and fall through.
+#
+# ERROR LOGGING:
+#   Full exception type, HTTP status code (where SDK exposes it), and full
+#   message logged to GitHub Actions. No truncation. Makes quota exhaustion,
+#   model errors, and auth failures immediately readable in the run log.
+#
+# TEXT LIMITS IN PROMPT (raised from original 800/600/600):
+#   EJ: 1500 chars  |  CNBC: 1200 chars  |  Yahoo Brief: 1200 chars
+#   Log line prints when text is truncated -- visible in Actions.
+#   Yahoo Brief IMAP fetch uses char_limit=None (full email) so nothing
+#   is lost before the prompt slicing.
+#
+# VALUE SCREENS NOT IN PROMPT (intentional):
+#   si_tickers, mf_list, am_list are accepted as parameters for signature
+#   compatibility with main.py but are NOT sent to the AI model.
+#   Screens data belongs in the dashboard chips and Chrome extension div,
+#   not in the macro briefing. Removing them keeps the AI focused on
+#   macro interpretation and saves ~250 input tokens per run.
+#
+# TWO-COLUMN LAYOUT -- BALANCED AT MAX 5 BULLETS EACH:
+#   MARKET AND MACRO: max 5 bullets (left column)
+#   WHAT TO WATCH:    max 5 bullets (right column)
 #
 # HAIKU COST NOTE (confirmed from Anthropic dashboard Sep 2026):
 #   Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
 #   Observed range: $0.008 (light day) to $0.015 (heavy news day)
-#   Token count varies because prompt includes news email + calendar + FRED block.
-#   Cost is logged with actual token counts from message.usage each run.
+#   Cost logged with actual token counts from message.usage each run.
 # ============================================================
 
 import os
@@ -104,7 +132,7 @@ def _call_haiku(prompt):
         )
         if resp.status_code != 200:
             raise Exception(
-                f"Anthropic API error {resp.status_code}: {resp.text[:200]}")
+                f"Anthropic API HTTP {resp.status_code}: {resp.text[:500]}")
         data    = resp.json()
         in_tok  = data.get("usage", {}).get("input_tokens", 0)
         out_tok = data.get("usage", {}).get("output_tokens", 0)
@@ -130,7 +158,6 @@ def _format_routine_block(routine_data, routine_fresh):
              f"NOT today. Weight accordingly but do not ignore.\n"
     )
 
-    # Futures
     futures = routine_data.get("futures", {})
     sp5     = futures.get("sp500",     {})
     nq      = futures.get("nasdaq100", {})
@@ -147,17 +174,14 @@ def _format_routine_block(routine_data, routine_fresh):
     futures_str = (f"S&P {fmt_future(sp5)} | Nasdaq {fmt_future(nq)} | "
                    f"Dow {fmt_future(dw)} | Sentiment: {sent.upper()}")
 
-    # Rates & commodities
     rc    = routine_data.get("rates_commodities", {})
     t10y  = rc.get("treasury_10yr_pct", "N/A")
     crude = rc.get("crude_oil_usd", "N/A")
     ctype = rc.get("crude_oil_type", "WTI")
 
-    # Macro events
     events     = routine_data.get("macro_events", [])
     events_str = " / ".join(events) if events else "None reported"
 
-    # Sector movers
     sm      = routine_data.get("sector_movers", {})
     leaders = sm.get("leading", [])
     laggers = sm.get("lagging", [])
@@ -172,7 +196,6 @@ def _format_routine_block(routine_data, routine_fresh):
             parts.append(f"{name} {chg_str} ({reason})")
         return " | ".join(parts) if parts else "N/A"
 
-    # Global markets
     gm     = routine_data.get("global_markets", {})
     europe = gm.get("europe", {})
     asia   = gm.get("asia",   {})
@@ -186,10 +209,8 @@ def _format_routine_block(routine_data, routine_fresh):
         chg_str   = f"{chg:+.2f}%" if isinstance(chg, (int, float)) else str(chg)
         return f"{idx} {chg_str} ({direction})"
 
-    # Open focus
     open_focus = routine_data.get("open_focus", "")
 
-    # ETF PE (for reference -- market.py already consumed these)
     etf_pe  = routine_data.get("etf_pe", {})
     urth_pe = etf_pe.get("URTH", {}).get("pe_ttm", "N/A")
     efa_pe  = etf_pe.get("EFA",  {}).get("pe_ttm", "N/A")
@@ -223,6 +244,10 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
     routine_fresh: True if routine date matches today MT
     Returns (briefing_str, ai_failed_bool).
     ai_failed=True means structured fallback was used (no AI narrative).
+
+    NOTE: si_tickers, mf_list, am_list are accepted for signature compatibility
+    but are NOT included in the AI prompt. Screen data belongs in the dashboard
+    chips and Chrome extension div -- not in the macro briefing.
     """
     print("\n🤖 Sending to AI synthesis...")
 
@@ -234,33 +259,35 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
         for r in fred_data if r["current"] != "N/A"
     ])
 
-    # mf_list: [(ticker, rank), ...] -- convert to set for membership tests
-    # am_list: [(ticker, multiple_str), ...] -- convert to dict for lookup
-    mf_set  = {t for t, _ in mf_list}
-    am_dict = dict(am_list)  # ticker -> multiple_str
-
-    all_tickers = sorted(set(si_tickers.keys()) | mf_set | set(am_dict.keys()))
-    overlap = []
-    for t in all_tickers:
-        tags = []
-        if si_tickers.get(t, 0) > 0: tags.append(f"{si_tickers[t]}SI")
-        if t in mf_set:               tags.append("MF")
-        if t in am_dict:              tags.append("AM")
-        if len(tags) >= 2:
-            overlap.append(f"{t}({','.join(tags)})")
-
     cape_val = next(
         (r["current"] for r in fred_data if r["label"] == "Shiller CAPE (US)"), "N/A")
-    urth_str = f"URTH(MSCI World incl US) PE: {mkt_data.get('urth_pe', 'N/A')}x"
-    efa_str  = f"EFA(MSCI EAFE ex-US) PE: {mkt_data.get('efa_pe', 'N/A')}x"
+    urth_str = f"MSCI World P/E (URTH, incl US): {mkt_data.get('urth_pe', 'N/A')}x"
+    efa_str  = f"ex-US Developed P/E (EFA, MSCI EAFE): {mkt_data.get('efa_pe', 'N/A')}x"
 
     routine_block = _format_routine_block(routine_data, routine_fresh)
 
-    # Calendar block for prompt
     calendar_block = ""
     if yahoo_calendar and len(yahoo_calendar.strip()) > 50:
         calendar_block = (f"\nWEEK AHEAD (from Yahoo Morning Brief -- use specific dates):\n"
                           f"{yahoo_calendar[:2000]}")
+
+    # ── Text limits with log notes ──────────────────────────────────────────
+    # Raised from original 800/600/600. Log lines visible in GitHub Actions
+    # when text is actually truncated so nothing is silently lost.
+    _EJ_LIMIT    = 1500
+    _CNBC_LIMIT  = 1200
+    _YAHOO_LIMIT = 1200
+
+    ej_trimmed    = ej_text   [:_EJ_LIMIT]
+    cnbc_trimmed  = cnbc_text [:_CNBC_LIMIT]
+    yahoo_trimmed = yahoo_text[:_YAHOO_LIMIT]
+
+    if len(ej_text)    > _EJ_LIMIT:
+        print(f"  [AI] Prompt: EJ news truncated {len(ej_text)} -> {_EJ_LIMIT} chars")
+    if len(cnbc_text)  > _CNBC_LIMIT:
+        print(f"  [AI] Prompt: CNBC truncated {len(cnbc_text)} -> {_CNBC_LIMIT} chars")
+    if len(yahoo_text) > _YAHOO_LIMIT:
+        print(f"  [AI] Prompt: Yahoo Brief truncated {len(yahoo_text)} -> {_YAHOO_LIMIT} chars")
 
     prompt = f"""You are a sharp financial analyst writing a morning briefing for a
 deep-value mean reversion investor (Greenblatt, Carlisle, Howard Marks, Burry, Pabrai
@@ -275,9 +302,9 @@ AI LEARNING
 
 CRITICAL RULES -- READ CAREFULLY:
 
-1. DO NOT restate raw indicator numbers. VIX, SPX %, CAPE, MHS score, F&G score --
-   these are already shown in the dashboard tables. The investor sees them before
-   reading your briefing. Repeating them is noise.
+1. DO NOT restate raw indicator numbers. VIX, SPX %, CAPE, Macro Heat Score,
+   Fear & Greed score -- these are already shown in the dashboard tables. The
+   investor sees them before reading your briefing. Repeating them is noise.
 
 2. INTERPRET, do not describe. Instead of "VIX is 15 indicating calm markets",
    say what that calm means for a value investor today given everything else --
@@ -287,19 +314,18 @@ CRITICAL RULES -- READ CAREFULLY:
 3. Look for TENSIONS and CONFIRMATIONS between signals. When two indicators
    point different directions (e.g. credit spreads tight but gold rising),
    name the tension and what it might mean. When multiple signals align
-   (e.g. CAPE extreme AND ERP negative AND F&G fear), say what that
-   combination historically implies.
+   (e.g. CAPE extreme AND ERP negative AND Fear & Greed in greed), say what
+   that combination historically implies.
 
-4. MARKET AND MACRO: Your primary section. 6-8 bullets. Synthesize the
-   FRED/MHS macro picture WITH the pre-market intelligence (futures, sectors,
-   global moves, open focus). Surface what the COMBINATION means.
+4. MARKET AND MACRO: Max 5 bullets. Synthesize the FRED/macro picture WITH
+   the pre-market intelligence (futures, sectors, global moves, open focus).
+   Surface what the COMBINATION means.
    If there is a key macro event this week (Fed decision, CPI, jobs),
    mention it here with the date and its implications.
 
-5. WHAT TO WATCH: 3-4 bullets. Actionable mean reversion lens.
-   Reference specific tickers from high-conviction screens where relevant.
+5. WHAT TO WATCH: Max 5 bullets. Actionable mean reversion lens.
    Name the macro trip wires -- what data prints or events would shift
-   the MHS meaningfully up or down?
+   the Macro Heat Score meaningfully up or down?
 
 6. AI FUN FACT: 1 surprising fact about AI, markets, or investing history.
    Max 25 words. Not about the current data.
@@ -311,23 +337,20 @@ CRITICAL RULES -- READ CAREFULLY:
 
 DATA (for interpretation -- do NOT repeat these numbers verbatim):
 
-MHS: {mhs['score']}/100 -- {mhs['label']} | Posture: {mhs['action']}
+MACRO HEAT SCORE: {mhs['score']}/100 -- {mhs['label']} | Posture: {mhs['action']}
 VALUATION: US CAPE={cape_val} (hist avg 17x) | {urth_str} | {efa_str}
 MARKET PULSE: {mkt_data['pulse']}
 
 MACRO INDICATORS:
 {fred_summary}
 
-HIGH CONVICTION SCREENS (2+ screens overlap):
-{', '.join(overlap[:15]) if overlap else 'None today'}
-
 {routine_block}
 {calendar_block}
 
 NEWS SOURCES (for macro context -- no stock-specific stories):
-EDWARD JONES: {ej_text[:800]}
-CNBC SQUAWK: {cnbc_text[:600]}
-YAHOO BRIEF: {yahoo_text[:600]}
+EDWARD JONES: {ej_trimmed}
+CNBC SQUAWK: {cnbc_trimmed}
+YAHOO BRIEF: {yahoo_trimmed}
 """
 
     models_to_try = [
@@ -346,24 +369,40 @@ YAHOO BRIEF: {yahoo_text[:600]}
                 fut    = ex.submit(call_fn)
                 result = fut.result(timeout=90)
 
+            # Extract text from result
             if model_id == "claude-haiku-4-5":
-                # _call_haiku returns (text, in_tokens, out_tokens)
                 briefing, in_tok, out_tok = result
+            else:
+                briefing = result
+
+            # Blank response = failure -- fall through to next model
+            if not briefing or not briefing.strip():
+                raise ValueError("Blank response returned (0 usable chars)")
+
+            # Log success
+            if model_id == "claude-haiku-4-5":
                 cost = (in_tok * 1.00 + out_tok * 5.00) / 1_000_000
                 print(f"  ✅ Claude Haiku used as fallback: {len(briefing)} chars")
                 print(f"  💰 Cost: ~${cost:.4f} "
                       f"(input {in_tok:,} tokens + output {out_tok:,} tokens)")
             else:
-                # Gemini returns plain text string
-                briefing = result
                 print(f"  ✅ {model_name}: {len(briefing)} chars")
 
             return briefing, False
 
         except concurrent.futures.TimeoutError:
-            print(f"  ⚠️ {model_name} timed out (>90s)")
+            print(f"  ⚠️ {model_name} timed out after 90s -- trying next model")
         except Exception as e:
-            print(f"  ⚠️ {model_name} failed: {str(e)[:100]}")
+            err_type = type(e).__name__
+            err_msg  = str(e)
+            # Extract HTTP/gRPC status code from SDK exceptions where available
+            # Gemini uses e.code (google.api_core.exceptions)
+            # Anthropic SDK uses e.status_code
+            status   = getattr(e, "status_code", None) or getattr(e, "code", None)
+            if status:
+                print(f"  ⚠️ {model_name} FAILED: {err_type} | HTTP {status} | {err_msg}")
+            else:
+                print(f"  ⚠️ {model_name} FAILED: {err_type} | {err_msg}")
 
     print("  ❌ All AI models failed -- using structured fallback")
     fallback = """MARKET AND MACRO
@@ -371,8 +410,8 @@ YAHOO BRIEF: {yahoo_text[:600]}
 - All data sections below are complete and current -- no data loss
 
 WHAT TO WATCH
-- Review MHS score and FRED indicator table -- all data is fresh
-- High-conviction tickers (2+ screens) are listed in Value Screens section below
+- Review Macro Heat Score and FRED indicator table -- all data is fresh
+- Value screen chips in the screens section show current conviction tickers
 
 AI FUN FACT
 - Shiller CAPE above 40x has occurred only twice in 145 years: 1999 and today.
@@ -402,8 +441,8 @@ def parse_sections(text):
     for line in text.splitlines():
         up  = line.upper().strip()
         cln = re.sub(r"^\d+[\.\)]\s*", "", up)
-        cln = re.sub(r"^#+\s*",        "", cln)
-        cln = re.sub(r"^\*+\s*",       "", cln)
+        cln = re.sub(r"^#+\s*",         "", cln)
+        cln = re.sub(r"^\*+\s*",        "", cln)
         cln = cln.encode("ascii", "ignore").decode().strip()
 
         if   "MARKET AND MACRO"  in cln: current = "MARKET AND MACRO"; continue

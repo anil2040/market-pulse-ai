@@ -373,18 +373,50 @@ def _build_screens_html(si_tickers, mf_list, am_list):
     )
     return html, all3, two3, si_only_filtered, mf_only_order, am_only_order
 
+
+
+# ============================================================
+# CHROME EXTENSION FULL LIST FORMATTERS
+# Used by _build_market_context to produce the three full lists
+# that the Chrome extension reads for stock-specific analysis.
+# ============================================================
+
+def _tlist_mf_full(lst):
+    """Full Magic Formula list: 'ANF #1|ADBE #2|...' -- all ranked tickers."""
+    if not lst:
+        return "none"
+    return "|".join(f"{t} #{r}" for t, r in lst)
+
+
+def _tlist_am_full(lst):
+    """Full Acquirer's Multiple list: 'SYF 2.50x|EQNR 3.40x|...' -- all by multiple."""
+    if not lst:
+        return "none"
+    return "|".join(f"{t} {m}x" if m not in ("-", "") else t for t, m in lst)
+
+
+def _tlist_si_full(si_d):
+    """Full super-investors list by count desc: 'CTSH 5|BBY 4|CI 3|...'"""
+    if not si_d:
+        return "none"
+    sorted_si = sorted(si_d.items(), key=lambda x: -x[1])
+    return "|".join(f"{t} {cnt}" for t, cnt in sorted_si if cnt > 0)
+
 # ============================================================
 # MARKET CONTEXT STRING (hidden div for Chrome extension)
 # ============================================================
 
 def _build_market_context(fred_data, fg_data, mkt_data, mhs,
-                           si_tickers, mf_only, am_only,
+                           si_tickers, mf_list, am_list,
+                           mf_only, am_only,
                            all3, two3, si_only,
                            cape_val, urth_disp, efa_disp,
                            erp, cape_yield, ten_y_rate):
     """
-    mf_only: list of (ticker, rank) tuples
-    am_only: list of (ticker, multiple_str) tuples
+    mf_list:  full ordered (ticker, rank) list from Magic Formula
+    am_list:  full ordered (ticker, multiple_str) list from Acquirer's Multiple
+    mf_only:  (ticker, rank) tuples not in SI or AM
+    am_only:  (ticker, multiple_str) tuples not in SI or MF
     """
     def _ctx(lbl, short):
         r = next((x for x in fred_data if x["label"] == lbl), None)
@@ -431,9 +463,12 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
         f"|EFA_PE={efa_disp}(ExUSdeveloped){erp_ctx}\n"
         f"SCREENS_ALL3(highest_conviction):{tlist(all3)}\n"
         f"SCREENS_2OF3(strong_convergence):{tlist(two3)}\n"
-        f"SCREENS_SI_ONLY(13F_3plus_managers):{tlist(si_only, si_tickers)}\n"
-        f"SCREENS_MF_ONLY(Greenblatt_MagicFormula):{tlist(mf_only)}\n"
-        f"SCREENS_AM_ONLY(Carlisle_AcquirersMultiple):{tlist(am_only)}"
+        f"SCREENS_SUPER_INVESTORS_ONLY(Dataroma_13F_3plus_managers):{tlist(si_only, si_tickers)}\n"
+        f"SCREENS_MAGIC_FORMULA_ONLY(Greenblatt_not_in_SI_or_AM):{tlist(mf_only)}\n"
+        f"SCREENS_ACQUIRERS_MULTIPLE_ONLY(Carlisle_not_in_SI_or_MF):{tlist(am_only)}\n"
+        f"MAGIC_FORMULA_FULL(all_ranked,Greenblatt_earnings_yield_plus_ROIC):{_tlist_mf_full(mf_list)}\n"
+        f"ACQUIRERS_MULTIPLE_FULL(all_by_multiple,Carlisle_EV_over_EBIT):{_tlist_am_full(am_list)}\n"
+        f"SUPER_INVESTORS_FULL(all_by_count,Dataroma_13F_quarterly):{_tlist_si_full(si_tickers)}"
     )
 
 # ============================================================
@@ -850,7 +885,7 @@ def _build_mhs_history_chart(cache):
 <div style="margin-top:12px;padding-top:10px;border-top:1px solid #e5e7eb;">
   <div style="font-size:.6rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
               color:#6b7280;margin-bottom:4px;">
-    MHS TREND ({days_shown}d) &nbsp;·&nbsp;
+    Trend ({days_shown}d) &nbsp;·&nbsp;
     <span style="color:#b45309;">orange = 20-day avg</span> &nbsp;·&nbsp;
     <span style="color:#1a56db;">blue = daily</span>
   </div>
@@ -1229,30 +1264,27 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 
     valuation_block = f"""
 <div class="card" style="margin-bottom:12px;border-left:4px solid #7c3aed;">
-  <h2>📐 Global Market Valuation
-    <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-      Shiller CAPE (US) = 10yr smoothed (multpl.com) · URTH/EFA PE: {pe_src_note}
-    </span>
-  </h2>
+  <h2>📐 Global Market Valuation</h2>
   {routine_stale_banner}
   <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:10px;">
     <div style="text-align:center;padding:10px;background:#fdf4ff;border-radius:8px;border:1px solid #e9d5ff;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-                  color:#7c3aed;margin-bottom:4px;">Shiller CAPE (US)</div>
+                  color:#7c3aed;margin-bottom:4px;">US Market P/E (Shiller CAPE)</div>
       <div style="font-size:1.8rem;font-weight:800;color:{cape_color};">{cape_val}</div>
       <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Hist avg 17x · 2nd highest ever</div>
+      <div style="font-size:.58rem;color:#9ca3af;margin-top:1px;">(dot-com peak: Dec 1999 at 44.2x)</div>
       <div style="font-size:.6rem;color:{cape_color};margin-top:2px;font-weight:600;">{cape_status}</div>
     </div>
     <div style="text-align:center;padding:10px;background:#f0fdf4;border-radius:8px;border:1px solid #bbf7d0;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-                  color:#059669;margin-bottom:4px;">URTH (MSCI World)</div>
+                  color:#059669;margin-bottom:4px;">MSCI World P/E (URTH)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#059669;">{urth_disp}{urth_note}</div>
       <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">incl ~70% US · trailing PE</div>
       <div style="font-size:.6rem;color:#059669;margin-top:2px;font-weight:600;">GLOBAL BLEND</div>
     </div>
     <div style="text-align:center;padding:10px;background:#eff6ff;border-radius:8px;border:1px solid #bfdbfe;">
       <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-                  color:#1a56db;margin-bottom:4px;">EFA (ex-US Developed)</div>
+                  color:#1a56db;margin-bottom:4px;">ex-US Dev. P/E (EFA)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#057a55;">{efa_disp}{efa_note}</div>
       <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Europe/Japan/Aus · trailing PE</div>
       <div style="font-size:.6rem;color:#057a55;margin-top:2px;font-weight:600;">SIGNIFICANTLY CHEAPER</div>
@@ -1289,7 +1321,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     # Market context for Chrome extension
     mctx = _build_market_context(
         fred_data, fg_data, mkt_data, mhs,
-        si_tickers, mf_only, am_only,
+        si_tickers, mf_list, am_list,
+        mf_only, am_only,
         all3, two3, si_only,
         cape_val, urth_disp, efa_disp, erp, cape_yield, ten_y_rate,
     )
@@ -1396,7 +1429,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 
   <!-- 3. MHS -- macro posture, sets the decision framework -->
   <div class="card" style="margin-bottom:12px;border-left:4px solid {mhs_col};">
-    <h2>🌡 MHS · Macro Heat Score</h2>
+    <h2>🌡 Macro Heat Score</h2>
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
       <div style="flex-shrink:0;">
         <div style="font-size:.58rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
@@ -1464,22 +1497,28 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     </div>
   </div>
 
-  <!-- 7. Value Screens -- who to look at -->
+  <!-- 7. Value Screens -- collapsed by default, click header to expand -->
   <div class="card ab" style="margin-bottom:12px;">
-    <h2>📋 Value Screens
-      <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-        SI=Superinvestors 13F (3+ managers, ~45d lag) ·
-        MF=Greenblatt Magic Formula (daily) ·
-        AM=Carlisle Acquirer's Multiple (daily)
-      </span>
-    </h2>
-    {screens_html}
-    <div style="font-size:.67rem;color:#6b7280;background:#f0f9ff;border-radius:5px;
-                padding:6px 10px;line-height:1.6;margin-top:8px;">
-      <strong>How to use:</strong> Blue (All 3) = highest conviction.
-      Green (2 of 3) = strong convergence. Sorted by MF rank then AM multiple.
-      Cross-reference with Finviz. Left Leg &lt;4 + MoS &gt;25% = strong setup.
-      13F lag: ~45 days after quarter end. MF and AM update daily.
+    <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;
+                padding-bottom:7px;border-bottom:2px solid var(--border);margin-bottom:0;"
+         onclick="var b=document.getElementById('screens-body');var tog=document.getElementById('screens-tog');var vis=b.style.display!=='none';b.style.display=vis?'none':'block';tog.textContent=vis?'\u25b6 Expand':'\u25bc Collapse';">
+      <h2 style="margin:0;padding:0;border-bottom:none;">📋 Value Screens
+        <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
+          SI = super-investors 13F (3+ managers, ~45d lag) ·
+          MF = Magic Formula (daily) · AM = Acquirer's Multiple (daily)
+        </span>
+      </h2>
+      <span id="screens-tog" style="font-size:.72rem;color:#6b7280;white-space:nowrap;flex-shrink:0;margin-left:8px;">▶ Expand</span>
+    </div>
+    <div id="screens-body" style="display:none;margin-top:9px;">
+      {screens_html}
+      <div style="font-size:.67rem;color:#6b7280;background:#f0f9ff;border-radius:5px;
+                  padding:6px 10px;line-height:1.6;margin-top:8px;">
+        <strong>How to use:</strong> Blue (All 3) = highest conviction.
+        Green (2 of 3) = strong convergence. Sorted by Magic Formula rank then Acquirer's Multiple.
+        Cross-reference with Finviz. Left Leg &lt;4 + MoS &gt;25% = strong setup.
+        13F lag: ~45 days after quarter end. Magic Formula and Acquirer's Multiple update daily.
+      </div>
     </div>
   </div>
 
@@ -1487,8 +1526,8 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   <div class="card" style="margin-bottom:12px;">
     <h2>🏦 Macro Indicators
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-        sparkline = 12mo → 3mo → today · green=good / red=bad for equities ·
-        ⚠️ in Insights = interpretive signal · amber pill = cached (live FRED fetch failed)
+        sparkline = 12mo → 3mo → today · green = good for equities · red = bad ·
+        ⚠️ = interpretive insight · 🟡 = cached (2+ days old)
       </span>
     </h2>
     <div style="overflow-x:auto;">
