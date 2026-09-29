@@ -1,4 +1,4 @@
-# Mean Reversion Macro Insights -- Session Log 13
+# Mean Reversion Macro Insights -- Session Log 14
 
 Paste this file at the start of any new session so Claude has full context.
 No need to summarize the previous chat.
@@ -44,15 +44,22 @@ Do NOT paste all modules at once -- that blows the context window immediately.
 
 ## CODING REQUIREMENTS (permanent, apply every session)
 
-1. **ALWAYS provide full file rewrites.** Never provide partial diffs, find/replace patches,
-   or section snippets. Always output the complete file content so Anil can paste and save
-   without any manual merging. Partial patches have caused errors and wasted tokens.
+1. **ALWAYS provide full file rewrites** for all modules EXCEPT html_builder.py.
+   Never provide partial diffs, find/replace patches, or section snippets.
+   Always output the complete file content so Anil can paste and save without merging.
+   Partial patches have caused errors and wasted tokens.
 
-2. **One file at a time.** If multiple files need changes, do them sequentially, one complete
-   file per response. Do not batch multiple files into one response.
+2. **html_builder.py exception:** At 1561+ lines, full rewrites are error-prone.
+   Use targeted Python string replacement scripts run in bash -- they are safer,
+   verifiable with per-change confirmation prints, and syntax-checked after.
+   Confirm each replacement succeeded before presenting the output file.
 
-3. **Confirm understanding before writing code.** State which file you are about to rewrite
-   and what changes you are making, then write the full file.
+3. **One file at a time.** If multiple files need changes, do them sequentially,
+   one complete file (or one replacement script) per response.
+   Do not batch multiple files into one response.
+
+4. **Confirm understanding before writing code.** State which file you are about to
+   rewrite and what changes you are making, then write the full file.
 
 ---
 
@@ -65,7 +72,7 @@ Do NOT paste all modules at once -- that blows the context window immediately.
 - **Local:** VS Code on Windows 11 Home (never give Mac instructions or shortcuts)
 - **Schedule:** GitHub Actions cron `50 13 * * 1-5` (7:50 AM MT weekdays) + workflow_dispatch
 - **Cron drift:** 7:50 AM cron typically starts at 7:58-8:00 AM -- normal GitHub behavior, not a bug
-- **Runtime:** ~40-45 seconds, 15/15 indicators, well within free tier limits
+- **Runtime:** ~36 seconds, 17/17 indicators (as of Sep 28 2026)
 
 **9 GitHub Secrets (all confirmed set):**
 GEMINI_API_KEY, ANTHROPIC_API_KEY, YAHOO_EMAIL, YAHOO_APP_PASSWORD,
@@ -74,7 +81,7 @@ FRED_API_KEY, MFI_EMAIL, MFI_PASSWORD, AM_EMAIL, AM_PASSWORD
 **Pipeline order (main.py) -- runs weekdays only via cron:**
 ```
 Step 0:  load_claude_routine    (clauderoutinedata.json, written 7:44am MT by Claude Routine)
-Step 1:  fetch_fred_data
+Step 1:  fetch_fred_data        (17 indicators -- 15 original + ICSA + GDPC1)
 Step 2:  fetch_fear_greed
 Step 3:  fetch_market_indicators (uses routine PE as priority 0)
 Step 4:  compute_mhs + _append_mhs_history (writes to run_cache.json)
@@ -98,12 +105,12 @@ Stale content on weekends is expected (no pipeline run).
 
 | File | Lines | Responsibility |
 |---|---|---|
-| fred.py | ~503 | FRED API, Gold (Yahoo GC=F), CAPE (multpl.com), trend colors, sparklines, interpretive insights |
+| fred.py | ~550 | FRED API, Gold (Yahoo GC=F), CAPE (multpl.com), ICSA (LABOR), GDPC1 (GROWTH), trend colors, sparklines, interpretive insights |
 | market.py | ~320 | Yahoo SPX/RUT/VIX, Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | ~350 | Dataroma 13F cache+live, Magic Formula (ordered list+rank), Acquirer's Multiple (ordered list+multiple) |
 | news.py | ~282 | Edward Jones scrape, CNBC/Yahoo IMAP email, Yahoo calendar extractor |
-| ai_synthesis.py | ~423 | Gemini 3.6 flash -> 3.5 flash -> Haiku -> structured fallback, 4 sections, routine context in prompt |
-| html_builder.py | ~1561 | Full dashboard HTML, gauge cards, MHS history chart, 5-day calendar, conviction chips |
+| ai_synthesis.py | ~380 | Gemini 3.6 flash -> 3.5 flash -> Haiku -> structured fallback, 4 sections, routine context in prompt |
+| html_builder.py | ~1580 | Full dashboard HTML, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card, GROWTH section |
 | main.py | ~580 | Orchestrator -- imports all modules, runs pipeline, MHS history append, weekly calendar cache |
 | debug_etf_pe.py | 214 | Quarterly diagnostic -- run manually to re-audit PE sources |
 
@@ -119,6 +126,12 @@ Quiet footnote link remains. Check manually at aaii.com every Thursday.
 **Shiller CAPE:** multpl.com scrape (FRED never hosted this series).
 multpl.com updates monthly -- all three columns (3mo, 12mo, today) showing the same
 value is expected behaviour when CAPE hasn't moved in 3 months due to 10yr smoothing.
+
+**ISM Manufacturing PMI -- permanently dropped:**
+- ISM asked FRED to remove ALL 22 ISM series in June 2016. NAPM is deleted from FRED.
+- No reliable free alternative found. S&P Global PMI (formerly Markit) data is proprietary.
+- ICSA (jobless claims) already covers the labor/cycle signal faster and for free.
+- Do NOT try to add ISM PMI again without a confirmed working FRED series ID.
 
 **ETF PE (URTH/EFA) -- 3-priority system:**
 - Priority 0: Claude Routine JSON (clauderoutinedata.json, fresh = today's date).
@@ -225,15 +238,17 @@ Routine 2: 7:44am MT -- "Daily Market Warmup" (machine-readable JSON, writes cla
 - Chart: inline SVG W=680px, zone labels overlaid INSIDE chart bands (not separate panel).
   Zones top-to-bottom: EXTREME (86-100), OVERHEATED (66-85), SELECTIVE (34-65), DEPLOY (0-33).
   Daily score = blue line. 20-day SMA = amber line. Zone labels right-aligned inside bands.
-  20-day SMA appears after ~4 trading weeks of data accumulate from Sep 19 2026.
+  20-day SMA appears ~Oct 17 2026 (4 trading weeks from Sep 19 2026 start).
 - mhs_scale text block below card REMOVED (legend is now inside chart bands).
+- Card h2 display: "🌡 Macro Heat Score" (no MHS acronym -- removed Session 14)
+- Chart legend: "Trend ({days}d)" (no MHS prefix -- removed Session 14)
 
 **Market State Detection:**
 - marketState taken from SPX (%5EGSPC) only -- VIX marketState is NOT used (unreliable).
 - REGULAR -> OPEN, PRE -> PRE, POST -> POST, CLOSED -> CLOSED.
 - GitHub Actions IPs blocked by Yahoo for JS/crumb-based API -- only v8 basic fetch works.
 
-**AI Synthesis fallback chain (confirmed working Sep 23 2026):**
+**AI Synthesis fallback chain (confirmed working Sep 28 2026):**
 ```
 gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard, resets daily)
   -> gemini-3.5-flash  (free, 1,500 RPD, confirmed stable model ID)
@@ -259,16 +274,23 @@ gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard, resets dail
 - Token count varies because prompt includes news email text + calendar + FRED block (all variable)
 - Cost logged dynamically from message.usage object -- no hardcoded estimate
 
-**AI Synthesis -- 4 sections (Earnings & Events removed Sep 2026):**
+**AI Synthesis -- 4 sections (Earnings & Events removed Sep 2026, VALUE SCREENS removed Session 14):**
 ```
 MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 ```
 - MARKET AND MACRO and WHAT TO WATCH shown as true 2-column CSS grid.
   Left col: "Macro Interpretation" (blue label). Right col: "What to Watch" (green label).
+- Both columns: max 5 bullets each (was 6-8 left / 3-4 right -- balanced in Session 14).
+- VALUE SCREENS intentionally NOT in AI prompt (removed Session 14):
+  si_tickers, mf_list, am_list accepted as parameters for signature compat but NOT sent to AI.
+  Saves ~200-250 input tokens/run. Prevents AI generating ticker-specific commentary in briefing.
+  Screen data belongs in dashboard chips and Chrome extension div, not the macro briefing.
 - No data regurgitation -- interpretive macro implications only.
 - Yahoo calendar injected as WEEK AHEAD block in prompt for date-specific events.
 - Claude Routine pre-market intelligence injected as PRE-MARKET INTELLIGENCE block (once only).
 - Fun Fact and AI Learning regenerate fresh every weekday run.
+- Text limits (raised Session 14): EJ 1500 chars, CNBC 1200 chars, Yahoo Brief 1200 chars.
+  Log line prints when any source is truncated (visible in GitHub Actions run log).
 
 **Value Screens -- return types (Sep 2026):**
 - SI: dict {ticker: count} -- unchanged
@@ -280,6 +302,67 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 - AM-only chips show multiple: SYF (2.50x), EQNR (3.40x)
 - SI-only: filtered to >= 3 managers (removes 1-2 SI noise)
 - two3 sorted by conviction: MF rank asc, then AM multiple asc, then SI count desc, then alpha
+- **Value Screens card: collapsed by default** (Session 14). Click header to expand.
+  ID: screens-body (content div), screens-tog (button label). Toggle JS inline onclick.
+
+**Chrome extension #market-context div (updated Session 14):**
+- Now contains three full ranked lists for stock-specific analysis:
+  MAGIC_FORMULA_FULL(all_ranked,Greenblatt_earnings_yield_plus_ROIC): ANF #1|ADBE #2|...
+  ACQUIRERS_MULTIPLE_FULL(all_by_multiple,Carlisle_EV_over_EBIT): SYF 2.40x|EQNR 3.30x|...
+  SUPER_INVESTORS_FULL(all_by_count,Dataroma_13F_quarterly): MSFT 18|META 14|V 14|...
+- Screen labels renamed: SCREENS_SUPER_INVESTORS_ONLY, SCREENS_MAGIC_FORMULA_ONLY,
+  SCREENS_ACQUIRERS_MULTIPLE_ONLY (spelled out, no abbreviations)
+- Helper functions added: _tlist_mf_full(), _tlist_am_full(), _tlist_si_full() in html_builder.py
+- _build_market_context() signature updated: mf_list, am_list now passed in (before mf_only, am_only)
+
+**FRED Macro Indicators table (17 rows as of Sep 28 2026):**
+
+| Group | Icon | Indicators |
+|---|---|---|
+| Inflation | 🔥 | CPI, Core CPI, PCE, Core PCE |
+| Interest Rates | 📊 | 10Y, 2Y, Yield Curve, Fed Funds |
+| Credit | 💳 | HY Spread |
+| Labor | 👷 | Unemployment, Jobless Claims (ICSA) |
+| Commodities | 🛢 | WTI Crude, Gold |
+| Currency | 💵 | US Dollar (DXY) |
+| Consumer Sentiment | 🎭 | U of Michigan |
+| Valuation | 📐 | Shiller CAPE |
+| Economic Growth | 📈 | GDP Growth YoY |
+
+**ICSA (Jobless Claims) -- LABOR group:**
+- FRED series: ICSA (weekly initial claims, seasonally adjusted)
+- Placed in LABOR alongside Unemployment. ICSA leads unemployment by 6-8 weeks.
+- 4-week moving average computed and prepended to the insight string.
+- Thresholds: <250K=healthy, >300K=stress emerging, >400K=recession territory
+- Weekly so `is_daily=True` path applies (13-week = 3mo, 52-week = 12mo comparison)
+- Sep 28 2026 reading: 197,000 ▼ (very healthy)
+
+**GDPC1 (GDP Growth YoY) -- GROWTH group:**
+- FRED series: GDPC1 (real GDP, quarterly, chained 2017 dollars)
+- Special handling in _fetch_one_fred: YoY % = (obs[0] - obs[4]) / obs[4] * 100
+  (obs[4] = same quarter 1 year ago, i.e., 4 quarterly periods back)
+- 3mo col = prior quarter's YoY (obs[1] vs obs[5])
+- 12mo col = 2-year-ago YoY (obs[4] vs obs[8]) -- requires 9+ quarterly obs
+- Date shown as "Q2 2026" format (quarter label, not day-level)
+- FRED window extended 460 -> 1200 days to get 13+ quarterly obs (bug: 460 days only gave
+  ~5 obs, obs[8] fell back to obs[4], numerator = 0, 12mo column showed "0.0%" incorrectly)
+- Sep 28 2026 reading: 2.1% ▲ (Q2 2026 YoY vs Q2 2025)
+
+**Monthly FRED date format (changed Session 14):**
+- Monthly series (PCE, CPI etc.): "Jul 2026" (no day -- monthly precision only)
+- Daily series (WTI, DXY): "Sep 26 2026" (day-level, matters for freshness)
+- Quarterly GDPC1: "Q2 2026" (custom quarter label)
+
+**Valuation section (updated Session 14):**
+- h2 header: "📐 Global Market Valuation" (subtitle removed -- was showing source notes)
+- Box labels renamed: "US Market P/E (Shiller CAPE)", "MSCI World P/E (URTH)", "ex-US Dev. P/E (EFA)"
+- CAPE box: added "(dot-com peak: Dec 1999 at 44.2x)" below "Hist avg 17x · 2nd highest ever"
+- Shiller CAPE _insight: 40x+ branch now says "dot-com peak (44.2x, Dec 1999)" in context
+
+**Amber badge / Macro Indicators legend (updated Session 14):**
+- Note text: "sparkline = 12mo → 3mo → today · green = good for equities · red = bad ·
+  ⚠️ = interpretive insight · 🟡 = cached (2+ days old)"
+- Was: "amber pill = cached (live FRED fetch failed)" -- now uses emoji for clarity
 
 **Weekly Economic Calendar:**
 - Yahoo Morning Brief IMAP fetch returns (brief_text, calendar_text) tuple
@@ -306,7 +389,7 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 
 **McClellan Oscillator:** Fully removed Sep 2026. Paid teaser only.
 
-**Dashboard layout (confirmed working Sep 23 2026) -- DO NOT CHANGE WIDTH/LAYOUT:**
+**Dashboard layout (DO NOT CHANGE WIDTH/LAYOUT):**
 ```
 1.  Fun Fact + AI Learning        -- display:grid 1fr 1fr (same width as all cards)
 2.  Earnings & Economic Calendar  -- full width single card
@@ -314,21 +397,11 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 4.  Market Performance + Market Sentiment -- display:grid 1fr 1fr (always side by side)
 5.  Global Market Valuation       -- full width (CAPE + URTH + EFA + ERP)
 6.  Market & Macro                -- full width (2-col grid INSIDE card: Macro / What to Watch)
-7.  Value Screens                 -- full width (All-3, 2-of-3, SI-only, MF-only, AM-only)
-8.  Macro Indicators table        -- full width (15 indicators, sparklines, insights)
+7.  Value Screens                 -- full width, COLLAPSED by default (click header to expand)
+8.  Macro Indicators table        -- full width (17 rows: 15 original + ICSA + GDPC1)
 9.  Run log                       -- collapsed button, expands to show all pipeline steps
-10. Hidden #market-context div    -- for Chrome extension
+10. Hidden #market-context div    -- for Chrome extension (now includes 3 full ranked lists)
 ```
-
-**VIX placement (changed Session 11):**
-- VIX moved OUT of Market Performance card INTO Market Sentiment table
-- Sentiment table now has 3 rows: VIX | Fear & Greed | Consumer Sentiment
-- VIX note: "CBOE Volatility · fear gauge · <15=calm · 20-25=cautious · >30=panic"
-- Pulse line (S&P +X% · Russell +X% · VIX X.X ...) remains at bottom of Market Performance
-
-**Header:**
-- URL removed (redundant with address bar)
-- Date and "Updated HH:MM MT" merged onto one .sub line. .ts row removed entirely.
 
 **run_cache.json structure:**
 ```
@@ -350,6 +423,12 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
   char_limit must be None to avoid truncating before the calendar section.
 - _fetch_email_raw(prefer_html=True, char_limit=None) for Yahoo Brief only.
 - CNBC Morning Squawk: default (prefer_html=False, char_limit=2500) -- plain text works fine.
+
+**fetch_cache.py AM issue (known, non-blocking):**
+- fetch_cache.py fails on AM (Acquirer's Multiple) with "AM_EMAIL or AM_PASSWORD secrets not set"
+- Root cause: the GitHub Actions step running fetch_cache.py does not inject AM secrets in env block
+- Not a blocker: main.py fetches AM fresh every run and writes its own cache successfully
+- Fix when desired: add AM_EMAIL and AM_PASSWORD to the env: block of the fetch_cache job in daily.yml
 
 ---
 
@@ -416,82 +495,38 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 
 ---
 
-## FUTURE INDICATORS TO ADD (planned, not yet coded)
-
-These three indicators were discussed in Session 13 and agreed as the right additions
-for the mean reversion / cycle direction gap in the current macro coverage.
-None of these touch MHS (framework locked). They add new rows to the Macro Indicators table.
-Add all three to fred.py in one session when ready.
-
-**1. Initial Jobless Claims (ICSA) -- HIGHEST PRIORITY**
-- FRED series: ICSA (weekly, seasonally adjusted, updates every Thursday)
-- What it tells you: fastest real-time read on labor market health
-- Why it matters for mean reversion: a stock screening cheap on depressed earnings
-  in a cracking labor market may deteriorate further before recovery
-- Signal: 200-250K = healthy, >300K = stress emerging, >400K = recession territory
-- Display: raw weekly value + 4-week moving average + trend direction (up/down)
-- Key to show: not just the number but whether it is trending up or down
-
-**2. ISM Manufacturing PMI -- SECOND PRIORITY**
-- FRED series: confirm the correct series ID before coding (NAPM may be stale).
-  Check FRED for "ISM Manufacturing" or use S&P Global US Manufacturing PMI as proxy.
-  Alternative: scrape ISM press release directly (released first business day of each month).
-- What it tells you: leading indicator of manufacturing sector health, monthly
-- Why it matters: Magic Formula and Acquirer's Multiple screens surface beaten-down
-  cyclicals and industrials. ISM tells you if those sectors are still contracting
-  (value trap risk) or bottoming (mean reversion opportunity).
-- Signal: above 50 = expanding, below 50 = contracting, below 45 = broad stress
-
-**3. GDP Growth Rate YoY (GDPC1) -- THIRD PRIORITY**
-- FRED series: GDPC1 (real GDP, quarterly, chained 2017 dollars)
-- Compute: year-over-year percent change (compare to same quarter prior year)
-- What it tells you: regime anchor -- is the economy expanding or contracting
-- Why it matters: sets context for how long a value trap may persist
-- Signal: above 2% = at/above trend expansion, below 1% = stagnation, negative = recession
-- Note: quarterly and lagging -- useful for regime context, not timing
-- Display: "US Economy Growing X.X% YoY (QX YYYY)" with trend arrow
-
-**Also worth considering later:**
-- Atlanta Fed GDPNow (real-time GDP estimate, updates frequently, not on FRED directly)
-- Conference Board LEI (composite of 10 leading indicators, not freely available)
-
----
-
 ## OPEN ITEMS / NEXT SESSION
 
-1. **Verify Session 12 fixes on Sep 24 2026 scheduled run:**
-   - clauderoutinedata.json shows date = 2026-09-24 on main, no side branch created
-   - Pipeline run log shows no stale routine warning
-   - Dashboard Market Performance shows "via Claude Routine" label
-   - Routine completes in under 90 seconds with no red failure lines
+1. **Verify Sep 29 2026 scheduled run (first run with Session 14 changes):**
+   - ICSA appears in Labor section (alongside Unemployment), not "N/A"
+   - GDP Growth YoY appears in Economic Growth section at bottom of table
+   - GDP 12-month column shows a real % (not 0% -- fixed by 1200-day window)
+   - Value Screens card is collapsed by default on page load
+   - Value box labels show: "US Market P/E (Shiller CAPE)", "MSCI World P/E (URTH)", "ex-US Dev. P/E (EFA)"
+   - Dot-com peak note visible under CAPE box
 
-2. **MHS 20-day SMA** -- will appear ~4 trading weeks from Sep 19 2026 (~Oct 17).
+2. **MHS 20-day SMA** -- will appear ~Oct 17 2026 (4 trading weeks from Sep 19 2026 start).
    No action needed, just wait for data to accumulate.
 
-3. **Calendar persistence** -- verify calendar stays populated Tue-Fri from Monday cache.
-   Working as of Sep 23 2026. Monitor on a Tuesday to confirm.
-
-4. **ubuntu-24.04 deadline** -- Oct 19 2026, GitHub migrates ubuntu-latest to Ubuntu 26.
+3. **ubuntu-24.04 deadline** -- Oct 19 2026, GitHub migrates ubuntu-latest to Ubuntu 26.
    If any pip packages break after that date, check Ubuntu 26 compatibility.
 
-5. **Future: add ICSA + ISM PMI + GDP growth rate to fred.py** (see Future Indicators above).
-   Add all three in one session. Confirm ISM FRED series ID before coding.
+4. **fetch_cache.py AM fix** -- add AM_EMAIL / AM_PASSWORD to the env: block of the
+   fetch_cache step in daily.yml. Non-blocking since main.py fetches AM directly.
 
-6. **Future: SEC EDGAR 13F API as Dataroma backup.**
+5. **Future: SEC EDGAR 13F API as Dataroma backup.**
    Dataroma working fine. EDGAR full-text search provides same 13F data if it goes down.
 
-7. **Future: Chrome extension #market-context div compression (~60% reduction possible).**
-   Low priority. Current div works fine.
-
-8. **Future: Claude Code CLI setup** for direct repo read/write without paste workflow.
-   Install in VS Code terminal: `npm install -g @anthropic-ai/claude-code` then `claude`
-
-9. **Future: Chrome extension for stock-specific mean reversion analysis.**
+6. **Future: Chrome extension for stock-specific mean reversion analysis.**
    Extension reads #market-context div (macro) + stock-specific page data (valuation,
    52-week range, revenue trend, balance sheet, insider buying).
    Combined context fed to Claude for buy/hold/avoid analysis.
    Key stock metrics needed: trailing P/E, P/B, EV/EBIT, EV/FCF, debt/equity,
    interest coverage, return on capital, 52-week range position, insider activity.
+   Full ranked lists (MF, AM, SI) now in #market-context div and ready for the extension.
+
+7. **Future: Claude Code CLI setup** for direct repo read/write without paste workflow.
+   Install in VS Code terminal: `npm install -g @anthropic-ai/claude-code` then `claude`
 
 ---
 
@@ -589,11 +624,6 @@ SCREENS_ALL3: CTSH | SCREENS_2OF3: BBY, BMY, CI, CVS, FOXA, HPQ, LDOS, MO, OMC, 
 
 **daily.yml:** ubuntu-24.04 pinned, checkout@v5, setup-python@v6
 
-**market.py:**
-- _yq() chg fix: always compute manually, never trust Yahoo's field
-- _yq_pe(): 3-priority system (Routine -> iShares CSV -> PE_CONFIG)
-- MHS EXTREME OVERHEATED posture trimmed to macro observation only
-
 **screens.py:**
 - fetch_magic_formula() returns ordered list of (ticker, rank) tuples
 - fetch_acquirers_multiple() returns ordered list of (ticker, multiple_str) tuples
@@ -659,9 +689,6 @@ SCREENS_ALL3: CTSH | SCREENS_2OF3: BBY, BMY, CI, CVS, FOXA, HPQ, LDOS, MO, OMC, 
 **Token math confirmed:** 10,743 in + 2,454 out = $0.023 total across 2 Haiku runs
 **Coding requirement added:** Always full file rewrites, never partial diffs.
 
-**GSD noted:** Framework for agentic coding with sub-agents + .planning/ files.
-Not needed for this project. Relevant for new projects started from scratch in Claude Code.
-
 ---
 
 ### Session 11 -- Gemini timeout fix, width fix, VIX to Sentiment
@@ -672,9 +699,8 @@ Not needed for this project. Relevant for new projects started from scratch in C
 - _call_gemini() was using client.interactions.create() -- new Interactions API
   causes 90s+ timeout under free-tier load due to stateful session overhead
 - Fixed to client.models.generate_content() -- stateless, fast, fully supported
-- gemini-2.5-flash -> corrected to gemini-3.5-flash (gemini-2.5-flash is not a valid ID)
 
-**HTML width fixed (confirmed working Sep 23 2026):**
+**HTML width fixed:**
 - Fun Fact + AI Learning: changed from class="grid-2" to display:grid;grid-template-columns:1fr 1fr
 - Market Performance + Sentiment: same treatment
 - All top-level layout sections now use identical grid or full-width -- consistent width throughout
@@ -716,9 +742,6 @@ AI synthesis: Haiku fallback, $0.0074 (3,371 in + 804 out tokens)
 **AFC warning (confirmed non-issue):**
 - Advisory only. Gemini still falls through correctly to Haiku. No code change needed.
 
-**Session start improvement:**
-- New method: fetch SESSION_LOG.md from raw GitHub URL at start of each session
-
 ---
 
 ### Session 13 -- Architecture visualization, PPTX slide, macro gap analysis
@@ -726,61 +749,68 @@ AI synthesis: Haiku fallback, $0.0074 (3,371 in + 804 out tokens)
 **Files changed:** SESSION_LOG.md only (no code changes this session)
 
 **Sep 24 2026 run verification (confirmed):**
-- Session 12 fixes working. Sep 24 scheduled run passed all 4 checklist items.
-- Routine date = 2026-09-24 on main, no side branch
+- Session 12 fixes working. Routine date = 2026-09-24 on main, no side branch
 - No stale routine warning in pipeline log
 - Dashboard shows "via Claude Routine" label on Market Performance
-- Routine runtime under 90 seconds
 
-**Architecture visualization (for learning session Sep 25 2026):**
-- Built two visualizations of the full pipeline:
-  (1) Long-form interactive SVG flowchart with all details, sections, and stat strip
-  (2) Compact single-row 7-box PPTX slide (16:9, landscape) for work presentation
-- PPTX exported as market_pulse_ai.pptx (Calibri font, LAYOUT_WIDE 13.3"x7.5")
-- 7 pipeline boxes (Chrome extension omitted as "next step"):
-  Claude Routine | GitHub Actions | Data fetch | Value screens |
-  AI synthesis | Build & publish | Live dashboard
-- Stat strip: ~3,000 lines | 8 modules | 3 AI models | $0-$3/month | 9 API secrets | Agency $25-50K
-- Agency cost estimate confirmed at $25-50K (design + build). Monthly retainer $2-5K.
-  Previous session estimate of $100K+ was for a more enterprise-grade scope with mobile app,
-  enterprise auth, and dedicated support. $25-50K is the right bracket for this project scope.
-- Copilot prompt written for generating company-branded version of the slide
-- Live demo sequence for the learning session:
-  1. Show the PPTX slide
-  2. Open anil2040.github.io/market-pulse-ai ("this ran this morning at 7:58 AM")
-  3. Show page source / #market-context hidden div
-  4. Trigger Chrome extension on a stock page to show macro + stock combined analysis
+**Architecture visualization (for learning session):**
+- Built interactive SVG flowchart + compact 7-box PPTX slide (16:9)
+- Stat strip: ~3,000 lines | 8 modules | 3 AI models | $0-$3/month | 9 API secrets
+- Agency cost estimate: $25-50K build, $2-5K/month retainer
 
-**Macro coverage gap analysis (no code changes, planned for future session):**
-- Current 15 indicators cover: valuation (CAPE, ERP, ETF PE), sentiment (VIX, Fear & Greed),
-  credit (HY spread), monetary (Fed posture, yield curve), inflation (Core PCE), composite (MHS)
-- Gap identified: NO cycle direction indicator -- nothing that says where we are
-  in the economic cycle or whether it is turning
-- Three additions agreed (see Future Indicators section above):
-  Priority 1: ICSA (initial jobless claims, weekly, FRED, fastest leading signal)
-  Priority 2: ISM Manufacturing PMI (monthly, leading, relevant to screened stock types)
-  Priority 3: GDPC1 GDP growth rate YoY (quarterly, regime anchor)
-- PPI explicitly skipped: redundant with Core PCE for this use case
-- None of these touch MHS (framework locked V1.0)
+**Macro coverage gap analysis:**
+- Gap identified: no cycle direction indicator
+- Three additions agreed: ICSA (Priority 1), ISM PMI (Priority 2), GDPC1 (Priority 3)
+- None touch MHS (framework locked V1.0)
 
-**div explained (for future reference):**
-- "div" = HTML division element, generic container
-- #market-context is a hidden div at bottom of index.html
-- Contains machine-readable summary of all 15 macro indicators
-- Chrome extension reads it and passes to Claude alongside stock-specific data
-- Planned stock metrics for extension: trailing P/E, P/B, EV/EBIT, EV/FCF,
-  52-week range position, revenue/earnings trend, debt/equity, interest coverage,
-  return on capital, insider buying activity
+---
 
-**Claude Skills (discussed for learning session):**
-- Skills in claude.ai: add from tools menu, no Cowork required
-- Trigger automatically when task description matches skill description
-- Cowork plugins: bundle skills + connectors + commands for agentic desktop automation
-- Good demo moment: trigger a skill naturally without naming it
+### Session 14 -- Leading Indicators + UI Overhaul + Prompt Cleanup
+**Date:** Sep 28-29 2026
+**Files changed:** ai_synthesis.py, fred.py, html_builder.py
 
-**Context window note:**
-- Session 13 ended near context window limit
-- Start Session 14 fresh using Option A (fetch from raw GitHub URL)
+**ICSA + GDPC1 added to Macro Indicators table:**
+- ICSA (Initial Jobless Claims, weekly): placed in LABOR group alongside Unemployment
+  4-week moving average prepended to insight string. Sep 28 reading: 197K ▼ (healthy)
+- GDPC1 (Real GDP YoY, quarterly): placed in new GROWTH group (📈, #059669)
+  Special quarterly YoY handling: obs[0] vs obs[4] = 4 quarters back = 1 year
+  Sep 28 reading: 2.1% ▲ (Q2 2026 vs Q2 2025)
+- Monthly series date format changed: "Jul 2026" not "Jul 01 2026"
+- FRED window: 460 -> 1200 days (GDPC1 needed 9+ quarterly obs for valid 12mo column;
+  460 days gave only ~5 obs, making obs[8] fall back to obs[4], showing 0% as bug)
+- max_workers: 15 -> 17
+
+**ISM Manufacturing PMI -- permanently dropped:**
+- Investigated NAPM: ISM asked FRED to remove ALL 22 ISM series in June 2016. Series dead.
+- Tried USAMFGPMISMMT (S&P Global US Mfg PMI): unconfirmed series ID, fragile
+- Decision: drop PMI entirely. ICSA already covers labor/cycle direction faster.
+- Do NOT attempt to add PMI without a verified working FRED series ID
+
+**AI synthesis prompt cleanup:**
+- HIGH CONVICTION SCREENS block removed (~200-250 input tokens/run saved)
+- Rationale: AI was generating ticker-specific lines in macro briefing (wrong format)
+  Screen data belongs in chips and Chrome extension div, not the macro briefing
+- si_tickers, mf_list, am_list still accepted as function parameters (main.py unchanged)
+- Both columns: "max 5 bullets each" (was 6-8 left / 3-4 right)
+- Text limits raised: EJ 1500, CNBC 1200, Yahoo 1200 chars. Log prints when truncated.
+
+**html_builder.py UI changes (20 changes, all verified):**
+- MHS acronym removed from h2 ("🌡 Macro Heat Score", not "MHS · Macro Heat Score")
+- Chart legend: "Trend ({days}d)" not "MHS TREND ({days}d)"
+- Valuation boxes renamed: "US Market P/E (Shiller CAPE)", "MSCI World P/E (URTH)", "ex-US Dev. P/E (EFA)"
+- CAPE box: added "(dot-com peak: Dec 1999 at 44.2x)" below "Hist avg 17x · 2nd highest ever"
+- Global Valuation header subtitle removed (was showing source notes)
+- Amber legend: "⚠️ = interpretive insight · 🟡 = cached (2+ days old)"
+- Value Screens card: collapsed by default; clickable header shows "▶ Expand / ▼ Collapse"
+- group_order: "LEADING" replaced with "GROWTH" (bug fix: ICSA and GDPC1 were not rendering
+  because group_order in html_builder.py had hardcoded list that never included LEADING/GROWTH)
+- Chrome extension div: three full ranked lists added (MF with ranks, AM with multiples,
+  SI with counts). Screen labels spelled out in full. Helper functions added.
+
+**Confirmed working:** Sep 28 2026 run (manual trigger)
+MHS: 86/100 EXTREME OVERHEATED
+17/17 indicators | Gemini 3.6 Flash (1749 chars) | 36s runtime
+SPX: 7,684 | RUT: 2,818 | VIX: 16.07 | CAPE: 41.2 | Gold: $4,165
 
 ---
 
