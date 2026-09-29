@@ -728,7 +728,10 @@ def fetch_fred_data():
     """
     print("\n🏦 Fetching FRED macro indicators (parallel, 20s timeout)...")
     end   = date.today().strftime("%Y-%m-%d")
-    start = (date.today() - timedelta(days=460)).strftime("%Y-%m-%d")
+    # 1200 days ensures GDPC1 gets 13+ quarterly obs (need 9 for correct 2yr comparison).
+    # 460 days only gave ~5 quarterly obs -- obs[8] fell back to obs[4] giving 0% (bug).
+    # Daily/monthly series unaffected: limit=500 caps the response naturally.
+    start = (date.today() - timedelta(days=1200)).strftime("%Y-%m-%d")
     rmap  = {}
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=17) as ex:
