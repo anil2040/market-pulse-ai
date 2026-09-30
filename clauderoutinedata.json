@@ -1,59 +1,106 @@
 {
   "date": "2026-09-29",
-  "time_collected_utc": "12:15",
+  "time_collected_utc": "03:04",
   "futures": {
-    "sp500":     {"change_pct": 0.10, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.20, "direction": "up"},
-    "dow":       {"change_pct": -0.10, "direction": "down"},
+    "sp500": {
+      "change_pct": -0.16,
+      "direction": "down"
+    },
+    "nasdaq100": {
+      "change_pct": -0.09,
+      "direction": "down"
+    },
+    "dow": {
+      "change_pct": -0.25,
+      "direction": "down"
+    },
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 18.86, "proxy_for": "MSCI World",
-             "source": "gurufocus.com"},
-    "EFA":  {"pe_ttm": 18.71, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "ishares.com"}
+    "URTH": {
+      "pe_ttm": null,
+      "proxy_for": "MSCI World",
+      "source": "ishares.com",
+      "as_of": ""
+    },
+    "EFA": {
+      "pe_ttm": null,
+      "proxy_for": "MSCI EAFE ex-US Developed",
+      "source": "ishares.com",
+      "as_of": ""
+    }
   },
   "rates_commodities": {
     "treasury_10yr_pct": 5.24,
-    "crude_oil_usd": 98.15,
+    "crude_oil_usd": 90.54,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed tightening expectations remain elevated; markets price 72.5% chance of rate hike at October FOMC meeting after 10-year yield hit 5.24%",
-    "Trump dismissed Iran sanctions relief as a HOAX, pushing oil prices higher and keeping geopolitical risk premium elevated",
-    "JOLTS job openings and Consumer Confidence data due today; labor market resilience will drive Fed rate-path expectations"
+    "Consumer confidence fell to 12-year low in September, signaling consumer stress",
+    "NY Fed President Williams said Fed may wait until December for next rate hike",
+    "JOLTS job openings for August released at 10 AM ET, key for Fed rate-path expectations"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology", "change_pct": 0.35, "reason": "Semiconductors rallying pre-market led by Micron and chip names on AI demand"},
-      {"sector": "Industrials", "change_pct": 0.20, "reason": "Rotation into cyclicals as investors seek quality amid mixed macro data"}
+      {
+        "sector": "Utilities",
+        "change_pct": 1.2,
+        "reason": "rate uncertainty drives defensive rotation"
+      },
+      {
+        "sector": "Communication Services",
+        "change_pct": 0.2,
+        "reason": "gains as oil-driven inflation pressure eases"
+      }
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -0.50, "reason": "Continued pressure from rising yields reducing valuation multiples on growth names"},
-      {"sector": "Energy", "change_pct": -0.30, "reason": "Geopolitical noise around Iran-US talks creating uncertainty despite crude oil rising"}
+      {
+        "sector": "Energy",
+        "change_pct": -0.9,
+        "reason": "sharp oil price decline pressures sector"
+      },
+      {
+        "sector": "Materials",
+        "change_pct": -0.8,
+        "reason": "weaker commodities and demand concerns"
+      }
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "flat", "change_pct": 0.00},
-    "asia":   {"index": "Nikkei225", "direction": "down", "change_pct": -0.73}
+    "europe": {
+      "index": "STOXX600",
+      "direction": "down",
+      "change_pct": -0.1
+    },
+    "asia": {
+      "index": "Nikkei225",
+      "direction": "down",
+      "change_pct": -0.6
+    }
   },
-  "open_focus": "Traders are focused on whether Fed speakers and incoming JOLTS job openings data will confirm further tightening, following the 10-year yield pushing toward 5.25% amid oil-driven inflation concerns.",
+  "open_focus": "Consumer confidence hitting a 12-year low and NY Fed Williams hinting at a December pause dominated focus, with oil's sharp pullback offering partial inflation relief.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7742.85,
-      "current":    7683.69,
-      "change_pct": -0.77,
-      "source_time_et": "08:15"
+      "prev_close": 7683.69,
+      "current": 7670.84,
+      "change_pct": -0.17,
+      "source_time_et": "16:00"
     },
     "rut": {
-      "prev_close": 2835.57,
-      "current":    2820.00,
-      "change_pct": -0.55,
-      "source_time_et": "08:15"
+      "prev_close": 2817.91,
+      "current": 2807.92,
+      "change_pct": -0.35,
+      "source_time_et": "16:00"
     },
     "vix": {
-      "prev_close": 14.87,
-      "current":    16.40
+      "prev_close": 16.07,
+      "current": 16.04,
+      "change_pct": -0.19
     }
-  }
+  },
+  "data_notes": [
+    "URTH and EFA P/E ratios set to null; ishares.com and blackrock.com blocked by network proxy",
+    "Nasdaq 100 change uses Nasdaq Composite close (-0.09%) as proxy; exact Nasdaq 100 figure unavailable",
+    "Futures change_pct derived from actual day close changes as pre-market futures data was conflicting"
+  ]
 }
