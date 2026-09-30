@@ -45,13 +45,13 @@
       "is_index": true,
       "group": "INFLATION",
       "insight": "Fed preferred gauge (broader than CPI) \u00b7 avg ~2.2%",
-      "current": "3.7%",
+      "current": "3.4%",
       "mo3": "3.8%",
       "mo12": "3.8%",
       "trend": "\u25bc",
-      "date": "Jul 2026",
-      "obs_date": "2026-07-01",
-      "sig": "Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
+      "date": "Aug 2026",
+      "obs_date": "2026-08-01",
+      "sig": "PCE cooling -- early signal Fed may eventually get the all-clear"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
@@ -64,13 +64,13 @@
       "is_index": true,
       "group": "INFLATION",
       "insight": "THE key number \u00b7 Fed 2% target \u00b7 >3% = rates stay high",
-      "current": "3.3%",
-      "mo3": "3.3%",
-      "mo12": "3.3%",
-      "trend": "\u2192",
-      "date": "Jul 2026",
-      "obs_date": "2026-07-01",
-      "sig": "Stuck 65% above target with no momentum -- rates stay higher for longer"
+      "current": "3.0%",
+      "mo3": "3.2%",
+      "mo12": "3.2%",
+      "trend": "\u25bc",
+      "date": "Aug 2026",
+      "obs_date": "2026-08-01",
+      "sig": "Elevated but drifting toward target -- cuts possible in 2-3 meetings if trend holds"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
@@ -159,12 +159,12 @@
       "is_index": false,
       "group": "CREDIT",
       "insight": "Junk bond premium \u00b7 <3%=calm \u00b7 >6%=credit fear/stress",
-      "current": "3.02%",
-      "mo3": "2.80%",
+      "current": "3.08%",
+      "mo3": "2.75%",
       "mo12": "2.81%",
       "trend": "\u25b2",
-      "date": "Sep 28 2026",
-      "obs_date": "2026-09-28",
+      "date": "Sep 29 2026",
+      "obs_date": "2026-09-29",
       "sig": "Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
     "fetched": "2026-09-30",
@@ -201,13 +201,13 @@
       "fallback_id": "DCOILWTICO",
       "prefix": "$",
       "insight": "Energy price \u00b7 >$85 = inflation pressure & input cost risk",
-      "current": "$89.6",
+      "current": "$90.5",
       "mo3": "$69.5",
       "mo12": "$63.6",
       "trend": "\u25b2",
       "date": "Sep 30 2026",
       "obs_date": "2026-09-30",
-      "sig": "Moderate energy pricing -- not a dominant swing factor for the macro picture today"
+      "sig": "Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
@@ -224,13 +224,13 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,212",
+      "current": "$4,183",
       "mo3": "$4,038",
       "mo12": "$3,678",
       "trend": "\u25b2",
       "date": "Sep 30 2026",
       "obs_date": "2026-09-30",
-      "sig": "Gold +15% yr -- modest hedge; not yet a panic signal"
+      "sig": "Gold +14% yr -- modest hedge; not yet a panic signal"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
@@ -277,12 +277,12 @@
   },
   "fear_greed": {
     "value": {
-      "score": 32,
+      "score": 33,
       "label": "Fear",
       "color": "#e97316",
       "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 34,
-      "prev_week": 35,
+      "prev_close": 32,
+      "prev_week": 33,
       "prev_month": 54,
       "prev_year": 51,
       "cached": false
@@ -293,35 +293,35 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "16.04",
+        "value": "15.90",
         "label": "NORMAL",
         "color": "#6b7280",
         "signal": "\u2192 Normal -- market calm, no stress signal",
-        "prev": "16.07"
+        "prev": "16.04"
       },
       "spx": {
-        "value": "7,671",
-        "chg": "-0.17%",
-        "label": "DOWN",
-        "color": "#e97316",
-        "prev": "7,684"
+        "value": "7,693",
+        "chg": "+0.29%",
+        "label": "UP",
+        "color": "#86c440",
+        "prev": "7,671"
       },
       "rut": {
-        "value": "2,808",
-        "chg": "-0.35%",
-        "label": "DOWN",
-        "color": "#e97316",
-        "prev": "2,818"
+        "value": "2,809",
+        "chg": "+0.02%",
+        "label": "FLAT",
+        "color": "#6b7280",
+        "prev": "2,808"
       },
-      "urth_pe": 22.57,
+      "urth_pe": 24.7,
       "urth_pe_stale": false,
-      "urth_pe_source": "PE_CONFIG (2026-09-10)",
-      "efa_pe": 18.35,
+      "urth_pe_source": "Claude Routine",
+      "efa_pe": 17.98,
       "efa_pe_stale": false,
-      "efa_pe_source": "PE_CONFIG (2026-09-10)",
+      "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P -0.17% (DOWN) \u00b7 Russell -0.35% (DOWN) \u00b7 VIX 16.0 (NORMAL) -- mixed -- stay selective"
+      "pulse": "S&P +0.29% (UP) \u00b7 Russell +0.02% (FLAT) \u00b7 VIX 15.9 (NORMAL) -- mixed -- stay selective"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
@@ -459,35 +459,35 @@
         6
       ],
       [
-        "BCRX",
+        "BBY",
         7
       ],
       [
-        "BAH",
+        "BCRX",
         8
       ],
       [
-        "BMY",
+        "BAH",
         9
       ],
       [
-        "BKE",
+        "BMY",
         10
       ],
       [
-        "CARG",
+        "BKE",
         11
       ],
       [
-        "GIB",
+        "CARG",
         12
       ],
       [
-        "CTSH",
+        "GIB",
         13
       ],
       [
-        "CVSA",
+        "CTSH",
         14
       ],
       [
@@ -650,7 +650,7 @@
       ],
       [
         "PBR",
-        "5.20"
+        "5.30"
       ],
       [
         "BP",
@@ -658,7 +658,7 @@
       ],
       [
         "CF",
-        "7.00"
+        "7.10"
       ],
       [
         "YPF",
@@ -666,11 +666,7 @@
       ],
       [
         "CTSH",
-        "7.60"
-      ],
-      [
-        "DINO",
-        "7.60"
+        "7.70"
       ],
       [
         "NVO",
@@ -678,31 +674,35 @@
       ],
       [
         "SHEL",
-        "7.80"
+        "7.90"
       ],
       [
-        "SNY",
-        "8.10"
+        "DINO",
+        "7.90"
       ],
       [
         "FOXA",
-        "8.10"
+        "8.20"
       ],
       [
-        "HPQ",
-        "8.30"
+        "SNY",
+        "8.20"
       ],
       [
         "SQM",
+        "8.30"
+      ],
+      [
+        "HPQ",
         "8.40"
       ],
       [
         "CMCSA",
-        "8.70"
+        "8.80"
       ],
       [
         "ERIC",
-        "9.00"
+        "8.80"
       ],
       [
         "CI",
@@ -714,43 +714,43 @@
       ],
       [
         "FSLR",
-        "9.30"
+        "9.20"
       ],
       [
         "MO",
-        "9.40"
+        "9.20"
+      ],
+      [
+        "PHM",
+        "9.30"
       ],
       [
         "OMC",
         "9.40"
       ],
       [
-        "PHM",
-        "9.50"
-      ],
-      [
         "FMX",
-        "9.90"
+        "9.80"
       ],
       [
         "RYAAY",
-        "10.10"
-      ],
-      [
-        "BMY",
-        "10.20"
+        "10.00"
       ],
       [
         "ZTS",
         "10.20"
       ],
       [
+        "BMY",
+        "10.20"
+      ],
+      [
         "SBS",
-        "10.30"
+        "10.50"
       ],
       [
         "SKHY",
-        "10.70"
+        "10.60"
       ],
       [
         "BBY",
@@ -765,16 +765,20 @@
         "11.30"
       ],
       [
-        "VICI",
-        "11.80"
+        "CVS",
+        "11.70"
       ],
       [
-        "CVS",
-        "11.80"
+        "VICI",
+        "11.70"
       ],
       [
         "VZ",
         "12.10"
+      ],
+      [
+        "KR",
+        "12.20"
       ],
       [
         "BTI",
@@ -785,40 +789,36 @@
         "12.30"
       ],
       [
-        "KR",
-        "12.40"
-      ],
-      [
         "SONY",
-        "12.60"
+        "12.70"
       ],
       [
         "LNG",
-        "12.80"
+        "12.90"
       ],
       [
         "GEHC",
-        "13.30"
+        "13.20"
       ],
       [
         "FIS",
-        "13.50"
+        "13.40"
       ],
       [
         "OKE",
-        "13.70"
+        "13.60"
       ],
       [
         "LOW",
-        "14.10"
+        "14.00"
       ],
       [
         "KVUE",
-        "14.10"
+        "14.00"
       ],
       [
         "OTIS",
-        "14.50"
+        "14.30"
       ],
       [
         "SSNC",
@@ -834,11 +834,11 @@
       ],
       [
         "ULTA",
-        "16.10"
+        "16.00"
       ],
       [
         "PHG",
-        "16.30"
+        "16.20"
       ]
     ],
     "fetched": "2026-09-30",
@@ -923,6 +923,11 @@
       "date": "2026-09-29",
       "score": 87,
       "label": "EXTREME OVERHEATED"
+    },
+    {
+      "date": "2026-09-30",
+      "score": 77,
+      "label": "OVERHEATED"
     }
   ],
   "fred_Jobless Claims (ICSA)": {
@@ -953,9 +958,9 @@
       "is_index": false,
       "group": "GROWTH",
       "insight": "Real GDP YoY \u00b7 >2%=above trend \u00b7 <1%=stagnation \u00b7 negative=recession",
-      "current": "2.1%",
-      "mo3": "2.7%",
-      "mo12": "2.1%",
+      "current": "2.2%",
+      "mo3": "2.6%",
+      "mo12": "2.4%",
       "trend": "\u25bc",
       "date": "Q2 2026",
       "obs_date": "2026-04-01",
