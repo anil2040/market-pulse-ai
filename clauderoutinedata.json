@@ -1,18 +1,18 @@
 {
   "date": "2026-09-29",
-  "time_collected_utc": "03:04",
+  "time_collected_utc": "03:26",
   "futures": {
     "sp500": {
-      "change_pct": -0.16,
-      "direction": "down"
+      "change_pct": null,
+      "direction": null
     },
     "nasdaq100": {
-      "change_pct": -0.09,
-      "direction": "down"
+      "change_pct": null,
+      "direction": null
     },
     "dow": {
-      "change_pct": -0.25,
-      "direction": "down"
+      "change_pct": null,
+      "direction": null
     },
     "sentiment": "neutral"
   },
@@ -31,76 +31,35 @@
     }
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.24,
-    "crude_oil_usd": 90.54,
+    "treasury_10yr_pct": null,
+    "crude_oil_usd": null,
     "crude_oil_type": "WTI"
   },
-  "macro_events": [
-    "Consumer confidence fell to 12-year low in September, signaling consumer stress",
-    "NY Fed President Williams said Fed may wait until December for next rate hike",
-    "JOLTS job openings for August released at 10 AM ET, key for Fed rate-path expectations"
-  ],
+  "macro_events": [],
   "sector_movers": {
-    "leading": [
-      {
-        "sector": "Utilities",
-        "change_pct": 1.2,
-        "reason": "rate uncertainty drives defensive rotation"
-      },
-      {
-        "sector": "Communication Services",
-        "change_pct": 0.2,
-        "reason": "gains as oil-driven inflation pressure eases"
-      }
-    ],
-    "lagging": [
-      {
-        "sector": "Energy",
-        "change_pct": -0.9,
-        "reason": "sharp oil price decline pressures sector"
-      },
-      {
-        "sector": "Materials",
-        "change_pct": -0.8,
-        "reason": "weaker commodities and demand concerns"
-      }
-    ]
+    "leading": [],
+    "lagging": []
   },
   "global_markets": {
     "europe": {
       "index": "STOXX600",
-      "direction": "down",
-      "change_pct": -0.1
+      "direction": null,
+      "change_pct": null
     },
     "asia": {
       "index": "Nikkei225",
-      "direction": "down",
-      "change_pct": -0.6
+      "direction": null,
+      "change_pct": null
     }
   },
-  "open_focus": "Consumer confidence hitting a 12-year low and NY Fed Williams hinting at a December pause dominated focus, with oil's sharp pullback offering partial inflation relief.",
-  "market_prices": {
-    "sp500": {
-      "prev_close": 7683.69,
-      "current": 7670.84,
-      "change_pct": -0.17,
-      "source_time_et": "16:00"
-    },
-    "rut": {
-      "prev_close": 2817.91,
-      "current": 2807.92,
-      "change_pct": -0.35,
-      "source_time_et": "16:00"
-    },
-    "vix": {
-      "prev_close": 16.07,
-      "current": 16.04,
-      "change_pct": -0.19
-    }
-  },
+  "open_focus": "",
+  "market_prices": {},
   "data_notes": [
-    "URTH and EFA P/E ratios set to null; ishares.com and blackrock.com blocked by network proxy",
-    "Nasdaq 100 change uses Nasdaq Composite close (-0.09%) as proxy; exact Nasdaq 100 figure unavailable",
-    "Futures change_pct derived from actual day close changes as pre-market futures data was conflicting"
+    "Search results were stale or undated; no value could be verified as today's, so all values left empty",
+    "Futures: results undated and mixed, left null; sentiment neutral by default",
+    "URTH and EFA P/E not available from ishares.com or blackrock.com in search",
+    "10Y yield and WTI results were stale (4.145 and 72.88 do not match recent levels), left null",
+    "Index level results were stale or wrong instrument, market_prices set to empty",
+    "Sector and global market results were undated or year-to-date only, left empty"
   ]
 }
