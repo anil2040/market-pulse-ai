@@ -15,7 +15,7 @@
 #   - build_html() takes 4 new optional arguments:
 #       health=[...]       list of health items from health.py
 #       screen_meta={...}  where each value screen's data came from
-#       routine_meta={...} REAL routine commit time from git history
+#       routine_meta={...} (kept for compatibility; no longer shown on the page)
 #       ai_info={...}      which AI models failed and why
 #   - Data Health banner at the very top: one green line when all is fine,
 #     an amber/red list when anything is stale, cached or missing.
@@ -158,7 +158,7 @@ def _row_badge(r, today):
         age = (today - cd).days if cd else 99
         return _warn_badge(f"cached {r.get('cached_date', '')}", "bad" if age > 3 else "warn")
     od  = hl._to_date(r.get("obs_date", ""))
-    lim = hl.MAX_AGE_DAYS.get(r.get("freq", "monthly"), 100)
+    lim = hl.max_age_for(r)
     if od is not None and (today - od).days > lim:
         age = (today - od).days
         return _warn_badge(f"{age}d old", "bad" if age > 2 * lim else "warn")
@@ -170,43 +170,63 @@ def _row_badge(r, today):
     return ""
 
 
-def _build_health_banner(items, now_str):
+def _short(text, n=80):
+    text = str(text or "").strip().rstrip(" .")
+    return text if len(text) <= n else text[:n - 1].rstrip() + "..."
+
+
+def _err_brief(err):
+    """'HTTP 503: This model is currently...' -> 'HTTP 503'. Full text stays in the Run Log."""
+    err = str(err or "").strip()
+    if err.startswith("HTTP"):
+        return err.split(":")[0]
+    return _short(err, 32)
+
+
+def _build_status_line(items, ai_info, ai_failed):
     """
-    Top-of-page banner. Green one-liner when everything is fine; otherwise a
-    list of every amber/red item. The AI item is skipped here because the
-    AI notice below the banner already covers it.
+    ONE line at the top of the page.
+      Everything fine:  small grey text   "Data health OK · Briefing by Gemini 3.8 Flash"
+      Something wrong:  an amber (or red) box. First line = the same summary with the problem
+                        count; below it one short line per data problem. The page stays quiet
+                        unless there is something to look at.
+    "Everything fine" means no data problem AND the first-choice AI model wrote the briefing.
     """
-    items = [i for i in (items or []) if i["source"] != "AI briefing"]
-    probs = [i for i in items if i["level"] != hl.OK]
-    if not items:
-        return ""
-    if not probs:
-        return ('<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;'
-                'padding:6px 14px;margin-bottom:12px;font-size:.72rem;color:#166534;">'
-                f'\u2705 <strong>Data health:</strong> all {len(items)} checks passed '
-                f'&nbsp;&middot;&nbsp; every source is fresh as of {now_str} MT</div>')
-    probs.sort(key=lambda i: 0 if i["level"] == hl.BAD else 1)
-    any_bad = any(i["level"] == hl.BAD for i in probs)
+    items    = [i for i in (items or []) if i["source"] != "AI briefing"]
+    probs    = sorted([i for i in items if i["level"] != hl.OK],
+                      key=lambda i: 0 if i["level"] == hl.BAD else 1)
+    ai_info  = ai_info or {}
+    attempts = ai_info.get("attempts") or []
+    why      = ", ".join(f"{re.sub(r'^Gemini ', '', a['model'])} {_err_brief(a['error'])}" for a in attempts)
+
+    if ai_failed:
+        brief = f"Briefing unavailable, every AI model failed ({why})" if why else "Briefing unavailable, every AI model failed"
+    elif attempts:
+        brief = f"Briefing by {ai_info.get('model', 'backup model')} ({why})"
+    else:
+        brief = f"Briefing by {ai_info.get('model') or 'AI'}"
+
+    if not probs and not ai_failed and not attempts:
+        return ('<div style="font-size:.68rem;color:#6b7280;margin:0 2px 10px;">'
+                f'Data health OK &nbsp;&middot;&nbsp; {brief}</div>')
+
+    any_bad = ai_failed or any(i["level"] == hl.BAD for i in probs)
     bg, bd, fg = (("#fef2f2", "#fca5a5", "#991b1b") if any_bad
                   else ("#fff7ed", "#fed7aa", "#9a3412"))
-    shown = probs[:10]
+    health_txt = (f"Data health: {len(probs)} to check" if probs else "Data health OK")
+    shown = probs[:8]
     rows = "".join(
-        f'<div style="padding:2px 0;font-size:.72rem;color:#374151;">'
+        f'<div style="padding:1px 0 0 0;font-size:.68rem;color:#374151;">'
         f'<span style="color:{"#b91c1c" if i["level"] == hl.BAD else "#b45309"};">\u26a0\ufe0f</span> '
-        f'<strong>{i["source"]}</strong> &mdash; {i["detail"]}'
+        f'<strong>{i["source"]}</strong>: {i["detail"]}'
         f'{(" (" + i["as_of"] + ")") if i.get("as_of") else ""}</div>'
         for i in shown)
-    more = (f'<div style="font-size:.66rem;color:#6b7280;margin-top:3px;">'
-            f'+ {len(probs) - len(shown)} more (see the Run Log at the bottom)</div>'
-            if len(probs) > len(shown) else "")
-    n_bad = sum(1 for i in probs if i["level"] == hl.BAD)
-    n_warn = len(probs) - n_bad
-    counts = ", ".join(x for x in (f"{n_bad} missing/red" if n_bad else "",
-                                   f"{n_warn} stale/amber" if n_warn else "") if x)
-    return (f'<div style="background:{bg};border:1px solid {bd};border-radius:8px;'
-            f'padding:9px 14px;margin-bottom:12px;">'
-            f'<div style="font-weight:700;font-size:.78rem;color:{fg};margin-bottom:4px;">'
-            f'\u26a0\ufe0f Data health: {counts}</div>{rows}{more}</div>')
+    more = (f'<div style="font-size:.64rem;color:#6b7280;">+ {len(probs) - len(shown)} more '
+            f'(see the Run Log at the bottom)</div>' if len(probs) > len(shown) else "")
+    return (f'<div style="background:{bg};border:1px solid {bd};border-radius:6px;'
+            f'padding:5px 12px;margin-bottom:10px;">'
+            f'<div style="font-size:.72rem;color:{fg};font-weight:600;">'
+            f'\u26a0\ufe0f {health_txt} &nbsp;&middot;&nbsp; {brief}</div>{rows}{more}</div>')
 
 
 def _screens_badges(screen_meta, health):
@@ -1046,7 +1066,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 
     # ── Market values ────────────────────────────────────────────────────────
     # Primary source: routine_data["market_prices"] written by Claude Routine
-    # at ~7:45am MT (browser-side, no CORS issue).
+    # at ~7:45am MT (by the Claude Routine).
     # Fallback: mkt_data from market.py (fetched server-side by pipeline).
     # classify helpers
     def _classify_idx(c):
@@ -1081,7 +1101,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     routine_fresh_prices = bool(routine_fresh and mp and mp.get("sp500", {}).get("current"))
 
     if routine_fresh_prices:
-        # ── Use Claude Routine prices (accurate, browser-fetched at ~7:45am MT)
+        # ── Use Claude Routine prices (accurate, collected by the Claude Routine at ~7:45am MT)
         _spx = mp["sp500"]
         _rut = mp.get("rut", {})
         _vix = mp.get("vix", {})
@@ -1106,9 +1126,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         vix_col   = _vix_color(vix_lbl)
         vix_sig   = _vix_sig(_vix_cur)
 
-        # Time shown = real commit time from git history, not the model's own guess
-        _src_note  = (f" · as of {routine_meta['label']} MT"
-                      if routine_meta and routine_meta.get("label") else "")
         mkt_state  = "ROUTINE"
         mkt_cached = False
         mkt_cdate  = ""
@@ -1124,7 +1141,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         else:
             spx_mood = "mixed -- stay selective"
         pulse = (f"S&P {spx_chg} ({spx_lbl}) · Russell {rut_chg} ({rut_lbl}) "
-                 f"· VIX {_vix_cur:.1f} ({vix_lbl}) -- {spx_mood}{_src_note}")
+                 f"· VIX {_vix_cur:.1f} ({vix_lbl}) -- {spx_mood}")
     else:
         # ── Fallback: pipeline mkt_data (server-side, may show 0.00% after close)
         vix_val  = mkt_data["vix"]["value"];  vix_prev = mkt_data["vix"]["prev"]
@@ -1134,7 +1151,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         spx_lbl  = mkt_data["spx"]["label"];  spx_col  = mkt_data["spx"]["color"]
         rut_val  = mkt_data["rut"]["value"];  rut_chg  = mkt_data["rut"]["chg"]
         rut_lbl  = mkt_data["rut"]["label"];  rut_col  = mkt_data["rut"]["color"]
-        _src_note = ""
 
     pulse     = mkt_data["pulse"] if not routine_fresh_prices else pulse
     mkt_state = mkt_data.get("market_state", "UNKNOWN") if not routine_fresh_prices else mkt_state
@@ -1199,45 +1215,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         mkt_cache_banner += (f'<div style="margin-bottom:7px;">'
                              f'{_warn_badge("routine data is from " + str(routine_data.get("date", "unknown")) + ", not today", "bad")}</div>')
 
-    # Source label shown in card header. The time comes from git history
-    # (real commit time), not from the model's own guess in the JSON.
-    if routine_fresh_prices:
-        if routine_meta and routine_meta.get("label"):
-            mkt_src_label = f"as of {routine_meta['label']} MT · via Claude Routine"
-        else:
-            _rt = (routine_data or {}).get("market_prices", {}).get("sp500", {})
-            _st = _rt.get("source_time_et", "")
-            mkt_src_label = (f"via Claude Routine · time in file {_st} ET (unverified)"
-                             if _st else "via Claude Routine")
-    else:
-        mkt_src_label = f"as of pipeline run · {now_str} MT"
-
-    # AI notice: red when every model failed, amber when a fallback model wrote the briefing.
-    ai_alert = ""
-    _attempts = ai_info.get("attempts") or []
-    _why = "; ".join(f"{a['model']}: {a['error']}" for a in _attempts)
-    if ai_failed:
-        ai_alert = ('<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:8px;'
-                    'padding:10px 16px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px;">'
-                    '<span style="font-size:1.3rem;">\u26a0\ufe0f</span><div>'
-                    '<div style="font-weight:700;font-size:.82rem;color:#c81e1e;">AI Synthesis Unavailable</div>'
-                    '<div style="font-size:.73rem;color:#6b7280;margin-top:2px;">'
-                    f'Every model failed. {_why or "No error details recorded."} '
-                    'A 503 means the provider was overloaded at that moment (not a quota or key problem). '
-                    'All data sections below are still built from live data; check the data health notice above for anything stale.'
-                    '</div></div></div>')
-    elif _attempts:
-        ai_alert = ('<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;'
-                    'padding:6px 14px;margin-bottom:12px;font-size:.72rem;color:#9a3412;">'
-                    f'\u26a0\ufe0f Briefing written by <strong>{ai_info.get("model", "backup model")}</strong> '
-                    f'because {_why}.</div>')
-
     # Gauge market performance -- Chrome extension style
     gauge_section = f"""
 <div class="card ar" id="market-perf-card" style="flex:1;">
-  <h2>📈 Market Performance
-    <span style="font-weight:400;color:var(--muted);font-size:.55rem;margin-left:8px;">{mkt_src_label}</span>
-  </h2>
+  <h2>📈 Market Performance</h2>
   {mkt_banner}{mkt_cache_banner}
 
   <!-- S&P 500 gauge row -->
@@ -1454,7 +1435,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     _monday       = (now_local - timedelta(days=now_local.weekday())).strftime("%Y-%m-%d")
     if now_local.weekday() < 5:
         health.append(hl.check_calendar(_stored_cal.get("week_of", ""), _monday))
-    health_banner = _build_health_banner(health, now_str)
+    status_line = _build_status_line(health, ai_info, ai_failed)
     screens_badges = _screens_badges(screen_meta, health)
 
     # Value screens -- mf_list and am_list are ordered lists of tuples
@@ -1557,8 +1538,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 </div>
 
 <div class="container">
-  {health_banner}
-  {ai_alert}
+  {status_line}
 
   <!-- 1. AI Fun Fact + AI Learning -- quick daily orientation -->
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
@@ -1684,8 +1664,8 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   <div class="card" style="margin-bottom:12px;">
     <h2>🏦 Macro Indicators
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-        sparkline = 12mo → 3mo → today · green = good for equities · red = bad ·
-        ⚠️ = data problem (amber = cached or later than expected, red = missing)
+        sparkline = 12mo → 3mo → today · trend colors: green = good for equities, red = bad, amber = depends ·
+        ⚠️ = data problem (amber = cached or late, red = missing)
       </span>
     </h2>
     <div style="overflow-x:auto;">
@@ -1714,8 +1694,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
       </table>
     </div>
     <div style="margin-top:8px;font-size:.62rem;color:#9ca3af;border-top:1px solid #f3f4f6;padding-top:6px;">
-      Trend colors: green=good for equities, red=bad, amber=context-dependent ·
-      AAII: check <a href="https://www.aaii.com/sentimentsurvey" target="_blank"
+      AAII investor sentiment survey: check <a href="https://www.aaii.com/sentimentsurvey" target="_blank"
       style="color:#1a56db;">aaii.com</a> manually every Thursday.
     </div>
   </div>
@@ -1733,7 +1712,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
     <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
     <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
-    Gemini 3.6 Flash · Gemini 3.5 Flash · Claude Haiku 4.5 (fallback) · Not financial advice.
+    Gemini (latest Flash) · Gemini 3.6 Flash · Gemini 3.5 Flash · Claude Haiku 4.5 (fallback)
   </div>
 </div>
 

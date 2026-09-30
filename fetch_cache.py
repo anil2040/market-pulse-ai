@@ -8,11 +8,12 @@
 #   the daily GitHub workflow any more.
 #
 #   Dataroma's 13F "superinvestor buys" list only changes once a quarter
-#   (filings are due ~45 days after quarter end: mid Feb, May, Aug, Nov)
-#   and Dataroma sometimes blocks GitHub's servers. Your home internet
-#   usually works. So: run this on your PC after each 13F deadline, then
-#   commit the updated dataroma_cache.json. The dashboard turns amber
-#   with a reminder when a refresh is due.
+#   (filings are due 45 days after quarter end: Feb 14, May 15, Aug 14, Nov 14,
+#   next business day if a weekend). The pipeline does not contact Dataroma at all
+#   until a deadline has passed; then it tries once a day. Dataroma sometimes blocks
+#   GitHub's servers, and your home internet usually works. So: if the dashboard
+#   shows the amber "new 13F filings" reminder and the daily retries keep failing,
+#   run this on your PC and commit the updated dataroma_cache.json.
 #
 # HOW TO RUN (VS Code terminal, PowerShell):
 #   1. Open the market-pulse-ai folder in VS Code

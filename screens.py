@@ -21,6 +21,14 @@
 #   main.py then saw "success", wrote the EMPTY result over the last
 #   good copy in run_cache.json, and its fallback code never ran.
 #
+# HOW OFTEN EACH SOURCE IS CONTACTED (kept low on purpose, to be a good neighbour):
+#   Dataroma 13F       Not at all until a 13F filing deadline has passed since the saved
+#                      list was fetched (Feb 14, May 15, Aug 14, Nov 14, plus 3 days grace).
+#                      Then ONE try per day until a live fetch works, then silence again
+#                      until the next deadline. About four windows a year.
+#   Magic Formula and  Once per day. A second run on the same day reuses today's saved copy
+#   Acquirer's Multiple (that rule lives in main.py).
+#
 # CACHE FILES (just two in the whole project):
 #   run_cache.json      -- automatic fallback for everything, written by
 #                          main.py, committed by the workflow every day.
@@ -37,9 +45,12 @@ import os
 import re
 import json
 import time
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import requests
 from bs4 import BeautifulSoup
+
+from health import last_13f_deadline, _13F_GRACE_DAYS
+from timeutil import now_mt
 
 MFI_EMAIL    = (os.environ.get("MFI_EMAIL")    or "").strip()
 MFI_PASSWORD = (os.environ.get("MFI_PASSWORD") or "").strip()
@@ -56,6 +67,11 @@ class ScreenError(Exception):
 
 def _utc_now():
     return datetime.now(timezone.utc)
+
+
+def today_str():
+    """Today's date in Boise time, as used for every 'as of' stamp."""
+    return now_mt().strftime("%Y-%m-%d")
 
 
 def _parse_utc(s):
@@ -137,57 +153,110 @@ def fetch_dataroma_live():
 
 
 def write_dataroma_cache(buys):
-    """Save the Dataroma result with a UTC timestamp."""
+    """Save a successful Dataroma result. Both timestamps are UTC."""
+    now = _utc_now().isoformat()
     with open(DATAROMA_CACHE_FILE, "w", encoding="utf-8") as f:
-        json.dump({"fetched_at": _utc_now().isoformat(), "buys": buys}, f, indent=2)
+        json.dump({"fetched_at": now, "last_attempt": now, "buys": buys}, f, indent=2)
 
 
-def read_dataroma_cache():
-    """Returns (buys_dict, fetched_datetime_utc) or (None, None). Age does not matter."""
+def mark_dataroma_attempt():
+    """Record that a live fetch was tried (and failed) now, keeping the saved list unchanged."""
+    try:
+        with open(DATAROMA_CACHE_FILE, "r", encoding="utf-8") as f:
+            cached = json.load(f)
+        cached["last_attempt"] = _utc_now().isoformat()
+        with open(DATAROMA_CACHE_FILE, "w", encoding="utf-8") as f:
+            json.dump(cached, f, indent=2)
+    except Exception as e:
+        print(f"   Could not record the attempt: {e}")
+
+
+def read_dataroma_full():
+    """Returns (buys, fetched_utc, last_attempt_utc_or_None), or (None, None, None)."""
     try:
         with open(DATAROMA_CACHE_FILE, "r", encoding="utf-8") as f:
             cached = json.load(f)
         buys = cached.get("buys") or {}
         if not buys:
-            return None, None
-        return buys, _parse_utc(cached.get("fetched_at", "2000-01-01T00:00:00"))
+            return None, None, None
+        fetched = _parse_utc(cached.get("fetched_at", "2000-01-01T00:00:00"))
+        la = cached.get("last_attempt")
+        return buys, fetched, (_parse_utc(la) if la else None)
     except FileNotFoundError:
-        return None, None
+        return None, None, None
     except Exception as e:
         print(f"   Cache read problem: {e}")
-        return None, None
+        return None, None, None
+
+
+def read_dataroma_cache():
+    """Returns (buys_dict, fetched_datetime_utc) or (None, None). Age does not matter."""
+    buys, fetched, _ = read_dataroma_full()
+    return buys, fetched
+
+
+def refresh_due(fetched, today):
+    """
+    True when a 13F deadline (plus grace) has passed since the saved list was fetched,
+    meaning new filings should now be on Dataroma.
+    """
+    ready = last_13f_deadline(today) + timedelta(days=_13F_GRACE_DAYS)
+    return today >= ready and fetched.date() < ready
+
+
+def _cache_result(buys, fetched, note):
+    return buys, {"source": "cache", "as_of": fetched.strftime("%Y-%m-%d"), "note": note}
 
 
 def fetch_superinvestor_buys():
     """
-    Dataroma 13F buys. Order of attempts:
-      1. Live fetch (freshest). On success it also refreshes dataroma_cache.json,
-         which the workflow commits, so the cache heals itself.
-      2. dataroma_cache.json at ANY age (13F data only changes quarterly).
-    Raises ScreenError if both fail; main.py then tries run_cache.json.
+    Dataroma 13F buys, contacting Dataroma as rarely as possible:
+      1. A saved list exists and no new 13F deadline has passed since it was fetched:
+         use it, no network call at all.
+      2. A deadline has passed (new filings should be out): try live, but only ONCE PER DAY.
+         On success dataroma_cache.json is refreshed (the workflow commits it).
+         On failure the attempt is recorded and the saved list is used, with the
+         dashboard showing an amber reminder.
+      3. No saved list at all: try live.
+    Raises ScreenError if nothing works; main.py then tries run_cache.json.
     """
-    print("\n👑 Fetching Dataroma superinvestor quarterly buys...")
+    print("\n👑 Dataroma superinvestor quarterly buys...")
+    today = now_mt().date()
+    buys, fetched, last_attempt = read_dataroma_full()
+
+    if buys:
+        if not refresh_due(fetched, today):
+            print(f"   ♻️ Using saved list from {fetched.strftime('%Y-%m-%d')}: no new 13F deadline "
+                  f"since then, so Dataroma is not contacted")
+            return _cache_result(buys, fetched,
+                                 f"saved list from {fetched.strftime('%b %d')}; next refresh after the next 13F deadline")
+        if last_attempt is not None and now_mt().tzinfo is not None and \
+                last_attempt.astimezone(now_mt().tzinfo).date() == today:
+            print("   ♻️ New filings are due but Dataroma was already tried today; using saved list")
+            return _cache_result(buys, fetched,
+                                 f"saved list from {fetched.strftime('%b %d')}; already tried today, retrying tomorrow")
+        print("   A new 13F deadline has passed: trying Dataroma live (one try per day)")
+
     live_err = ""
     try:
-        buys = fetch_dataroma_live()
-        top3 = sorted(buys.items(), key=lambda x: -x[1])[:3]
-        print(f"   ✅ Dataroma (live): {len(buys)} stocks | Top: {top3}")
+        live = fetch_dataroma_live()
+        top3 = sorted(live.items(), key=lambda x: -x[1])[:3]
+        print(f"   ✅ Dataroma (live): {len(live)} stocks | Top: {top3}")
         try:
-            write_dataroma_cache(buys)
+            write_dataroma_cache(live)
         except Exception as e:
             print(f"   Could not refresh cache file: {e}")
-        return buys, {"source": "live", "as_of": _utc_now().strftime("%Y-%m-%d"),
-                      "note": "live"}
+        return live, {"source": "live", "as_of": today_str(), "note": "live"}
     except Exception as e:                     # ScreenError, or anything unexpected (never crash the run)
         live_err = str(e) if isinstance(e, ScreenError) else f"{type(e).__name__}: {str(e)[:80]}"
-        print(f"   ⚠️ {live_err} -- trying dataroma_cache.json")
+        print(f"   ⚠️ {live_err} -- using dataroma_cache.json")
+        if buys:
+            mark_dataroma_attempt()
 
-    buys, fetched = read_dataroma_cache()
     if buys:
         age_days = (_utc_now() - fetched).days
         print(f"   ♻️ Dataroma from dataroma_cache.json: {len(buys)} stocks, {age_days} days old")
-        return buys, {"source": "cache", "as_of": fetched.strftime("%Y-%m-%d"),
-                      "note": f"cache from {fetched.strftime('%b %d')} (live fetch blocked)"}
+        return _cache_result(buys, fetched, f"cache from {fetched.strftime('%b %d')} (live fetch failed)")
     raise ScreenError(f"Dataroma unavailable: {live_err}; no dataroma_cache.json")
 
 
@@ -298,7 +367,7 @@ def fetch_magic_formula():
             raise ScreenError(f"Magic Formula returned only {len(result)} tickers")
         print(f"   ✅ Magic Formula: {len(result)} tickers (ranked)")
         print(f"   Sample: {result[:5]}")
-        return result, {"source": "live", "as_of": _utc_now().strftime("%Y-%m-%d"),
+        return result, {"source": "live", "as_of": today_str(),
                         "note": "live"}
 
     except ScreenError:
@@ -425,7 +494,7 @@ def fetch_acquirers_multiple():
             if len(ordered_pairs) < 10:
                 raise ScreenError(f"Acquirer's Multiple returned only {len(ordered_pairs)} tickers")
             return ordered_pairs, {"source": "live",
-                                   "as_of": _utc_now().strftime("%Y-%m-%d"),
+                                   "as_of": today_str(),
                                    "note": "live"}
         else:
             raise ScreenError("Acquirer's Multiple live scrape returned 0 tickers")

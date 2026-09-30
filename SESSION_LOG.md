@@ -1,4 +1,4 @@
-# Mean Reversion Macro Insights -- Session Log 15
+# Mean Reversion Macro Insights -- Session Log 14
 
 Paste this file at the start of any new session so Claude has full context.
 No need to summarize the previous chat.
@@ -73,38 +73,47 @@ Do NOT paste all modules at once -- that blows the context window immediately.
 - **Owner:** Anil Abraham -- deep-value mean reversion investor, Boise ID
 - **Style:** Greenblatt / Carlisle / Howard Marks / Burry / Pabrai
 - **Local:** VS Code on Windows 11 Home (never give Mac instructions or shortcuts)
-- **Schedule (Session 15):** TWO crons, `50 13 * * 1-5` (7:50 AM MDT) and `50 14 * * 1-5` (7:50 AM MST),
-  plus workflow_dispatch. A gate step lets only the correct one run, by asking the server for Boise's UTC
-  offset (-0600 or -0700). It never looks at the hour. The skipped twin shows as a quick green run.
-- **Cron drift:** the 7:50 cron typically starts at 7:58-8:00 AM -- normal GitHub behavior, not a bug
-- **Claude Routine:** "Daily Market Warmup", weekdays 7:40 AM MDT, Sonnet 4.6, Claude_Code_Remote, commits
-  clauderoutinedata.json. Its schedule text says MDT explicitly: check around Nov 2 2026 that it still fires
-  at 7:40 local (if it moves to 6:44, edit the routine schedule). The pipeline must start AFTER it commits.
-- **Runtime:** ~36 seconds, 17/17 indicators (as of Sep 28 2026)
+- **When the pipeline runs (Session 14 continued, Oct 1 2026):** PUSH-TRIGGERED. The Claude Routine pushes
+  clauderoutinedata.json (weekdays 7:40 AM MDT, set in the Claude app) and that push starts the workflow within
+  a minute (`on: push: paths: clauderoutinedata.json`). Running the routine by hand, or editing that file, also
+  starts it. Code pushes do NOT. A single BACKUP schedule (`17 15 * * 1-5`, 9:17 AM MDT / 8:17 AM MST, works in
+  both seasons) covers days the routine fails, and skips itself if index.html was already built today (Boise date).
+  Manual "Run workflow" always runs. No daylight-saving gate and no second cron any more.
+- **Why not cron only:** GitHub's scheduler is best-effort. On Sep 30 2026 both crons fired about 4h45m late
+  (platform-wide delays since Aug 26, see GitHub community discussions #156282 / #207346). Push events are not affected.
+- **"pages build and deployment"** entries are GitHub's own publisher: one per push to main from anyone (you, the
+  routine, the bot). It only publishes files already in the repo; it never rebuilds the HTML. Free and normal.
+- **Claude Routine:** "Daily Market Warmup", weekdays 7:40 AM MDT, Sonnet 4.6 Medium (owner's choice: Sonnet 5.5 High
+  felt like overthinking), Claude_Code_Remote, commits clauderoutinedata.json. Its schedule text says MDT
+  explicitly: check around Nov 2 2026 that it still fires at 7:40 local. If it shifts, nothing breaks, because the
+  pipeline now follows its push.
+- **Python:** GitHub workflow uses 3.13 (same as the owner's laptop, 3.13.15). Latest stable is 3.14; 3.15 is due
+  Oct 1 2026; 3.11 is supported until Oct 2027. Test on the workflow's version before delivering.
+- **Runtime:** about 40 to 70 seconds, 17/17 indicators (Sep 30 2026)
 
 **9 GitHub Secrets (all confirmed set):**
 GEMINI_API_KEY, ANTHROPIC_API_KEY, YAHOO_EMAIL, YAHOO_APP_PASSWORD,
 FRED_API_KEY, MFI_EMAIL, MFI_PASSWORD, AM_EMAIL, AM_PASSWORD
 
-**Pipeline order (main.py) -- runs weekdays only via cron (Session 15):**
+**Pipeline order (main.py) -- runs after each routine push (Session 14 continued):**
 ```
 Step 0:  load_claude_routine    (clauderoutinedata.json + REAL commit time from git history)
 Step 1:  fetch_fred_data        (17 indicators, DAILY rates, per-indicator cache fallback)
 Step 2:  fetch_fear_greed
 Step 3:  fetch_market_indicators (uses routine PE as priority 0)
 Step 4:  compute_mhs + _append_mhs_history (writes to run_cache.json)
-Step 5:  value screens          (Dataroma live -> dataroma_cache.json -> run_cache.json;
-                                 Magic Formula and Acquirer's Multiple live -> run_cache.json)
+Step 5:  value screens          (Dataroma: saved list, contacted only after a 13F deadline, one try/day;
+                                 Magic Formula and Acquirer's Multiple: today's saved copy -> live -> run_cache.json)
 Step 6:  news                   (Edward Jones, CNBC, Yahoo Brief; real dates checked; no cache)
 Step 7:  health checks          (health.py: one list of ok/warn/bad items)
-Step 8:  synthesize_with_ai     (Gemini 3.6 -> Gemini 3.5 -> Haiku -> structured fallback)
-Step 9:  build_html             (health banner, badges, all cards)
+Step 8:  synthesize_with_ai     (gemini-flash-latest -> gemini-3.6-flash -> gemini-3.5-flash -> Haiku -> fallback text)
+Step 9:  build_html             (one-line status at the top, badges, all cards)
 Step 10: save run_cache.json    (workflow commits index.html + run_cache.json + dataroma_cache.json in ONE commit)
 Step 11: exit code 1 if a red item needs attention (GitHub then emails you); NOTIFY_ON_FAILURE in main.py
 ```
 
-All steps run every weekday. Fun Fact and AI Learning regenerate fresh each run.
-Stale content on weekends is expected (no pipeline run).
+One normal run per weekday (plus the skip-if-built backup). Fun Fact and AI Learning regenerate each run.
+Stale content on weekends is expected (no routine, no run).
 
 ---
 
@@ -114,13 +123,13 @@ Stale content on weekends is expected (no pipeline run).
 |---|---|---|
 | fred.py | ~800 | Macro series (daily rates DGS10/DGS2/DFF), Yahoo gold and WTI (FRED oil fallback), CAPE from multpl by-month table, ICSA, GDPC1, lookback windows by frequency, trend colors, sparklines, interpretive insights (no symbols) |
 | market.py | ~330 | Yahoo SPX/RUT/VIX (previous close from bars), Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
-| screens.py | ~330 | Dataroma live+dataroma_cache.json (any age), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. No am_cache.json. |
+| screens.py | ~400 | Dataroma (saved list, live only after a 13F deadline, one try/day, last_attempt stored in dataroma_cache.json), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. |
 | news.py | ~430 | Edward Jones scrape, CNBC/Yahoo IMAP (INBOX + Bulk/Spam, real Date header, read-only), text cleaning, calendar extractor (6000 chars). Returns (text, meta). |
-| ai_synthesis.py | ~470 | Gemini 3.6 flash -> 3.5 flash -> Haiku (2 retries, exponential wait) -> fallback. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
-| health.py | ~250 | NEW. All freshness rules and health items (ok/warn/bad). Pure functions, no network. |
+| ai_synthesis.py | ~490 | gemini-flash-latest -> 3.6 flash -> 3.5 flash -> Haiku (2 retries, exponential wait) -> fallback. Reports the model the alias resolved to. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
+| health.py | ~270 | All freshness rules and health items (ok/warn/bad), per-row age limits (max_age_for), 13F deadline helpers. Pure functions, no network. |
 | timeutil.py | ~70 | NEW. Boise time with daylight saving (zoneinfo, with a built-in fallback for Windows without tzdata). |
-| html_builder.py | ~1650 | Full dashboard HTML, health banner, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header) |
-| main.py | ~650 | Orchestrator, per-source cache fallback, health assembly, step summary, exit code |
+| html_builder.py | ~1680 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header) |
+| main.py | ~690 | Orchestrator, per-source cache fallback, same-day reuse for Magic Formula / Acquirer's Multiple, health assembly, step summary, exit code |
 | fetch_cache.py | ~60 | Local tool only (not in the workflow). Refreshes dataroma_cache.json from your PC. |
 | debug_etf_pe.py | 214 | Quarterly diagnostic -- run manually to re-audit PE sources |
 
@@ -423,7 +432,7 @@ market_indicators:    SPX/RUT/VIX/PE block
 screens_si:           {ticker: count} dict
 screens_mf:           [[ticker, rank], ...] list of pairs
 screens_am:           [[ticker, multiple_str], ...] list of pairs
-(news_* keys REMOVED in Session 15: old news is worse than none; main.py deletes them)
+(news_* keys REMOVED (Session 14 continued): old news is worse than none; main.py deletes them)
 weekly_calendar:      {week_of, text} -- stored Monday, used all week
 mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended daily
 ```
@@ -436,31 +445,45 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - _fetch_email_raw(prefer_html=True, char_limit=None) for Yahoo Brief only.
 - CNBC Morning Squawk: default (prefer_html=False, char_limit=2500) -- plain text works fine.
 
-**fetch_cache.py (RESOLVED Session 15):**
+**fetch_cache.py (RESOLVED Session 14 continued):**
 - It is no longer part of the workflow and no longer touches Acquirer's Multiple (that was the old
   AM_EMAIL problem, now moot). It only refreshes dataroma_cache.json from YOUR PC: `python fetch_cache.py`,
   then commit. Needed after each 13F deadline (Feb 14, May 15, Aug 14, Nov 14). The dashboard turns amber
   3 days after a deadline if the file predates it, and red after 45 days.
 
-**SESSION 15 ARCHITECTURE RULES (confirmed):**
+**SESSION 14 (CONTINUED) ARCHITECTURE RULES (confirmed):**
 - Warning triangle = DATA problem only. Amber = cached or later than expected. Red = missing. Nothing else uses it.
 - Every source reports the date of its REAL content. Freshness rules live in health.py (MAX_AGE_DAYS by frequency).
 - Failure never becomes an empty success. Live -> saved copy -> visible flag. Never overwrite a good copy with empty.
-- Health banner sits at the very top of the page (green one-liner when all fine). AI notice sits under it.
+- The top of the page has ONE quiet line: "Data health OK · Briefing by Gemini 3.8 Flash" (plain grey text). It becomes an
+  amber or red box, listing each problem, only when something is wrong. There is no separate AI banner any more.
 - Red items marked notify=True end the run with exit code 1 (after publishing) so GitHub emails you.
   AI and news problems never trigger the email. Switch: NOTIFY_ON_FAILURE in main.py.
-- Routine time shown on the page = git commit time, not the model's own guess in the JSON.
+- No routine time is shown on the page (owner decision Oct 1: the pipeline now starts right after the routine push, so the
+  single "Updated" time is enough). The routine's git commit time is still used for freshness checks and the health detail.
 - Routine PRICES are used only when the routine data is from today.
-- Dataroma cache is used at ANY age (quarterly data). All-3 and 2-of-3 accept any SI count >= 1; SI-only needs 3+.
+- Dataroma: the saved list is used at ANY age. No contact at all until a 13F deadline (Feb 14, May 15, Aug 14, Nov 14, +3 days
+  grace) has passed since it was fetched, then ONE try per day until success. Magic Formula and Acquirer's Multiple: a second
+  run on the same Boise day reuses today's saved copy. FRED, prices, Fear & Greed, emails and Edward Jones stay live every run
+  (tiny requests; caching news would bring back stale-news risk).
+- All-3 and 2-of-3 accept any SI count >= 1; SI-only needs 3+.
 - Boise time: never hard-code a UTC offset. Use timeutil.now_mt().
 - Insight text has no leading symbols. MHS framework v1.0 thresholds are UNCHANGED.
-- Owner rule: PROPOSE any change that was not asked for BEFORE making it (announcing it afterwards is not enough).
-- TEST ON PYTHON 3.11: the GitHub workflow uses 3.11. Python 3.11 forbids backslashes inside f-string {...}
-  (3.12 allows them, so a newer local Python hides the bug). Sep 30 2026 outage was exactly this. Build such strings first.
+- Owner rule: HUMAN IN THE LOOP. Ask before coding or deciding; propose any change that was not asked for BEFORE making it.
+  When coding: deliver full files, list every change, and summarize at the end.
+- Dollar row: Fed broad index DTWEXBGS has a value for every day but FRED receives it weekly (Mondays, through the prior
+  Friday), so it may be up to 10-11 days old: max_age_days = 11 in fred.py (health.max_age_for). Note text kept to 2 lines.
+- Gemini chain: alias first (auto-picks the newest Flash), then the two named Flash models, then Haiku (pinned). Bump the named
+  Gemini models every few months. Gemini free tier limits (per AI Studio): 3.6 about 20 requests/day, 3.5 about 1,500/day.
+- TEST ON THE WORKFLOW'S PYTHON (3.13 since Oct 1 2026; was 3.11). The Sep 30 outage came from testing on a newer Python
+  than the workflow used (3.11 forbids backslashes inside f-string {...}). Keep the laptop and the workflow on the same version.
 - ROUTINE = SEARCH ONLY: the Claude Code routine environment blocks page fetching (proxy allowlist; every fetch fails).
   Only web SEARCH works. Never write routine instructions that open URLs. Old instructions finished in ~1 minute by
   using only searches; a version that told it to open Yahoo/CNBC/MarketWatch/iShares pages took 12 minutes and
-  produced 21 failed fetches. The routine has ~4 minutes: it must finish before the 7:50 pipeline.
+  produced 21 failed fetches. Routine instructions are the ORIGINAL ones restored Sep 30 plus small fixes (S&P INDEX wording,
+  separate "Europe stock markets today" / "Asia stock markets today" searches, EFA fallback "EFA P/E ratio iShares", HH:MM
+  time placeholder, no hook prompts, no pull request). Do NOT add dates to queries, scripts or validators: that version
+  returned almost empty data. The pipeline no longer races the routine (it starts from the routine's push).
 
 ---
 
@@ -522,30 +545,30 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Canceling/superseded Pages deployments are normal when two commits happen close together.
 - "Run job" = "trigger the workflow" = click Run workflow in Actions tab.
 - Workflow dispatch (manual trigger): repo -> Actions -> MarketPulse Daily Briefing -> Run workflow
-- Manual trigger re-runs the FULL pipeline every time -- all steps, all modules. No partial runs.
+- Triggers: routine push (normal), backup schedule 15:17 UTC (skips if built today), manual button. See daily.yml header.
+- Scheduled runs are best-effort and were hours late on Sep 30 2026 (platform-wide since Aug 26): never depend on cron timing.
+- Manual trigger re-runs the FULL pipeline every time -- all steps, all modules. No partial runs (but screens reuse today's copy).
   For fast HTML iteration, test locally with `python main.py` in VS Code terminal before pushing.
 
 ---
 
 ## OPEN ITEMS / NEXT SESSION
 
-1. **Verify the first scheduled run after Session 15 is deployed:**
-   - Top of page shows the Data Health banner (green if all fine, list if not)
-   - 10Y shows about 5.2% (daily), Fed Funds row says the Fed has been HIKING, dollar row named "US Dollar Index (Broad)"
-   - CAPE 3 Mo / 12 Mo columns differ from today's value (about 40.0 and 39.3), Jobless Claims 3 Mo / 12 Mo are real
-   - MHS steps up once (expect about 87): fresher inputs (Sep 16 hike now visible), NOT a framework change
-   - Market card says "as of H:MM AM MT via Claude Routine" using the real commit time
-   - Value Screens header shows a badge only if a screen is degraded; 13F list is no longer empty
-   - S&P change is a real percentage (was stuck at +0.00%) when the routine data is not used
-   - Workflow list shows two runs per weekday: one real, one skipped (green, steps skipped). Normal.
+1. **Verify the first push-triggered run after the Oct 1 2026 deployment:**
+   - After the routine's push, a "MarketPulse Daily Briefing" run starts within about a minute (event shows "push").
+   - Top of page: one grey line, e.g. "Data health OK · Briefing by Gemini 3.x Flash" (the alias shows the model it picked).
+   - Market Performance card has no "as of" time; the S&P / Russell line has none either.
+   - Dollar row note is two lines; no false amber on Friday.
+   - No "Not financial advice" in the footer; the AAII reminder is still there.
+   - The backup schedule run appears around 9:17 AM and is a quick green "already built today" skip.
+   - Actions list: no more "skipped twin" runs.
 
-   **Your to-dos from Session 15:** (a) re-save the ANTHROPIC_API_KEY GitHub secret from the key that worked in
-   test_haiku.py (the 503 "credential validation failed" was not a bad key; a bad key gives 401); (b) confirm the
-   CNBC newsletter arrives (check Bulk folder, mark Not spam); (c) run one manual evening workflow_dispatch to
-   test the Gemini overload theory; (d) around Nov 2 check the routine still fires at 7:40 local;
-   (e) after Nov 14: `python fetch_cache.py`, commit dataroma_cache.json; (f) delete
-   .github/workflows/test_pe_fetch.yml and any am_cache.json; (g) check URTH P/E: routine says 18.9x, your
-   PE_CONFIG says 22.6x (Sep 10, Yahoo). The dashboard flags it until they agree; decide which source to trust.
+   **To-dos for the owner:** (a) after Nov 2, glance at the routine time (should still be 7:40 local); (b) after Nov 17,
+   watch for the amber 13F reminder, the pipeline retries daily, else run `python fetch_cache.py` on the PC and commit
+   dataroma_cache.json; (c) optional cleanup when convenient: delete test_haiku.py and validate_routine.py (not used by the
+   restored routine); (d) when a real Axios Markets / WSJ Markets A.M. issue arrives, copy the sender address so it can be
+   added to news.py; (e) decide later whether to keep the routine's stockanalysis.com / Robinhood P/E or switch to an
+   iShares reference (both give the same URTH vs EFA discount of about 27%; absolute levels differ about 6%).
 
 2. **MHS 20-day SMA** -- will appear ~Oct 17 2026 (4 trading weeks from Sep 19 2026 start).
    No action needed, just wait for data to accumulate.
@@ -553,7 +576,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 3. **ubuntu-24.04 deadline** -- Oct 19 2026, GitHub migrates ubuntu-latest to Ubuntu 26.
    If any pip packages break after that date, check Ubuntu 26 compatibility.
 
-4. **fetch_cache.py AM fix** -- OBSOLETE (Session 15). fetch_cache.py is now a local Dataroma-only tool.
+4. **fetch_cache.py AM fix** -- OBSOLETE. fetch_cache.py is a local Dataroma-only tool.
 
 5. **Future: SEC EDGAR 13F API as Dataroma backup.**
    Dataroma working fine. EDGAR full-text search provides same 13F data if it goes down.
@@ -566,8 +589,13 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
    interest coverage, return on capital, 52-week range position, insider activity.
    Full ranked lists (MF, AM, SI) now in #market-context div and ready for the extension.
 
-7. **Future: Claude Code CLI setup** for direct repo read/write without paste workflow.
-   Install in VS Code terminal: `npm install -g @anthropic-ai/claude-code` then `claude`
+7. **Future: Claude Code in VS Code** (or the CLI) for direct repo read/write without copy and paste. Two of the three
+   Sep 29-30 outages came from copy/paste or a Python version mismatch that it avoids. Try it on a small task first and add a
+   CLAUDE.md with the standing rules (ask before coding, no dashes, Windows only, test on the workflow's Python).
+   Install docs: https://code.claude.com/docs/en/vs-code
+
+8. **Future: read more newsletters in the pipeline** (WSJ Markets A.M., Axios Markets; Daily Upside optional; Yardeni is weekly
+   and teaser-length so it is not worth a special freshness rule). Needs each sender address from a real issue.
 
 ---
 
@@ -855,7 +883,7 @@ SPX: 7,684 | RUT: 2,818 | VIX: 16.07 | CAPE: 41.2 | Gold: $4,165
 
 ---
 
-### Session 15 -- "Never be blindsided" overhaul
+### Session 14 (continued), part 1 -- "Never be blindsided" overhaul
 **Date:** Sep 29-30 2026
 **Files changed:** main.py, screens.py, news.py, fred.py, market.py, ai_synthesis.py, html_builder.py,
 fetch_cache.py, daily.yml. NEW: health.py, timeutil.py. Deleted (by you): test_pe_fetch.yml, am_cache.json.
@@ -898,13 +926,13 @@ index is a tailwind for international ADRs (EQNR, PBR, SNY, NVO, SHEL, BP). Thre
 blackout. All published a page, none crashed. DST gate tested across Nov 1 2026 and Mar 14 2027.
 
 **Known limits:** monthly and quarterly macro data lag by nature (CPI, PCE, unemployment, sentiment, GDP); they are
-labelled with their real as-of month. ISM PMI stays excluded. A Friday calendar cut before Session 15 is repaired the
+labelled with their real as-of month. ISM PMI stays excluded. A Friday calendar cut before this overhaul is repaired the
 first Tue-Fri run that has a fuller brief.
 
 ---
 
-### Session 15 follow-up -- Sep 30 2026 (same day)
-**Files delivered later:** html_builder.py (Python 3.11 fix), ai_synthesis.py (Haiku retries), routine_instructions.txt (v3).
+### Session 14 (continued), part 2 -- Sep 30 2026 (same day)
+**Files delivered later:** html_builder.py (Python 3.11 fix), ai_synthesis.py (Haiku retries), routine instructions (later restored to the original, see rules).
 
 1. **Outage 1: ImportError on market.** The delivered market.py was fine; the copy in the repo was not the delivered file
    (copy/paste or partial overwrite). Lesson: verify file size/line count after copying, or stop copy-pasting (see below).
@@ -934,6 +962,42 @@ first Tue-Fri run that has a fuller brief.
 - Every change to something that already worked (routine instructions especially) needs a before/after time or output check.
 - Do not add complexity without evidence it is needed; prefer the smallest change that fixes the observed problem.
 - Watch the first real scheduled run after any deployment: read the health banner and the Actions run summary.
+
+---
+
+### Session 14 (continued), part 3 -- Oct 1 2026: push-triggered pipeline and polish
+**Files changed:** daily.yml, main.py, screens.py, health.py, fred.py, ai_synthesis.py, html_builder.py, fetch_cache.py, SESSION_LOG.md.
+Unchanged: news.py, market.py, timeutil.py. Everything tested on Python 3.13 (five failure scenarios plus same-day reuse and
+a date-simulated Dataroma test).
+
+**Why:** on Sep 30 GitHub started both scheduled runs about 4h45m late, so the page stayed stale until 12:37 PM MT.
+The earlier assumption that a manual run had caused the 12:37 build was WRONG (both runs said "Scheduled").
+
+**Changes (all approved by the owner before coding):**
+1. daily.yml: runs when the routine pushes clauderoutinedata.json; one backup schedule (15:17 UTC) that skips if today's
+   page exists; manual button; Python 3.13. Daylight-saving gate and second cron removed.
+2. ai_synthesis.py: model order alias first (gemini-flash-latest), then gemini-3.6-flash, gemini-3.5-flash, Haiku. The page
+   shows the model Google reports (response.model_version). Fixed the stray ". ." in the notice.
+3. fred.py / health.py: dollar row max_age_days = 11 via health.max_age_for(); dollar note shortened to fit two lines
+   ("Fed broad dollar index · 26 currencies · Jan 2006 = 100 · above 100 = stronger than 2006 · falling helps intl ADRs").
+   Comment fixes (17 series, routine time 7:40).
+4. html_builder.py: removed the "as of ... via Claude Routine" labels (card heading and S&P line); replaced the top banner and
+   AI banner with one status line; removed the duplicate "Trend colors" line (legend header now says trend colors: green /
+   red / amber = depends, and the warning triangle = data problem); kept the AAII reminder; removed "Not financial advice";
+   footer lists the new model order.
+5. screens.py / main.py: Dataroma only after a 13F deadline and once a day (last_attempt in dataroma_cache.json);
+   Magic Formula / Acquirer's Multiple reuse today's saved copy on a second run; cache dates now use the Boise day.
+6. Session log renumbered: this work is folded under Session 14 (continued).
+
+**Decisions and explanations recorded for the owner:**
+- Pages build vs MarketPulse run: see INFRASTRUCTURE. Code commits do not start the pipeline any more.
+- 13F deadlines are fixed dates, 45 days after quarter end; Nov 14 2026 is a Saturday so filings are due Mon Nov 16.
+- FRED's dollar index is daily data delivered weekly. ICSA = Initial Claims, Seasonally Adjusted (weekly, Thursdays 8:30 ET).
+- AAII (not "AI") = American Association of Individual Investors sentiment survey; blocks automated access.
+- Dollar index 120.3 = about 20% stronger than Jan 2006 against a 26-currency basket; it is not an exchange rate.
+- Emails and Edward Jones are NOT cached (tiny requests; stale-news risk). A one-time CNBC welcome email counted as a real
+  issue; owner chose not to build a check for it.
+- Both the URTH/EFA P/E sources (stockanalysis.com and Robinhood) and iShares give about a 27% ex-US discount.
 
 ---
 

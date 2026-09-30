@@ -7,7 +7,7 @@
 #   fetch_fred_data() -> list[dict]
 #
 # WHAT THIS DOES:
-#   Fetches all 18 macro series in parallel (20s timeout each).
+#   Fetches all 17 macro series in parallel (20s timeout each).
 #   Routes each series by its id:
 #     _YAHOO_*       -> Yahoo Finance (gold GC=F, WTI oil CL=F)
 #     _SCRAPE_MULTPL -> multpl.com by-month table (Shiller CAPE)
@@ -99,9 +99,11 @@ FRED_SERIES = [
      "insight": "Fear/inflation hedge · rising+lowVIX = stealth fear signal"},
     # ---- CURRENCY ----
     # Fed Nominal BROAD Dollar Index (26 currencies, Jan 2006 = 100). NOT the ICE DXY.
+    # The Fed publishes this once a week (Mondays, data through the prior Friday), so it can be
+    # up to 10-11 days old on a normal day: max_age_days stops a false "late" warning.
     {"label": "US Dollar Index (Broad)", "id": "DTWEXBGS",   "freq": "daily", "is_index": False, "group": "CURRENCY",
-     "no_pct": True,
-     "insight": "Fed broad dollar index (26 currencies) · weak dollar = tailwind for intl ADRs (EQNR,PBR,SNY etc)"},
+     "no_pct": True, "max_age_days": 11,
+     "insight": "Fed broad dollar index · 26 currencies · Jan 2006 = 100 · above 100 = stronger than 2006 · falling helps intl ADRs"},
     # ---- CONSUMER SENTIMENT ----
     {"label": "Consumer Sentiment",   "id": "UMCSENT",       "freq": "monthly", "is_index": False, "group": "SENTIMENT_FRED",
      "no_pct": True, "insight": "U of Michigan 0-100 · avg ~75 · <60 = consumer stress"},
@@ -487,7 +489,7 @@ def _insight_text(label, cur_str, mo3_str, mo12_str, trend):
             return "✅ At/above trend growth -- healthy macro backdrop; not a headwind for mean reversion"
         return "→ Near trend -- neutral regime; macro not adding tailwind or headwind"
 
-    # Fallback -- should never reach here if all 18 labels are matched above
+    # Fallback -- should never reach here if all 17 labels are matched above
     return ""
 
 
@@ -724,7 +726,7 @@ def _fetch_one_fred(cfg, start_date, end_date):
 
 def fetch_fred_data():
     """
-    Fetch all 18 FRED series in parallel (20s timeout per call).
+    Fetch all 17 FRED series in parallel (20s timeout per call).
     Gold routes to Yahoo GC=F, CAPE routes to multpl.com.
     GDPC1 uses quarterly YoY special handling.
     Returns list of enriched dicts in FRED_SERIES definition order.

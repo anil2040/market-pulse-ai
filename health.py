@@ -41,6 +41,20 @@ MAX_AGE_DAYS = {
 }
 
 
+def max_age_for(row):
+    """
+    Oldest acceptable observation for one indicator row, in days.
+    A row can carry its own "max_age_days" (set in fred.py); otherwise the limit
+    comes from its frequency. Example: the Fed's broad dollar index has a value for
+    every day, but FRED only receives it once a week (Mondays, through the previous
+    Friday), so it may legitimately be up to 10-11 days old.
+    """
+    own = row.get("max_age_days")
+    if isinstance(own, (int, float)) and own > 0:
+        return own
+    return MAX_AGE_DAYS.get(row.get("freq", "monthly"), 100)
+
+
 def item(source, level, detail="", as_of="", notify=False):
     return {"source": source, "level": level, "detail": detail,
             "as_of": as_of, "notify": notify}
@@ -68,7 +82,6 @@ def check_indicators(rows, today):
     good  = 0
     for r in rows:
         label = r.get("label", "?")
-        freq  = r.get("freq", "monthly")
         if r.get("current") == "N/A":
             items.append(item(label, BAD, "no data returned", notify=True))
             continue
@@ -82,7 +95,7 @@ def check_indicators(rows, today):
             problem = True
         else:
             od  = _to_date(r.get("obs_date", ""))
-            lim = MAX_AGE_DAYS.get(freq, 100)
+            lim = max_age_for(r)
             if od is not None:
                 age = (today - od).days
                 if age > lim:
@@ -221,8 +234,8 @@ def check_13f(meta, count, today):
     if as_of and due_since and as_of < dl + timedelta(days=_13F_GRACE_DAYS):
         overdue = (today - dl).days
         return item("Dataroma 13F", BAD if overdue > 45 else WARN,
-                    f"new 13F filings have been out since {dl.strftime('%b %d')}; "
-                    f"run python fetch_cache.py on your PC and commit dataroma_cache.json",
+                    f"new 13F filings have been out since {dl.strftime('%b %d')}; the pipeline retries "
+                    f"once a day, or run python fetch_cache.py on your PC and commit dataroma_cache.json",
                     meta.get("as_of", ""), notify=overdue > 45)
     nxt = next_13f_deadline(today)
     if meta.get("source") == "cache":
@@ -234,9 +247,14 @@ def check_13f(meta, count, today):
 
 
 def check_screen(name, meta, count, today):
-    """Magic Formula / Acquirer's Multiple: fetched live daily, fallback = run_cache.json."""
+    """
+    Magic Formula / Acquirer's Multiple: fetched live once a day; a second run the same
+    day reuses that copy ("today_saved"); fallback when live fails = run_cache.json.
+    """
     if not count:
         return item(name, BAD, "no data (live fetch failed and no saved copy)", notify=True)
+    if meta.get("source") == "today_saved":
+        return item(name, OK, "saved earlier today", meta.get("as_of", ""))
     if meta.get("source") == "run_cache":
         as_of = _to_date(meta.get("as_of", ""))
         age = (today - as_of).days if as_of else 99

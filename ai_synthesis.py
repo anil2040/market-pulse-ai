@@ -19,7 +19,7 @@
 # CLAUDE ROUTINE INTEGRATION:
 #   Pre-market intelligence (futures, sentiment, rates, sector
 #   movers, global markets, macro events, open_focus) from the
-#   7:44am Claude Routine is injected into the prompt. When fresh,
+#   7:40am Claude Routine is injected into the prompt. When fresh,
 #   this provides today's context. When stale, it is included
 #   with a staleness note so the AI can weight it accordingly.
 #
@@ -43,12 +43,19 @@
 #     not build a narrative on old numbers.
 #
 # FALLBACK CHAIN (one attempt per Gemini model; Haiku up to 1 + HAIKU_RETRIES tries):
-#   1. gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard)
-#   2. gemini-3.5-flash  (free, 1,500 RPD -- confirmed stable Sep 2026)
-#   3. claude-haiku-4-5  (paid ~$0.01-0.02/run -- varies with prompt size)
-#   4. structured text   (always works, no AI narrative)
-#   No retries within any model. No Sonnet in chain.
+#   1. gemini-flash-latest (Google's alias: always the newest Flash it offers, so new
+#                           Flash releases are picked up without touching this file.
+#                           The page shows the model it actually resolved to.)
+#   2. gemini-3.6-flash   (named, pinned; free tier ~20 requests/day per AI Studio dashboard)
+#   3. gemini-3.5-flash   (named, pinned; free tier ~1,500 requests/day)
+#   4. claude-haiku-4-5   (paid ~$0.01-0.02/run; pinned on purpose: Anthropic has no
+#                           "latest Haiku" alias across generations)
+#   5. structured text    (always works, no AI narrative)
+#   If the alias is unavailable (for example not on the free tier) or overloaded it just
+#   fails in a few seconds and the next model is tried. No Sonnet in chain.
 #   Blank response (empty/whitespace) treated as failure, falls through.
+#   WHEN A NEW FLASH ARRIVES: nothing to do for slot 1. Every few months, bump the two
+#   pinned Gemini names (slots 2 and 3) so the fallbacks do not go stale.
 #
 # GEMINI API NOTE:
 #   Uses generate_content (legacy but fully supported, stable, low latency).
@@ -101,19 +108,35 @@ ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
 # MODEL CALLERS
 # ============================================================
 
+_LAST_MODEL_VERSION = None     # model name Google reports for the last successful Gemini call
+
+
+def _pretty_model(raw):
+    """'models/gemini-3.8-flash-001' -> 'Gemini 3.8 Flash' (what the page shows)."""
+    name  = re.sub(r"^models/", "", str(raw or ""))
+    name  = re.sub(r"-(\d{3}|preview.*|exp.*)$", "", name)
+    words = [w for w in name.split("-") if w]
+    if not words:
+        return "Gemini Flash (latest)"
+    return " ".join(w if w[0].isdigit() else w.capitalize() for w in words)
+
+
 def _call_gemini(prompt, model):
     """
     Call Gemini using generate_content (stable legacy API).
     Uses google.genai SDK v2.3+. Returns plain text string.
-    generate_content is stateless, low-latency, and confirmed working
-    with gemini-3.6-flash and gemini-3.5-flash in production.
+    Also records which model Google actually used (response.model_version) in
+    _LAST_MODEL_VERSION, because the "gemini-flash-latest" alias can resolve to
+    a newer model than any name written in this file.
     """
+    global _LAST_MODEL_VERSION
     import google.genai as genai
     client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
         model    = model,
         contents = [prompt],
     )
+    _LAST_MODEL_VERSION = getattr(response, "model_version", None) or model
     return response.text
 
 
@@ -439,6 +462,8 @@ YAHOO BRIEF: {yahoo_trimmed}
 """
 
     models_to_try = [
+        ("gemini-flash-latest", "Gemini Flash (latest)",
+         lambda: _call_gemini(prompt, "gemini-flash-latest")),
         ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",
          lambda: _call_gemini(prompt, "gemini-3.6-flash")),
         ("gemini-3.5-flash", "Gemini 3.5 Flash (free tier)",
@@ -473,6 +498,10 @@ YAHOO BRIEF: {yahoo_trimmed}
                 print(f"  ✅ {model_name}: {len(briefing)} chars")
 
             short_name = model_name.replace(" (free tier)", "")
+            if model_id == "gemini-flash-latest":
+                # Show the model Google actually used, e.g. "Gemini 3.8 Flash"
+                short_name = _pretty_model(_LAST_MODEL_VERSION)
+                print(f"  ℹ️ The latest-Flash alias resolved to: {_LAST_MODEL_VERSION}")
             return briefing, False, {"model": short_name, "attempts": attempts}
 
         except concurrent.futures.TimeoutError:

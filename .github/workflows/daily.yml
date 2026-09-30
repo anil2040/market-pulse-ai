@@ -2,39 +2,45 @@
 # MarketPulse Daily Briefing -- GitHub Actions workflow
 # ============================================================
 #
-# SCHEDULE AND DAYLIGHT SAVING:
-#   GitHub cron only understands UTC. Boise is UTC-6 in summer (MDT) and
-#   UTC-7 in winter (MST), so ONE cron would drift an hour twice a year.
-#   Instead there are TWO crons, and the first step ("gate") lets only the
-#   correct one run:
-#       50 13 * * 1-5   = 7:50 AM MDT   runs while Boise is on daylight time
-#       50 14 * * 1-5   = 7:50 AM MST   runs while Boise is on standard time
-#   The gate asks the server what Boise's UTC offset is RIGHT NOW (-0600 or
-#   -0700). It does NOT look at the hour, because GitHub often starts
-#   scheduled jobs 5-15 minutes late. The skipped twin shows as a quick green
-#   run with every step skipped. That is normal.
-#   Manual runs (Run workflow button) always run.
+# WHEN IT RUNS (three triggers):
 #
-# WHY 7:50: the Claude Routine ("Daily Market Warmup") runs at 7:44 AM and
-#   commits clauderoutinedata.json. This pipeline must start after that
-#   commit. If the routine schedule ever moves, move these crons too.
+#   1. PUSH (the normal way). The Claude Routine ("Daily Market Warmup", weekdays
+#      7:40 AM Mountain, set in the Claude app) saves clauderoutinedata.json and
+#      pushes it. That push starts this workflow within a minute. No clock is involved,
+#      so GitHub's scheduler delays (hours, since late Aug 2026) do not matter, and
+#      there is no daylight saving problem. Running the routine by hand, or editing
+#      that file yourself, starts the workflow too. Code pushes do NOT start it.
 #
-# ONE COMMIT: the pipeline (main.py) writes index.html, run_cache.json and,
-#   when the live Dataroma fetch works, dataroma_cache.json. This workflow
-#   commits them together at the end, and retries the push if the routine
-#   committed at the same moment.
+#   2. BACKUP SCHEDULE, weekdays 15:17 UTC (9:17 AM MDT in summer, 8:17 AM MST in
+#      winter; both are fine, it only needs to be after the routine). It is for days
+#      when the routine did not run. It does nothing if today's page was already built.
+#      GitHub may start it late; that is acceptable for a backup.
 #
-# RED X = EMAIL: if a source needing your attention is missing, main.py ends
-#   with exit code 1 AFTER publishing the dashboard. GitHub shows a red X
-#   and emails you. Turn this off with NOTIFY_ON_FAILURE = False in main.py.
+#   3. MANUAL: the "Run workflow" button on the Actions tab. Always runs.
+#
+# "pages build and deployment" entries in the Actions list are GitHub's own publisher.
+# They run after every push to main and only publish files already in the repo.
+#
+# ONE COMMIT: the pipeline (main.py) writes index.html, run_cache.json and, when a live
+#   Dataroma fetch worked, dataroma_cache.json. This workflow commits them together at the
+#   end and retries the push if another push arrived at the same moment.
+#
+# RED X = EMAIL: if a source needing your attention is missing, main.py ends with exit
+#   code 1 AFTER publishing the dashboard. GitHub shows a red X and emails you. Turn this
+#   off with NOTIFY_ON_FAILURE = False in main.py.
+#
+# PYTHON: 3.13, the same as the owner's laptop. Test on the version used here.
 # ============================================================
 
 name: MarketPulse Daily Briefing
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - "clauderoutinedata.json"
   schedule:
-    - cron: "50 13 * * 1-5"   # 7:50 AM MDT (used Mar-Nov)
-    - cron: "50 14 * * 1-5"   # 7:50 AM MST (used Nov-Mar)
+    - cron: "17 15 * * 1-5"   # backup only, see above
   workflow_dispatch:
 
 concurrency:
@@ -49,29 +55,30 @@ jobs:
       contents: write
 
     steps:
-      - name: Daylight saving gate
-        id: gate
-        env:
-          EVENT: ${{ github.event_name }}
-          SCHEDULE: ${{ github.event.schedule }}
-        run: |
-          OFFSET=$(TZ=America/Boise date -d "${GATE_TEST_TIME:-now}" +%z)
-          RUN=false
-          if [ "$EVENT" = "workflow_dispatch" ]; then
-            RUN=true
-          elif [ "$SCHEDULE" = "50 13 * * 1-5" ] && [ "$OFFSET" = "-0600" ]; then
-            RUN=true
-          elif [ "$SCHEDULE" = "50 14 * * 1-5" ] && [ "$OFFSET" = "-0700" ]; then
-            RUN=true
-          fi
-          echo "Event=$EVENT Schedule='$SCHEDULE' BoiseOffset=$OFFSET -> run=$RUN"
-          echo "run=$RUN" >> "$GITHUB_OUTPUT"
-
       - name: Checkout repository
-        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v5
         with:
           fetch-depth: 50        # main.py reads git history for the routine's real commit time
+
+      - name: Decide whether to run
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          RUN=true
+          if [ "$EVENT" = "schedule" ]; then
+            # Backup schedule: skip when today's page (Boise date) is already built.
+            LAST=$(git log -1 --format=%cI -- index.html)
+            LAST_DAY=$(TZ=America/Boise date -d "${LAST:-1970-01-01}" +%F)
+            TODAY=$(TZ=America/Boise date +%F)
+            echo "Backup schedule: index.html last built $LAST_DAY, today is $TODAY"
+            if [ "$LAST_DAY" = "$TODAY" ]; then
+              RUN=false
+              echo "Today's page already exists, nothing to do."
+            fi
+          fi
+          echo "Event=$EVENT -> run=$RUN"
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
 
       - name: Pull latest commits
         if: steps.gate.outputs.run == 'true'
@@ -81,7 +88,7 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         uses: actions/setup-python@v6
         with:
-          python-version: "3.11"
+          python-version: "3.13"
 
       - name: Install dependencies
         if: steps.gate.outputs.run == 'true'

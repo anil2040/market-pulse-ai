@@ -4,7 +4,9 @@
 # ============================================================
 #
 # WHAT THIS DOES:
-#   Runs every weekday at ~7:50 AM Boise time via GitHub Actions.
+#   Runs on GitHub Actions whenever the Claude Routine pushes a new
+#   clauderoutinedata.json (weekdays about 7:45 AM Boise time), plus one
+#   backup schedule in case the routine does not run. See daily.yml.
 #   Fetches macro data, sentiment, value screens, news emails,
 #   synthesizes with AI, checks the health of every data source, and
 #   publishes an HTML dashboard to GitHub Pages. A Chrome extension
@@ -64,7 +66,7 @@ import sys
 import json
 import time
 import subprocess
-from datetime import datetime, timezone
+from datetime import datetime
 import requests
 
 from timeutil import now_mt, to_mt
@@ -133,7 +135,7 @@ def _routine_commit_info():
 
 def load_claude_routine():
     """
-    Load clauderoutinedata.json from repo root (written by the 7:44 AM MDT
+    Load clauderoutinedata.json from repo root (written by the 7:40 AM MDT
     Claude Routine before this pipeline runs).
 
     Returns (routine_data_dict, is_fresh_bool, status_str, commit_info).
@@ -221,11 +223,23 @@ def _tidy_cache(cache):
 def cache_write(cache, key, value, as_of=None):
     """
     Save a SUCCESSFUL result. Never call this with an empty value.
-    fetched = the day this run stored it. as_of = the date the underlying
-    data is really from (defaults to the same day).
+    fetched = the day this run stored it (Boise date). as_of = the date the
+    underlying data is really from (defaults to the same day).
     """
-    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    today = now_mt().strftime("%Y-%m-%d")
     cache[key] = {"value": value, "fetched": today, "as_of": as_of or today}
+
+
+def cache_saved_today(cache, key):
+    """
+    Returns (value, as_of) if this key was already fetched successfully TODAY (Boise date),
+    else (None, None). Used so a second run on the same day does not contact a
+    third-party site again.
+    """
+    entry = cache.get(key)
+    if entry and entry.get("value") and entry.get("fetched") == now_mt().strftime("%Y-%m-%d"):
+        return entry["value"], entry.get("as_of") or entry["fetched"]
+    return None, None
 
 
 def cache_read(cache, key):
@@ -399,6 +413,35 @@ def _append_mhs_history(cache, mhs):
     print(f"  ✅ MHS history: {len(cache['mhs_history'])} entries (today={mhs['score']})")
 
 
+def _daily_screen(cache, key, name, fetch_fn, as_list):
+    """
+    One value screen that updates daily at most. Order of attempts:
+      1. A copy already fetched successfully TODAY (Boise date): reuse it, no network call.
+      2. Live fetch (on success it is saved with today's date).
+      3. The older saved copy in run_cache.json (flagged amber on the dashboard).
+    Returns (list_of_tuples, meta). An empty list is never saved over a good copy.
+    """
+    saved, saved_as_of = cache_saved_today(cache, key)
+    if saved:
+        items = as_list(saved)
+        log(f"{name}: {len(items)} stocks (reused today's saved copy)")
+        return items, {"source": "today_saved", "as_of": saved_as_of, "note": "saved earlier today"}
+    try:
+        items, m = fetch_fn()
+        cache_write(cache, key, [[t, v] for t, v in items], as_of=m["as_of"])
+        log(f"{name}: {len(items)} stocks")
+        return items, m
+    except Exception as e:              # ScreenError or anything unexpected: use the saved copy
+        print(f"  ❌ {e}")
+        val, as_of = cache_read(cache, key)
+        if val:
+            log(f"{name}: live fetch failed, saved copy from {as_of}", "⚠️")
+            return as_list(val), {"source": "run_cache", "as_of": as_of,
+                                  "note": f"saved copy from {as_of}"}
+        log(f"{name}: failed, no saved copy", "❌")
+        return [], {"source": "none", "as_of": "", "note": "no data"}
+
+
 def _wrap_screens(cache):
     """
     Value screens. Each screen tries live first, then the saved copy in
@@ -427,43 +470,15 @@ def _wrap_screens(cache):
             si, meta["si"] = {}, {"source": "none", "as_of": "", "note": "no data"}
             log("Dataroma 13F: no data anywhere", "❌")
 
-    # Magic Formula: live -> run_cache.json
-    try:
-        mf, m = fetch_magic_formula()
-        cache_write(cache, "screens_mf", [[t, r] for t, r in mf], as_of=m["as_of"])
-        meta["mf"] = m
-        log(f"Magic Formula: {len(mf)} stocks")
-    except Exception as e:              # ScreenError or anything unexpected: use the saved copy
-        print(f"  ❌ {e}")
-        val, as_of = cache_read(cache, "screens_mf")
-        if val:
-            mf = [tuple(x) for x in val] if isinstance(val[0], list) \
-                else [(t, i + 1) for i, t in enumerate(val)]
-            meta["mf"] = {"source": "run_cache", "as_of": as_of,
-                          "note": f"saved copy from {as_of}"}
-            log(f"Magic Formula: live fetch failed, saved copy from {as_of}", "⚠️")
-        else:
-            mf, meta["mf"] = [], {"source": "none", "as_of": "", "note": "no data"}
-            log("Magic Formula: failed, no saved copy", "❌")
-
-    # Acquirer's Multiple: live -> run_cache.json
-    try:
-        am, m = fetch_acquirers_multiple()
-        cache_write(cache, "screens_am", [[t, x] for t, x in am], as_of=m["as_of"])
-        meta["am"] = m
-        log(f"Acquirer's Multiple: {len(am)} stocks")
-    except Exception as e:              # ScreenError or anything unexpected: use the saved copy
-        print(f"  ❌ {e}")
-        val, as_of = cache_read(cache, "screens_am")
-        if val:
-            am = [tuple(x) for x in val] if isinstance(val[0], list) \
-                else [(t, "-") for t in val]
-            meta["am"] = {"source": "run_cache", "as_of": as_of,
-                          "note": f"saved copy from {as_of}"}
-            log(f"Acquirer's Multiple: live fetch failed, saved copy from {as_of}", "⚠️")
-        else:
-            am, meta["am"] = [], {"source": "none", "as_of": "", "note": "no data"}
-            log("Acquirer's Multiple: failed, no saved copy", "❌")
+    # Magic Formula and Acquirer's Multiple: once per day (see _daily_screen)
+    mf, meta["mf"] = _daily_screen(
+        cache, "screens_mf", "Magic Formula", fetch_magic_formula,
+        lambda v: [tuple(x) for x in v] if isinstance(v[0], list)
+        else [(t, i + 1) for i, t in enumerate(v)])
+    am, meta["am"] = _daily_screen(
+        cache, "screens_am", "Acquirer's Multiple", fetch_acquirers_multiple,
+        lambda v: [tuple(x) for x in v] if isinstance(v[0], list)
+        else [(t, "-") for t in v])
 
     return si, mf, am, meta
 
