@@ -1381,9 +1381,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     routine_stale_banner = ""
     if routine_data and not routine_fresh:
         routine_date = routine_data.get("date", "unknown")
+        # Built outside the f-string: Python 3.11 (used by GitHub) forbids backslashes inside {...}
+        _stale_msg = "pre-market data is from " + str(routine_date) + ", today's routine did not run"
         routine_stale_banner = (
-            f'<div style="margin-bottom:8px;">'
-            f'{_warn_badge("pre-market data is from " + str(routine_date) + ", today\'s routine did not run", "bad")}</div>'
+            '<div style="margin-bottom:8px;">' + _warn_badge(_stale_msg, "bad") + '</div>'
         )
 
     if erp is not None:
