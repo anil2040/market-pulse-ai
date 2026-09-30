@@ -77,9 +77,9 @@ Do NOT paste all modules at once -- that blows the context window immediately.
   plus workflow_dispatch. A gate step lets only the correct one run, by asking the server for Boise's UTC
   offset (-0600 or -0700). It never looks at the hour. The skipped twin shows as a quick green run.
 - **Cron drift:** the 7:50 cron typically starts at 7:58-8:00 AM -- normal GitHub behavior, not a bug
-- **Claude Routine:** "Daily Market Warmup", weekdays 7:44 AM MDT, Sonnet 4.6, Claude_Code_Remote, commits
+- **Claude Routine:** "Daily Market Warmup", weekdays 7:40 AM MDT, Sonnet 4.6, Claude_Code_Remote, commits
   clauderoutinedata.json. Its schedule text says MDT explicitly: check around Nov 2 2026 that it still fires
-  at 7:44 local (if it moves to 6:44, edit the routine schedule). The pipeline must start AFTER it commits.
+  at 7:40 local (if it moves to 6:44, edit the routine schedule). The pipeline must start AFTER it commits.
 - **Runtime:** ~36 seconds, 17/17 indicators (as of Sep 28 2026)
 
 **9 GitHub Secrets (all confirmed set):**
@@ -160,7 +160,7 @@ Routine 1: 4:00am MT -- "Pre-Market Briefing" (personal reading only, no file ou
 - Format: emoji-headed sections (OVERNIGHT / GLOBAL MARKETS / FUTURES / RATES & OIL / WATCH TODAY)
 - NO GitHub commit, NO clauderoutinedata.json write
 
-Routine 2: 7:44am MT -- "Daily Market Warmup" (machine-readable JSON, writes clauderoutinedata.json)
+Routine 2: 7:40am MT -- "Daily Market Warmup" (machine-readable JSON, writes clauderoutinedata.json)
 - 6-minute gap before 7:50am pipeline
 - Model: Sonnet 4.6 (changed from Opus 5.5 in Session 12 -- same output, lower cost)
 - Contains sections A-G: futures, ETF PE, macro/rates, sector movers, global markets,
@@ -173,7 +173,7 @@ Routine 2: 7:44am MT -- "Daily Market Warmup" (machine-readable JSON, writes cla
 
 **Stale routine warning root cause (confirmed Sep 23 2026, fixed Session 12):**
 - Pipeline reads clauderoutinedata.json right after actions/checkout
-- If GitHub hasn't fully propagated the 7:44am routine commit by the time checkout runs,
+- If GitHub hasn't fully propagated the 7:40am routine commit by the time checkout runs,
   the pipeline sees yesterday's file and flags it stale
 - Fix: added `git pull origin main` step in daily.yml immediately after actions/checkout
 
@@ -189,7 +189,7 @@ Routine 2: 7:44am MT -- "Daily Market Warmup" (machine-readable JSON, writes cla
   Fallback: if checkout fails due to uncommitted changes, run git checkout -- . then retry
 - After push succeeds, hard stop: do not respond to hook prompts, no further commands
 
-**clauderoutinedata.json schema (written by 7:44am routine):**
+**clauderoutinedata.json schema (written by 7:40am routine):**
 ```json
 {
   "date": "YYYY-MM-DD",
@@ -228,7 +228,7 @@ Routine 2: 7:44am MT -- "Daily Market Warmup" (machine-readable JSON, writes cla
 ```
 
 **Market Performance Card -- data source priority:**
-- PRIMARY: routine_data["market_prices"] (browser-fetched at 7:44am MT, no CORS issue)
+- PRIMARY: routine_data["market_prices"] (browser-fetched at 7:40am MT, no CORS issue)
 - FALLBACK: mkt_data from market.py pipeline fetch (server-side, may show stale after close)
 - NO live JS fetch -- removed entirely. Yahoo Finance CORS-blocks requests from github.io.
   Chrome extension works because extensions bypass CORS via host_permissions in manifest.
@@ -455,6 +455,12 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Boise time: never hard-code a UTC offset. Use timeutil.now_mt().
 - Insight text has no leading symbols. MHS framework v1.0 thresholds are UNCHANGED.
 - Owner rule: PROPOSE any change that was not asked for BEFORE making it (announcing it afterwards is not enough).
+- TEST ON PYTHON 3.11: the GitHub workflow uses 3.11. Python 3.11 forbids backslashes inside f-string {...}
+  (3.12 allows them, so a newer local Python hides the bug). Sep 30 2026 outage was exactly this. Build such strings first.
+- ROUTINE = SEARCH ONLY: the Claude Code routine environment blocks page fetching (proxy allowlist; every fetch fails).
+  Only web SEARCH works. Never write routine instructions that open URLs. Old instructions finished in ~1 minute by
+  using only searches; a version that told it to open Yahoo/CNBC/MarketWatch/iShares pages took 12 minutes and
+  produced 21 failed fetches. The routine has ~4 minutes: it must finish before the 7:50 pipeline.
 
 ---
 
@@ -536,7 +542,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
    **Your to-dos from Session 15:** (a) re-save the ANTHROPIC_API_KEY GitHub secret from the key that worked in
    test_haiku.py (the 503 "credential validation failed" was not a bad key; a bad key gives 401); (b) confirm the
    CNBC newsletter arrives (check Bulk folder, mark Not spam); (c) run one manual evening workflow_dispatch to
-   test the Gemini overload theory; (d) around Nov 2 check the routine still fires at 7:44 local;
+   test the Gemini overload theory; (d) around Nov 2 check the routine still fires at 7:40 local;
    (e) after Nov 14: `python fetch_cache.py`, commit dataroma_cache.json; (f) delete
    .github/workflows/test_pe_fetch.yml and any am_cache.json; (g) check URTH P/E: routine says 18.9x, your
    PE_CONFIG says 22.6x (Sep 10, Yahoo). The dashboard flags it until they agree; decide which source to trust.
@@ -894,6 +900,40 @@ blackout. All published a page, none crashed. DST gate tested across Nov 1 2026 
 **Known limits:** monthly and quarterly macro data lag by nature (CPI, PCE, unemployment, sentiment, GDP); they are
 labelled with their real as-of month. ISM PMI stays excluded. A Friday calendar cut before Session 15 is repaired the
 first Tue-Fri run that has a fuller brief.
+
+---
+
+### Session 15 follow-up -- Sep 30 2026 (same day)
+**Files delivered later:** html_builder.py (Python 3.11 fix), ai_synthesis.py (Haiku retries), routine_instructions.txt (v3).
+
+1. **Outage 1: ImportError on market.** The delivered market.py was fine; the copy in the repo was not the delivered file
+   (copy/paste or partial overwrite). Lesson: verify file size/line count after copying, or stop copy-pasting (see below).
+2. **Outage 2: SyntaxError in html_builder.py** (backslash inside an f-string expression). Invisible on Python 3.12, fatal on
+   3.11. Fixed; every file now checked with python3.11 before delivery.
+3. **Routine v2 took 12 minutes** with 21 failed page fetches (see rule above). Fixed in v3: search only, budget of 14 searches,
+   no URLs anywhere in the text, all-or-nothing prices (market_prices = {} falls back to the pipeline's own Yahoo feed).
+   Routine schedule is now 7:40 AM MDT (owner changed it); pipeline stays 7:50.
+4. **ETF P/E finding:** the same fund (EFA) showed P/E 16.6, 19.5, 32.1, "-" and 0 on different sites via search results.
+   The routine had been mixing gurufocus (URTH 18.86) with ishares (EFA 18.71). iShares' own figure for URTH is about 26.4x
+   (BlackRock page, as of Sep 24 2026). Search results rarely show iShares' EFA figure, so the routine now tries once per fund,
+   accepts only ishares.com/blackrock.com with an as-of date, and otherwise leaves null. PLAN (owner to confirm): update
+   PE_CONFIG in market.py monthly from the iShares fact sheets, using iShares for BOTH funds. Until then the dashboard shows
+   the amber "verify source" badge and a possibly wrong EFA-versus-URTH label.
+5. **README:** not needed. SESSION_LOG.md is the project memory. (Optional later: a CLAUDE.md file so Claude Code loads the
+   standing rules automatically.)
+6. **Live page check (Sep 29 evening):** the deployed page was still the 8:02 AM Sep 29 build (old labels, empty 13F, old 10Y)
+   right after manual run #77 (success, 1m 0s; summary showed only CNBC red). Expect it to update within minutes; if not,
+   inspect the "Commit and push dashboard" step of the run.
+7. **Known stale comments (harmless, fix next time those files change):** main.py, html_builder.py and daily.yml still say the
+   routine runs at 7:44/7:45; fred.py comments say "18 series" (there are 17).
+
+**LESSONS LEARNED**
+- Copy/paste of multi-file changes through a chat window caused two of the three outages. A coding agent that works inside the
+  repo (Claude Code) removes the copy step, can run the same Python version as the workflow, and can run the tests itself.
+- Test where the code will run: same Python version, same network limits (the routine cannot fetch pages).
+- Every change to something that already worked (routine instructions especially) needs a before/after time or output check.
+- Do not add complexity without evidence it is needed; prefer the smallest change that fixes the observed problem.
+- Watch the first real scheduled run after any deployment: read the health banner and the Actions run summary.
 
 ---
 
