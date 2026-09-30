@@ -1,6 +1,6 @@
 {
   "date": "2026-09-29",
-  "time_collected_utc": "03:26",
+  "time_collected_utc": "03:34",
   "futures": {
     "sp500": {
       "change_pct": null,
@@ -56,10 +56,7 @@
   "market_prices": {},
   "data_notes": [
     "Search results were stale or undated; no value could be verified as today's, so all values left empty",
-    "Futures: results undated and mixed, left null; sentiment neutral by default",
-    "URTH and EFA P/E not available from ishares.com or blackrock.com in search",
-    "10Y yield and WTI results were stale (4.145 and 72.88 do not match recent levels), left null",
-    "Index level results were stale or wrong instrument, market_prices set to empty",
-    "Sector and global market results were undated or year-to-date only, left empty"
+    "Futures, yield, WTI, sectors, global markets and index levels not found for today",
+    "URTH and EFA P/E not available from ishares.com or blackrock.com"
   ]
 }
