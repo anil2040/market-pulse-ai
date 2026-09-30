@@ -116,7 +116,7 @@ Stale content on weekends is expected (no pipeline run).
 | market.py | ~330 | Yahoo SPX/RUT/VIX (previous close from bars), Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | ~330 | Dataroma live+dataroma_cache.json (any age), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. No am_cache.json. |
 | news.py | ~430 | Edward Jones scrape, CNBC/Yahoo IMAP (INBOX + Bulk/Spam, real Date header, read-only), text cleaning, calendar extractor (6000 chars). Returns (text, meta). |
-| ai_synthesis.py | ~470 | Gemini 3.6 flash -> 3.5 flash -> Haiku (SDK retries) -> fallback. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
+| ai_synthesis.py | ~470 | Gemini 3.6 flash -> 3.5 flash -> Haiku (2 retries, exponential wait) -> fallback. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
 | health.py | ~250 | NEW. All freshness rules and health items (ok/warn/bad). Pure functions, no network. |
 | timeutil.py | ~70 | NEW. Boise time with daylight saving (zoneinfo, with a built-in fallback for Windows without tzdata). |
 | html_builder.py | ~1650 | Full dashboard HTML, health banner, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header) |
@@ -454,6 +454,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Dataroma cache is used at ANY age (quarterly data). All-3 and 2-of-3 accept any SI count >= 1; SI-only needs 3+.
 - Boise time: never hard-code a UTC offset. Use timeutil.now_mt().
 - Insight text has no leading symbols. MHS framework v1.0 thresholds are UNCHANGED.
+- Owner rule: PROPOSE any change that was not asked for BEFORE making it (announcing it afterwards is not enough).
 
 ---
 
@@ -880,7 +881,7 @@ fetch_cache.py, daily.yml. NEW: health.py, timeutil.py. Deleted (by you): test_p
 banner and one-symbol badges, per-indicator cache fallback, Dataroma cache used at any age with a 13F refresh
 reminder, real source dates for news, calendar repair (merges saved Monday with fresh Tue-Fri), DST-proof two-cron
 workflow with a gate, single commit with push retry, red-X email on critical failures, ai_info explaining exactly
-why models failed, Haiku uses SDK retries (max_retries=3; a small departure from "no retries").
+why models failed, Haiku retries temporary errors (503/529/429/timeouts) at most 2 extra times with exponential backoff (5 s then 10 s); bad-key and bad-request errors fail at once; SDK auto-retry is off. Set by the owner: HAIKU_RETRIES / HAIKU_BASE_DELAY in ai_synthesis.py. RULE: tell the owner BEFORE making any change he did not ask for.
 
 **Dollar explained (for future sessions):** ICE DXY = dollar vs 6 currencies (euro about 58%), base 100 in 1973,
 usual range 90-110, Yahoo ticker DX-Y.NYB. Our row is the Fed Nominal Broad Dollar Index (DTWEXBGS): 26 currencies,
