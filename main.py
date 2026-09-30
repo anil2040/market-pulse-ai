@@ -4,72 +4,73 @@
 # ============================================================
 #
 # WHAT THIS DOES:
-#   Runs every weekday at 7:50 AM MT via GitHub Actions.
+#   Runs every weekday at ~7:50 AM Boise time via GitHub Actions.
 #   Fetches macro data, sentiment, value screens, news emails,
-#   synthesizes with AI, and publishes an HTML dashboard to
-#   GitHub Pages. A Chrome extension reads the hidden
-#   #market-context div and feeds it into stock-level mean
-#   reversion analysis.
+#   synthesizes with AI, checks the health of every data source, and
+#   publishes an HTML dashboard to GitHub Pages. A Chrome extension
+#   reads the hidden #market-context div for stock-level analysis.
 #
 # MODULE RESPONSIBILITY MAP (which file to edit for which bug):
-#   Gold/CAPE/FRED data issues        -> fred.py
-#   VIX/SPX/PE/MHS/ERP issues         -> market.py
-#   Dataroma/MF/AM/cache issues       -> screens.py
-#   Email/Edward Jones issues         -> news.py
-#   Gemini/Haiku/AI output issues     -> ai_synthesis.py
-#   Dashboard display issues          -> html_builder.py
-#   Pipeline order/imports issues     -> main.py (this file)
-#   Claude Routine JSON issues        -> clauderoutinedata.json (root)
+#   Macro indicators (rates, CPI, gold, oil, CAPE) -> fred.py
+#   VIX/SPX/PE/MHS/ERP issues                      -> market.py
+#   Dataroma/Magic Formula/Acquirer's Multiple     -> screens.py
+#   Email / Edward Jones                           -> news.py
+#   Gemini/Haiku/AI output issues                  -> ai_synthesis.py
+#   Freshness rules, warning banner logic          -> health.py
+#   Dashboard display issues                       -> html_builder.py
+#   Boise time / daylight saving                   -> timeutil.py
+#   Schedule, secrets, git commit                  -> .github/workflows/daily.yml
+#   Pipeline order/imports issues                  -> main.py (this file)
+#   Claude Routine JSON issues                     -> clauderoutinedata.json (root)
 #
-# RUN CACHE (run_cache.json):
-#   Persistent per-indicator fallback. Lives in repo root.
-#   Each successful fetch writes its value + timestamp.
-#   On failure, the last known good value is used instead.
-#   Committed back to repo after every run so it persists.
-#   Dashboard shows a "cached [date]" badge on stale values.
-#   First-ever run with no cache: failed fetches show N/A.
+# CACHE FILES (just two):
+#   run_cache.json      Automatic fallback for every source + MHS history.
+#                       Written here, committed by the workflow.
+#                       RULE: an empty or failed result is NEVER written
+#                       over a good saved copy (that bug hid a working
+#                       fallback for weeks).
+#   dataroma_cache.json Dataroma 13F list (quarterly data). See screens.py.
+#   News text is no longer cached: old news is worse than no news.
 #
 # PIPELINE (in execution order):
-#   0.  Claude Routine JSON (clauderoutinedata.json, written 4am MT)
-#   1.  FRED macro indicators (fred.py)
-#   2.  CNN Fear & Greed (main.py -- inline)
+#   0.  Claude Routine JSON + its REAL commit time from git history
+#   1.  Macro indicators (fred.py)
+#   2.  CNN Fear & Greed (inline below)
 #   3.  Market data: SPX, RUT, VIX, ETF PE (market.py)
-#       ETF PE priority: Claude Routine -> iShares CSV -> PE_CONFIG
 #   4.  MHS Macro Heat Score (market.py)
-#   5.  Dataroma 13F superinvestor buys (screens.py)
-#   6.  Magic Formula top 30 (screens.py)
-#   7.  Acquirer's Multiple large-cap (screens.py)
-#   8.  Edward Jones daily recap (news.py)
-#   9.  CNBC Morning Squawk email (news.py)
-#   10. Yahoo Morning Brief email (news.py)
-#   11. AI synthesis -- Gemini -> Haiku -> fallback text (ai_synthesis.py)
-#   12. Build HTML dashboard (html_builder.py)
-#   13. Save + commit run_cache.json (main.py)
+#   5.  Dataroma 13F, Magic Formula, Acquirer's Multiple (screens.py)
+#   6.  Edward Jones, CNBC, Yahoo Morning Brief (news.py)
+#   7.  Health checks on all of the above (health.py)
+#   8.  AI synthesis -- Gemini -> Haiku -> fallback text (ai_synthesis.py)
+#   9.  Build HTML dashboard (html_builder.py)
+#   10. Save run_cache.json. The workflow commits everything in ONE commit.
+#   11. If a source needing your attention is RED, exit with code 1 so the
+#       GitHub run shows a red X and GitHub emails you (switch below).
 #
-# NOTE: McClellan Oscillator removed Sep 2026 -- email is a paid
-#   article teaser with no usable data. Card already removed from
-#   html_builder.py.
-#
-# MHS SCALE (updated Sep 2026):
+# MHS SCALE:
 #   0-33:  GREEN  DEPLOY          -- Panic/dislocation. Deploy aggressively.
 #   34-65: AMBER  SELECTIVE       -- Best setups only. Left Leg <4, MoS >25%.
 #   66-85: RED    OVERHEATED      -- Build cash. Trim winners.
 #   86-100: DARK  EXTREME OVERH.  -- Most stretched since dot-com.
 #
-# NOTE: AAII removed -- aaii.com blocks GitHub Actions IPs via Incapsula CDN.
-#   Check manually at aaii.com/sentimentsurvey every Thursday.
+# NOTES:
+#   AAII removed -- aaii.com blocks GitHub Actions IPs. Check manually.
+#   McClellan removed Sep 2026 -- paid teaser only.
+#   ISM PMI is not on FRED (ISM had it removed in 2016) -- do not revisit.
 # ============================================================
 
 import os
+import sys
 import json
 import time
 import subprocess
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import requests
 
-# Local modules
-from fred    import fetch_fred_data
-from market  import fetch_market_indicators, compute_mhs
+from timeutil import now_mt, to_mt
+import health as hl
+from fred    import fetch_fred_data, FRED_SERIES, _empty_row as _fred_empty_row
+from market  import (fetch_market_indicators, compute_mhs, PE_CONFIG, PE_LAST_UPDATED)
 from screens import (fetch_superinvestor_buys, fetch_magic_formula,
                      fetch_acquirers_multiple)
 from news    import (scrape_edward_jones, fetch_cnbc_email,
@@ -81,85 +82,111 @@ from html_builder import build_html
 # CONFIGURATION
 # ============================================================
 
-GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
-YAHOO_EMAIL       = os.environ.get("YAHOO_EMAIL")
-FRED_API_KEY      = os.environ.get("FRED_API_KEY")
+ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
+YAHOO_EMAIL       = (os.environ.get("YAHOO_EMAIL") or "").strip()
+FRED_API_KEY      = (os.environ.get("FRED_API_KEY") or "").strip()
 
 CACHE_FILE   = "run_cache.json"
 ROUTINE_FILE = "clauderoutinedata.json"
 
-# Boise MDT = UTC-6 summer
-MT = timezone(timedelta(hours=-6))
+# True = when any source that needs your attention is RED, the run ends with
+# exit code 1. GitHub then shows a red X and emails you. The dashboard is
+# still published first. Set to False to silence the emails.
+NOTIFY_ON_FAILURE = True
 
-# Global run log -- every step appends here, shown collapsed in dashboard
-RUN_LOG  = []
+# Global run log -- every step appends here, shown collapsed in the dashboard
+RUN_LOG   = []
 RUN_START = time.time()
 
+
 def log(msg, status="✅"):
+    """status: ✅ fine | ⚠️ cached, stale or partial | ❌ failed"""
     elapsed = round(time.time() - RUN_START)
     RUN_LOG.append(f"{status} [{elapsed}s] {msg}")
+
 
 # ============================================================
 # STEP 0: CLAUDE ROUTINE JSON LOADER
 # ============================================================
 
+def _routine_commit_info():
+    """
+    The REAL time clauderoutinedata.json was last committed, from git history,
+    in Boise time. The time_collected_utc written inside the file is guessed
+    by the model (it said 12:15 UTC when the run was 7:45 AM MDT), so it is
+    not trusted. Returns {"date","time","label"} or None.
+    """
+    try:
+        out = subprocess.run(
+            ["git", "log", "-1", "--format=%cI", "--", ROUTINE_FILE],
+            capture_output=True, text=True, timeout=15).stdout.strip()
+        if not out:
+            return None
+        local = to_mt(datetime.fromisoformat(out))
+        return {"date":  local.strftime("%Y-%m-%d"),
+                "time":  local.strftime("%H:%M"),
+                "label": local.strftime("%I:%M %p").lstrip("0")}
+    except Exception as e:
+        print(f"  ℹ️ Could not read routine commit time: {e}")
+        return None
+
+
 def load_claude_routine():
     """
-    Load clauderoutinedata.json from repo root.
-    Written by the 4am Claude Routine before the 7:50am pipeline runs.
+    Load clauderoutinedata.json from repo root (written by the 7:44 AM MDT
+    Claude Routine before this pipeline runs).
 
-    Returns (routine_data_dict, is_fresh_bool, status_str).
-    - routine_data_dict: full parsed JSON (or {} on failure)
-    - is_fresh_bool: True if date field matches today MT
-    - status_str: human-readable status for run log
-
-    When stale, data is still returned so AI synthesis can use it
-    with a staleness note rather than getting nothing.
+    Returns (routine_data_dict, is_fresh_bool, status_str, commit_info).
+    Fresh = the file's date is today (Boise) AND, when git history is
+    available, it was committed today. Stale data is still returned so the
+    AI can use it with a staleness note.
     """
     print("\n📋 Loading Claude Routine data (clauderoutinedata.json)...")
-    today_mt = datetime.now(MT).strftime("%Y-%m-%d")
+    today_mt = now_mt().strftime("%Y-%m-%d")
+    commit   = _routine_commit_info()
 
     if not os.path.exists(ROUTINE_FILE):
         print(f"  ⚠️ {ROUTINE_FILE} not found -- routine may not have run yet")
-        return {}, False, "clauderoutinedata.json not found"
+        return {}, False, "clauderoutinedata.json not found", commit
 
     try:
         with open(ROUTINE_FILE, "r", encoding="utf-8") as f:
             data = json.load(f)
 
         routine_date = data.get("date", "")
-        time_utc     = data.get("time_collected_utc", "")
-        is_fresh     = (routine_date == today_mt)
+        commit_ok    = commit is None or commit["date"] == today_mt
+        is_fresh     = (routine_date == today_mt) and commit_ok
+        when         = f"committed {commit['label']} MT" if commit else "commit time unknown"
 
         if is_fresh:
             etf_pe = data.get("etf_pe", {})
             urth   = etf_pe.get("URTH", {}).get("pe_ttm", "N/A")
             efa    = etf_pe.get("EFA",  {}).get("pe_ttm", "N/A")
-            futures_sent = data.get("futures", {}).get("sentiment", "N/A")
-            print(f"  ✅ Routine data: {routine_date} {time_utc} UTC | "
-                  f"URTH PE={urth} EFA PE={efa} | sentiment={futures_sent}")
-            status = f"Claude Routine: fresh ({routine_date} {time_utc} UTC)"
+            sent   = data.get("futures", {}).get("sentiment", "N/A")
+            print(f"  ✅ Routine data: {routine_date} ({when}) | "
+                  f"URTH PE={urth} EFA PE={efa} | sentiment={sent}")
+            status = f"Claude Routine: fresh ({routine_date}, {when})"
         else:
-            print(f"  ⚠️ Routine data is from {routine_date} (today is {today_mt}) -- stale")
-            print(f"  ℹ️ Passing stale data to AI with staleness note")
+            print(f"  ⚠️ Routine data is from {routine_date} "
+                  f"(today is {today_mt}; {when}) -- stale")
             status = f"Claude Routine: stale ({routine_date}, today={today_mt})"
 
-        return data, is_fresh, status
+        return data, is_fresh, status, commit
 
     except json.JSONDecodeError as e:
         print(f"  ❌ Routine JSON parse error: {e}")
-        return {}, False, f"Claude Routine: JSON parse error ({e})"
+        return {}, False, f"Claude Routine: JSON parse error ({e})", commit
     except Exception as e:
         print(f"  ❌ Routine load failed: {e}")
-        return {}, False, f"Claude Routine: load failed ({e})"
+        return {}, False, f"Claude Routine: load failed ({e})", commit
+
 
 # ============================================================
-# RUN CACHE -- per-indicator persistent fallback
+# RUN CACHE -- per-source persistent fallback
 # ============================================================
 
 def _load_cache():
-    """Load run_cache.json from disk. Returns empty dict if missing."""
+    """Load run_cache.json. Returns empty dict if missing."""
     try:
         if os.path.exists(CACHE_FILE):
             with open(CACHE_FILE, "r", encoding="utf-8") as f:
@@ -168,63 +195,49 @@ def _load_cache():
         print(f"  ⚠️ Cache load failed: {e}")
     return {}
 
+
 def _save_cache(cache):
-    """Write run_cache.json to disk atomically."""
+    """Write run_cache.json to disk."""
     try:
         with open(CACHE_FILE, "w", encoding="utf-8") as f:
             json.dump(cache, f, indent=2, default=str)
     except Exception as e:
         print(f"  ⚠️ Cache save failed: {e}")
 
-def cache_write(cache, key, value):
+
+def _tidy_cache(cache):
     """
-    Write a successful fetch result into the cache.
-    value can be any JSON-serializable object.
-    Timestamp is always today UTC ISO format (date only).
+    One-time and ongoing housekeeping:
+      - news text is no longer cached (old news is worse than none)
+      - indicator entries for series that no longer exist (renamed/replaced)
     """
-    cache[key] = {
-        "value":   value,
-        "fetched": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
-    }
+    for k in ("news_ej", "news_cnbc", "news_yahoo", "news_yahoo_calendar"):
+        cache.pop(k, None)
+    valid = {f"fred_{c['label']}" for c in FRED_SERIES}
+    for k in [k for k in cache if k.startswith("fred_") and k not in valid]:
+        cache.pop(k, None)
+
+
+def cache_write(cache, key, value, as_of=None):
+    """
+    Save a SUCCESSFUL result. Never call this with an empty value.
+    fetched = the day this run stored it. as_of = the date the underlying
+    data is really from (defaults to the same day).
+    """
+    today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+    cache[key] = {"value": value, "fetched": today, "as_of": as_of or today}
+
 
 def cache_read(cache, key):
     """
-    Read a cached value. Returns (value, fetched_date_str) or (None, None).
+    Returns (value, as_of_date_str) or (None, None).
+    Empty values ({} or []) count as "nothing saved".
     """
     entry = cache.get(key)
-    if entry and entry.get("value") is not None:
-        return entry["value"], entry.get("fetched", "unknown")
+    if entry and entry.get("value"):
+        return entry["value"], entry.get("as_of") or entry.get("fetched", "unknown")
     return None, None
 
-def _commit_cache():
-    """
-    Git add + commit + push run_cache.json back to the repo.
-    Runs silently -- failures are logged but do not abort the pipeline.
-    GitHub Actions runner has write access via GITHUB_TOKEN.
-    """
-    try:
-        subprocess.run(["git", "config", "user.email", "actions@github.com"],
-                       check=True, capture_output=True)
-        subprocess.run(["git", "config", "user.name", "GitHub Actions"],
-                       check=True, capture_output=True)
-        subprocess.run(["git", "add", CACHE_FILE],
-                       check=True, capture_output=True)
-        result = subprocess.run(
-            ["git", "diff", "--cached", "--quiet"],
-            capture_output=True)
-        if result.returncode == 0:
-            print("  ℹ️ Cache unchanged -- skipping commit")
-            return
-        subprocess.run(
-            ["git", "commit", "-m",
-             f"chore: update run_cache.json [{datetime.now(timezone.utc).strftime('%Y-%m-%d')}]"],
-            check=True, capture_output=True)
-        subprocess.run(["git", "push"], check=True, capture_output=True)
-        print("  ✅ run_cache.json committed and pushed")
-    except subprocess.CalledProcessError as e:
-        print(f"  ⚠️ Cache commit failed: {e.stderr.decode()[:120]}")
-    except Exception as e:
-        print(f"  ⚠️ Cache commit error: {e}")
 
 # ============================================================
 # STEP 2: CNN FEAR & GREED
@@ -268,7 +281,7 @@ def fetch_fear_greed(cache):
             cached_val["cached"]      = True
             cached_val["cached_date"] = cached_date
             print(f"  ♻️  Using cached Fear & Greed from {cached_date}")
-            log(f"Fear & Greed: cached ({cached_date})", "♻️")
+            log(f"Fear & Greed: live fetch failed, cached from {cached_date}", "⚠️")
             return cached_val
         log(f"Fear & Greed: {str(e)[:60]}", "❌")
         return {
@@ -279,42 +292,58 @@ def fetch_fear_greed(cache):
             "cached": False,
         }
 
+
 # ============================================================
-# CACHE WRAPPERS FOR MODULE CALLS
+# WRAPPERS WITH CACHE FALLBACK
 # ============================================================
 
 def _wrap_fred(cache):
-    """Fetch FRED data with per-indicator cache fallback."""
+    """
+    Macro indicators with PER-INDICATOR cache fallback (the old code only
+    used the cache if the whole fetch crashed). Any single indicator that
+    comes back N/A is replaced by its last good value, flagged cached.
+    """
     try:
-        data = fetch_fred_data()
-        # Write each indicator that succeeded into cache
-        for r in data:
-            if r["current"] != "N/A":
-                cache_write(cache, f"fred_{r['label']}", r)
-        ok = sum(1 for r in data if r["current"] != "N/A")
-        log(f"FRED: {ok}/{len(data)} indicators fetched",
-            "✅" if ok == len(data) else "⚠️")
-        return data
+        live = fetch_fred_data()
     except Exception as e:
-        print(f"  ❌ FRED fetch failed entirely: {e}")
-        # Try to rebuild from cache
-        rebuilt = []
-        for key in [k for k in cache if k.startswith("fred_")]:
-            val, fetched = cache_read(cache, key)
-            if val:
-                val = dict(val)
-                val["cached"]      = True
-                val["cached_date"] = fetched
-                rebuilt.append(val)
-        log(f"FRED: all failed, {len(rebuilt)} from cache", "❌")
-        return rebuilt
+        print(f"  ❌ Macro fetch failed entirely: {e}")
+        live = []
+    by_label = {r["label"]: r for r in live}
+
+    out, n_live, n_cached, n_missing = [], 0, 0, 0
+    for cfg in FRED_SERIES:
+        r = by_label.get(cfg["label"])
+        if r and r["current"] != "N/A":
+            cache_write(cache, f"fred_{cfg['label']}", r)
+            out.append(r)
+            n_live += 1
+            continue
+        val, cdate = cache_read(cache, f"fred_{cfg['label']}")
+        if val:
+            v = dict(val)
+            v["cached"]      = True
+            v["cached_date"] = cdate
+            out.append(v)
+            n_cached += 1
+            print(f"  ♻️  {cfg['label']}: live fetch failed, using cached value from {cdate}")
+        else:
+            out.append(r or _fred_empty_row(cfg))
+            n_missing += 1
+
+    total  = len(FRED_SERIES)
+    detail = f"Macro indicators: {n_live}/{total} live"
+    if n_cached:
+        detail += f", {n_cached} from cache"
+    if n_missing:
+        detail += f", {n_missing} missing"
+    log(detail, "✅" if n_live == total else ("❌" if n_missing else "⚠️"))
+    return out
 
 
 def _wrap_market(cache, routine_data):
-    """Fetch market indicators with cache fallback per field."""
+    """Fetch market indicators with cache fallback. Returns (data, used_cache)."""
     try:
         data = fetch_market_indicators(routine_data=routine_data)
-        # Cache the whole block -- it's atomic (SPX/RUT/VIX fetched together)
         cache_write(cache, "market_indicators", data)
         log(f"Market: SPX {data['spx']['value']} RUT {data['rut']['value']} "
             f"VIX {data['vix']['value']} | {data['market_state']}")
@@ -327,10 +356,9 @@ def _wrap_market(cache, routine_data):
             cached_val["cached"]      = True
             cached_val["cached_date"] = cached_date
             print(f"  ♻️  Using cached market data from {cached_date}")
-            log(f"Market: cached ({cached_date})", "♻️")
+            log(f"Market: live fetch failed, cached from {cached_date}", "⚠️")
             return cached_val, True
-        log(f"Market: failed, no cache", "❌")
-        # Return a safe empty structure
+        log("Market: failed, no cache", "❌")
         empty = {
             "vix": {"value": "N/A", "label": "N/A", "color": "#6b7280",
                     "signal": "", "prev": "N/A"},
@@ -347,13 +375,13 @@ def _wrap_market(cache, routine_data):
 
 def _append_mhs_history(cache, mhs):
     """
-    Append today's MHS score to the mhs_history array in run_cache.json.
-    Stores one entry per calendar day (today's run overwrites if already present).
-    Keeps up to 252 entries (one trading year).
-    Framework is LOCKED at v1.0 -- do not change component weights or
-    thresholds without creating a new history series.
+    Append today's MHS score to mhs_history in run_cache.json (one entry per
+    Boise calendar day, capped at 252). Framework LOCKED at v1.0.
+    NOTE: on Sep 30 2026 the Fed Funds and 10Y inputs switched from monthly
+    averages to daily readings. The formula did not change, but the score
+    stepped up (the Sep 16 rate hike is now visible). Expect a one-time jump.
     """
-    today_str = datetime.now(MT).strftime("%Y-%m-%d")
+    today_str = now_mt().strftime("%Y-%m-%d")
     entry = {
         "date":  today_str,
         "score": mhs["score"],
@@ -364,10 +392,8 @@ def _append_mhs_history(cache, mhs):
     history = cache.get("mhs_history", [])
     if not isinstance(history, list):
         history = []
-    # Remove any existing entry for today (idempotent re-runs)
     history = [h for h in history if h.get("date") != today_str]
     history.append(entry)
-    # Sort by date ascending, cap at 252 entries
     history.sort(key=lambda h: h["date"])
     cache["mhs_history"] = history[-252:]
     print(f"  ✅ MHS history: {len(cache['mhs_history'])} entries (today={mhs['score']})")
@@ -375,121 +401,166 @@ def _append_mhs_history(cache, mhs):
 
 def _wrap_screens(cache):
     """
-    Fetch value screens with per-screen cache fallback.
-    Returns:
-      si  -- dict {ticker: count}
-      mf  -- ordered list of (ticker, rank) tuples
-      am  -- ordered list of (ticker, multiple_str) tuples
+    Value screens. Each screen tries live first, then the saved copy in
+    run_cache.json. Empty results are never cached and never pass as success.
+    Returns (si, mf, am, screen_meta) where screen_meta = {"si": {...}, "mf": {...}, "am": {...}}
+      si -- dict {ticker: count}
+      mf -- ordered list of (ticker, rank) tuples
+      am -- ordered list of (ticker, multiple_str) tuples
     """
-    # Superinvestors
-    try:
-        si = fetch_superinvestor_buys()
-        cache_write(cache, "screens_si", si)
-        log(f"Dataroma 13F: {len(si)} stocks")
-    except Exception as e:
-        print(f"  ❌ Dataroma failed: {e}")
-        cached_val, cached_date = cache_read(cache, "screens_si")
-        si = cached_val if cached_val else {}
-        if cached_val:
-            print(f"  ♻️  Using cached Dataroma from {cached_date}")
-            log(f"Dataroma 13F: cached ({cached_date})", "♻️")
-        else:
-            log("Dataroma 13F: failed, no cache", "❌")
+    meta = {}
 
-    # Magic Formula -- now returns ordered list of (ticker, rank) tuples
+    # Superinvestors: live -> dataroma_cache.json (inside screens.py) -> run_cache.json
     try:
-        mf = fetch_magic_formula()
-        # Cache as list of [ticker, rank] pairs
-        cache_write(cache, "screens_mf", [[t, r] for t, r in mf])
+        si, m = fetch_superinvestor_buys()
+        cache_write(cache, "screens_si", si, as_of=m["as_of"])
+        meta["si"] = m
+        log(f"Dataroma 13F: {len(si)} stocks ({m['note']})")
+    except Exception as e:              # ScreenError or anything unexpected: use the saved copy
+        print(f"  ❌ {e}")
+        val, as_of = cache_read(cache, "screens_si")
+        if val:
+            si, meta["si"] = val, {"source": "run_cache", "as_of": as_of,
+                                   "note": f"older saved copy from {as_of}"}
+            log(f"Dataroma 13F: all live sources failed, saved copy from {as_of}", "⚠️")
+        else:
+            si, meta["si"] = {}, {"source": "none", "as_of": "", "note": "no data"}
+            log("Dataroma 13F: no data anywhere", "❌")
+
+    # Magic Formula: live -> run_cache.json
+    try:
+        mf, m = fetch_magic_formula()
+        cache_write(cache, "screens_mf", [[t, r] for t, r in mf], as_of=m["as_of"])
+        meta["mf"] = m
         log(f"Magic Formula: {len(mf)} stocks")
-    except Exception as e:
-        print(f"  ❌ Magic Formula failed: {e}")
-        cached_val, cached_date = cache_read(cache, "screens_mf")
-        if cached_val:
-            # Support both old (list of strings) and new (list of pairs)
-            if cached_val and isinstance(cached_val[0], list):
-                mf = [tuple(x) for x in cached_val]
-            else:
-                mf = [(t, i + 1) for i, t in enumerate(cached_val)]
-            print(f"  ♻️  Using cached Magic Formula from {cached_date}")
-            log(f"Magic Formula: cached ({cached_date})", "♻️")
+    except Exception as e:              # ScreenError or anything unexpected: use the saved copy
+        print(f"  ❌ {e}")
+        val, as_of = cache_read(cache, "screens_mf")
+        if val:
+            mf = [tuple(x) for x in val] if isinstance(val[0], list) \
+                else [(t, i + 1) for i, t in enumerate(val)]
+            meta["mf"] = {"source": "run_cache", "as_of": as_of,
+                          "note": f"saved copy from {as_of}"}
+            log(f"Magic Formula: live fetch failed, saved copy from {as_of}", "⚠️")
         else:
-            mf = []
-            log("Magic Formula: failed, no cache", "❌")
+            mf, meta["mf"] = [], {"source": "none", "as_of": "", "note": "no data"}
+            log("Magic Formula: failed, no saved copy", "❌")
 
-    # Acquirer's Multiple -- now returns ordered list of (ticker, multiple_str) tuples
+    # Acquirer's Multiple: live -> run_cache.json
     try:
-        am = fetch_acquirers_multiple()
-        cache_write(cache, "screens_am", [[t, m] for t, m in am])
+        am, m = fetch_acquirers_multiple()
+        cache_write(cache, "screens_am", [[t, x] for t, x in am], as_of=m["as_of"])
+        meta["am"] = m
         log(f"Acquirer's Multiple: {len(am)} stocks")
-    except Exception as e:
-        print(f"  ❌ Acquirer's Multiple failed: {e}")
-        cached_val, cached_date = cache_read(cache, "screens_am")
-        if cached_val:
-            if cached_val and isinstance(cached_val[0], list):
-                am = [tuple(x) for x in cached_val]
-            else:
-                am = [(t, "-") for t in cached_val]
-            print(f"  ♻️  Using cached AM from {cached_date}")
-            log(f"Acquirer's Multiple: cached ({cached_date})", "♻️")
+    except Exception as e:              # ScreenError or anything unexpected: use the saved copy
+        print(f"  ❌ {e}")
+        val, as_of = cache_read(cache, "screens_am")
+        if val:
+            am = [tuple(x) for x in val] if isinstance(val[0], list) \
+                else [(t, "-") for t in val]
+            meta["am"] = {"source": "run_cache", "as_of": as_of,
+                          "note": f"saved copy from {as_of}"}
+            log(f"Acquirer's Multiple: live fetch failed, saved copy from {as_of}", "⚠️")
         else:
-            am = []
-            log("Acquirer's Multiple: failed, no cache", "❌")
+            am, meta["am"] = [], {"source": "none", "as_of": "", "note": "no data"}
+            log("Acquirer's Multiple: failed, no saved copy", "❌")
 
-    return si, mf, am
+    return si, mf, am, meta
 
 
-def _wrap_news(cache):
+def _news_log(name, text, meta):
+    st = meta.get("status")
+    if st == "ok":
+        note = f" ({meta['detail']})" if meta.get("detail") else ""
+        log(f"{name}: {len(text)} chars, dated {meta.get('date') or 'n/a'}{note}",
+            "⚠️" if meta.get("detail") else "✅")
+    elif st == "stale":
+        log(f"{name}: NOT USED -- {meta.get('detail', 'content too old')}", "⚠️")
+    else:
+        log(f"{name}: {meta.get('detail', 'unavailable')}", "❌")
+
+
+def _wrap_news():
     """
-    Fetch news/email sources with per-source cache fallback.
-    Yahoo Morning Brief now returns (brief_text, calendar_text) tuple.
-    Returns: ej_text, cnbc_text, yahoo_text, yahoo_calendar_text
+    News/email sources. No cache: stale news is dropped, not replayed.
+    Returns ej_text, cnbc_text, yahoo_text, yahoo_calendar, metas dict.
     """
-    # Edward Jones and CNBC: simple string returns
-    results = {}
-    for key, fn, name in [
-        ("ej",   scrape_edward_jones, "Edward Jones"),
-        ("cnbc", fetch_cnbc_email,    "CNBC"),
-    ]:
+    metas = {}
+
+    def safe(name, fn):
         try:
-            text = fn()
-            cache_write(cache, f"news_{key}", text)
-            log(f"{name}: {len(text)} chars")
-            results[key] = text
-        except Exception as e:
-            print(f"  ❌ {name} failed: {e}")
-            cached_val, cached_date = cache_read(cache, f"news_{key}")
-            if cached_val:
-                print(f"  ♻️  Using cached {name} from {cached_date}")
-                log(f"{name}: cached ({cached_date})", "♻️")
-                results[key] = cached_val
-            else:
-                log(f"{name}: failed, no cache", "❌")
-                results[key] = ""
+            return fn()
+        except Exception as e:                       # news.py should not raise, but never crash the run
+            print(f"  ❌ {name} crashed: {e}")
+            return None
 
-    # Yahoo Morning Brief: returns (brief_text, calendar_text) tuple
-    try:
-        yahoo_brief, yahoo_calendar = fetch_yahoo_morning_brief()
-        cache_write(cache, "news_yahoo",          yahoo_brief)
-        cache_write(cache, "news_yahoo_calendar", yahoo_calendar)
-        log(f"Yahoo Brief: {len(yahoo_brief)} chars + {len(yahoo_calendar)} chars calendar")
-        results["yahoo"]          = yahoo_brief
-        results["yahoo_calendar"] = yahoo_calendar
-    except Exception as e:
-        print(f"  ❌ Yahoo Brief failed: {e}")
-        cached_brief, cached_date   = cache_read(cache, "news_yahoo")
-        cached_cal, _               = cache_read(cache, "news_yahoo_calendar")
-        if cached_brief:
-            print(f"  ♻️  Using cached Yahoo Brief from {cached_date}")
-            log(f"Yahoo Brief: cached ({cached_date})", "♻️")
-            results["yahoo"]          = cached_brief
-            results["yahoo_calendar"] = cached_cal or ""
-        else:
-            log("Yahoo Brief: failed, no cache", "❌")
-            results["yahoo"]          = ""
-            results["yahoo_calendar"] = ""
+    r = safe("Edward Jones", scrape_edward_jones)
+    ej_text, metas["ej"] = r if r else ("", {"status": "error", "detail": "Edward Jones crashed"})
+    _news_log("Edward Jones", ej_text, metas["ej"])
 
-    return results["ej"], results["cnbc"], results["yahoo"], results["yahoo_calendar"]
+    r = safe("CNBC", fetch_cnbc_email)
+    cnbc_text, metas["cnbc"] = r if r else ("", {"status": "error", "detail": "CNBC crashed"})
+    _news_log("CNBC Morning Squawk", cnbc_text, metas["cnbc"])
+
+    r = safe("Yahoo Brief", fetch_yahoo_morning_brief)
+    yahoo_text, yahoo_cal, metas["yahoo"] = r if r else ("", "", {"status": "error",
+                                                                  "detail": "Yahoo Brief crashed"})
+    _news_log("Yahoo Brief", yahoo_text, metas["yahoo"])
+    if yahoo_cal:
+        log(f"Yahoo calendar: {len(yahoo_cal)} chars")
+
+    return ej_text, cnbc_text, yahoo_text, yahoo_cal, metas
+
+
+# ============================================================
+# HEALTH ASSEMBLY
+# ============================================================
+
+def _collect_health(today, fred_data, routine_data, routine_fresh, commit,
+                    mkt_data, mkt_cached, fg_data, si, mf, am, screen_meta,
+                    news_metas):
+    """Everything except the AI item (added after synthesis) and the calendar (added in html_builder)."""
+    items = []
+    items += hl.check_routine(routine_data, routine_fresh, commit["label"] if commit else None)
+    items.append(hl.check_market(mkt_cached, mkt_data.get("cached_date", "")))
+    items += hl.check_pe_sanity(mkt_data, PE_CONFIG, PE_LAST_UPDATED.strftime("%b %d"))
+    items.append(hl.check_sentiment(fg_data))
+    items += hl.check_indicators(fred_data, today)
+    items += hl.check_rate_crosscheck(fred_data, routine_data, routine_fresh)
+    items.append(hl.check_13f(screen_meta["si"], len(si), today))
+    items.append(hl.check_screen("Magic Formula", screen_meta["mf"], len(mf), today))
+    items.append(hl.check_screen("Acquirer's Multiple", screen_meta["am"], len(am), today))
+    items.append(hl.check_news("Edward Jones", news_metas["ej"]))
+    items.append(hl.check_news("CNBC Morning Squawk", news_metas["cnbc"]))
+    items.append(hl.check_news("Yahoo Morning Brief", news_metas["yahoo"]))
+    return items
+
+
+def _print_and_summarize(items):
+    """Print the health list to the Actions log and to the run's summary page."""
+    probs = hl.problems(items)
+    print("\n🩺 DATA HEALTH")
+    if not probs:
+        print("   ✅ All sources fresh")
+    for i in probs:
+        icon = "🔴" if i["level"] == hl.BAD else "🟠"
+        print(f"   {icon} {i['source']}: {i['detail']}")
+        log(f"HEALTH {i['level'].upper()}: {i['source']} -- {i['detail']}",
+            "❌" if i["level"] == hl.BAD else "⚠️")
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        try:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("## Data health\n\n")
+                if not probs:
+                    f.write("All sources fresh.\n")
+                else:
+                    f.write("| Level | Source | Detail |\n|---|---|---|\n")
+                    for i in probs:
+                        f.write(f"| {i['level']} | {i['source']} | {i['detail']} |\n")
+        except Exception:
+            pass
+
 
 # ============================================================
 # MAIN RUNNER
@@ -498,56 +569,69 @@ def _wrap_news(cache):
 if __name__ == "__main__":
     print("🚀 Mean Reversion Macro Insights -- Starting...")
     print("=" * 50)
-    print(f"📧 Email: {YAHOO_EMAIL}")
+    print(f"📧 Email: {'set' if YAHOO_EMAIL else 'NOT SET'}")
     print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Haiku fallback unavailable'}")
     print(f"🔑 FRED key: {'set' if FRED_API_KEY else 'NOT SET'}")
 
-    # Load persistent cache
+    now       = now_mt()
+    today_d   = now.date()
+    print(f"🕒 Boise time: {now.strftime('%Y-%m-%d %I:%M %p %Z')}")
+
     cache = _load_cache()
+    _tidy_cache(cache)
     print(f"  ℹ️ Cache loaded: {len(cache)} entries")
     log("Run started")
 
-    # Step 0: Claude Routine JSON (written at 4am MT by Claude Routine)
-    routine_data, routine_fresh, routine_status = load_claude_routine()
+    # Step 0: Claude Routine
+    routine_data, routine_fresh, routine_status, commit = load_claude_routine()
     log(routine_status, "✅" if routine_fresh else "⚠️")
 
-    # Step 1: FRED macro data
+    # Step 1: macro indicators
     fred_data = _wrap_fred(cache)
 
     # Step 2: Fear & Greed
     fg_data = fetch_fear_greed(cache)
 
     # Steps 3 & 4: Market data + MHS
-    # routine_data passed so market.py can use Routine PE as priority 0
     mkt_data, mkt_cached = _wrap_market(cache, routine_data)
     mhs = compute_mhs(fred_data, fg_data, mkt_data)
     log(f"MHS: {mhs['score']}/100 ({mhs['label']})")
-
-    # Append MHS to history (one entry per day, capped at 252 entries)
     _append_mhs_history(cache, mhs)
 
-    # Steps 5-7: Value screens
-    # mf = ordered list of (ticker, rank) tuples
-    # am = ordered list of (ticker, multiple_str) tuples
-    si_tickers, mf_list, am_list = _wrap_screens(cache)
+    # Step 5: value screens
+    si_tickers, mf_list, am_list, screen_meta = _wrap_screens(cache)
 
-    # Steps 8-10: News & email
-    # yahoo returns (brief_text, calendar_text) -- now split here
-    ej_text, cnbc_text, yahoo_text, yahoo_calendar = _wrap_news(cache)
+    # Step 6: news & email
+    ej_text, cnbc_text, yahoo_text, yahoo_calendar, news_metas = _wrap_news()
 
-    # Step 11: AI synthesis
-    briefing, ai_failed = synthesize_with_ai(
+    # Step 7: health checks (before the AI so it can be told what is stale)
+    HEALTH = _collect_health(today_d, fred_data, routine_data, routine_fresh, commit,
+                             mkt_data, mkt_cached, fg_data,
+                             si_tickers, mf_list, am_list, screen_meta, news_metas)
+
+    # Step 8: AI synthesis
+    briefing, ai_failed, ai_info = synthesize_with_ai(
         ej_text, cnbc_text, yahoo_text,
         fred_data, fg_data, mkt_data, mhs,
         si_tickers, mf_list, am_list,
         routine_data=routine_data,
         routine_fresh=routine_fresh,
         yahoo_calendar=yahoo_calendar,
+        health_notes=hl.stale_notes_for_ai(HEALTH),
+        today_name=now.strftime("%A"),
     )
-    log(f"AI: {'fallback' if ai_failed else 'success'} -- {len(briefing)} chars",
-        "❌" if ai_failed else "✅")
+    HEALTH.append(hl.check_ai(ai_failed, ai_info))
+    if ai_failed:
+        log(f"AI: all models failed -- {len(briefing)} chars of fallback text", "❌")
+    elif ai_info.get("attempts"):
+        log(f"AI: {ai_info['model']} used after "
+            f"{', '.join(a['model'] for a in ai_info['attempts'])} failed", "⚠️")
+    else:
+        log(f"AI: {ai_info['model']} -- {len(briefing)} chars")
 
-    # Step 12: Build HTML
+    _print_and_summarize(HEALTH)
+
+    # Step 9: dashboard
     build_html(
         briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         fred_data, fg_data, mkt_data, mhs,
@@ -556,15 +640,25 @@ if __name__ == "__main__":
         routine_data=routine_data,
         routine_fresh=routine_fresh,
         yahoo_calendar=yahoo_calendar,
+        health=HEALTH,
+        screen_meta=screen_meta,
+        routine_meta=commit,
+        ai_info=ai_info,
     )
     log(f"Dashboard written | Total runtime: {round(time.time() - RUN_START)}s")
 
-    # Step 13: Save + commit cache
+    # Step 10: save cache (the workflow commits index.html + caches in one commit)
     _save_cache(cache)
-    _commit_cache()
 
-    print("\n📧 Email disabled -- GitHub Pages dashboard is primary output")
     print("\n" + "=" * 50)
     print("✅ Mean Reversion Macro Insights Complete!")
     print("🌐 https://anil2040.github.io/market-pulse-ai")
     print("=" * 50)
+
+    # Step 11: red X + email if something needs your attention
+    if NOTIFY_ON_FAILURE and hl.needs_notification(HEALTH):
+        bad = [i for i in HEALTH if i["level"] == hl.BAD and i.get("notify")]
+        print("\n🔴 Ending with exit code 1 so GitHub emails you. Needs attention:")
+        for i in bad:
+            print(f"   - {i['source']}: {i['detail']}")
+        sys.exit(1)

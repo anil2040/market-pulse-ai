@@ -1,46 +1,94 @@
+# ============================================================
+# MarketPulse Daily Briefing -- GitHub Actions workflow
+# ============================================================
+#
+# SCHEDULE AND DAYLIGHT SAVING:
+#   GitHub cron only understands UTC. Boise is UTC-6 in summer (MDT) and
+#   UTC-7 in winter (MST), so ONE cron would drift an hour twice a year.
+#   Instead there are TWO crons, and the first step ("gate") lets only the
+#   correct one run:
+#       50 13 * * 1-5   = 7:50 AM MDT   runs while Boise is on daylight time
+#       50 14 * * 1-5   = 7:50 AM MST   runs while Boise is on standard time
+#   The gate asks the server what Boise's UTC offset is RIGHT NOW (-0600 or
+#   -0700). It does NOT look at the hour, because GitHub often starts
+#   scheduled jobs 5-15 minutes late. The skipped twin shows as a quick green
+#   run with every step skipped. That is normal.
+#   Manual runs (Run workflow button) always run.
+#
+# WHY 7:50: the Claude Routine ("Daily Market Warmup") runs at 7:44 AM and
+#   commits clauderoutinedata.json. This pipeline must start after that
+#   commit. If the routine schedule ever moves, move these crons too.
+#
+# ONE COMMIT: the pipeline (main.py) writes index.html, run_cache.json and,
+#   when the live Dataroma fetch works, dataroma_cache.json. This workflow
+#   commits them together at the end, and retries the push if the routine
+#   committed at the same moment.
+#
+# RED X = EMAIL: if a source needing your attention is missing, main.py ends
+#   with exit code 1 AFTER publishing the dashboard. GitHub shows a red X
+#   and emails you. Turn this off with NOTIFY_ON_FAILURE = False in main.py.
+# ============================================================
+
 name: MarketPulse Daily Briefing
 
 on:
   schedule:
-    - cron: "50 13 * * 1-5"   # 7:50 AM MT (13:50 UTC) -- 20 min after market open
+    - cron: "50 13 * * 1-5"   # 7:50 AM MDT (used Mar-Nov)
+    - cron: "50 14 * * 1-5"   # 7:50 AM MST (used Nov-Mar)
   workflow_dispatch:
+
+concurrency:
+  group: marketpulse
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     permissions:
       contents: write
 
     steps:
+      - name: Daylight saving gate
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          OFFSET=$(TZ=America/Boise date -d "${GATE_TEST_TIME:-now}" +%z)
+          RUN=false
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            RUN=true
+          elif [ "$SCHEDULE" = "50 13 * * 1-5" ] && [ "$OFFSET" = "-0600" ]; then
+            RUN=true
+          elif [ "$SCHEDULE" = "50 14 * * 1-5" ] && [ "$OFFSET" = "-0700" ]; then
+            RUN=true
+          fi
+          echo "Event=$EVENT Schedule='$SCHEDULE' BoiseOffset=$OFFSET -> run=$RUN"
+          echo "run=$RUN" >> "$GITHUB_OUTPUT"
+
       - name: Checkout repository
+        if: steps.gate.outputs.run == 'true'
         uses: actions/checkout@v5
+        with:
+          fetch-depth: 50        # main.py reads git history for the routine's real commit time
 
       - name: Pull latest commits
-        run: git pull origin main
+        if: steps.gate.outputs.run == 'true'
+        run: git pull --rebase origin main
 
       - name: Set up Python
+        if: steps.gate.outputs.run == 'true'
         uses: actions/setup-python@v6
         with:
           python-version: "3.11"
 
       - name: Install dependencies
-        run: |
-          pip install requests beautifulsoup4 google-genai anthropic
-
-      - name: Fetch and cache slow data sources
-        run: python fetch_cache.py
-        env:
-          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
-
-      - name: Commit cache files
-        run: |
-          git config user.name  "MarketPulse Bot"
-          git config user.email "actions@github.com"
-          git add dataroma_cache.json am_cache.json || true || true
-          git diff --staged --quiet || git commit -m "Cache update: $(date +'%Y-%m-%d')"
-          git push || true
+        if: steps.gate.outputs.run == 'true'
+        run: pip install requests beautifulsoup4 google-genai anthropic
 
       - name: Run MarketPulse AI
+        if: steps.gate.outputs.run == 'true'
         env:
           GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
           ANTHROPIC_API_KEY:   ${{ secrets.ANTHROPIC_API_KEY }}
@@ -53,10 +101,28 @@ jobs:
           AM_PASSWORD:         ${{ secrets.AM_PASSWORD }}
         run: python main.py
 
+      # always(): publish the dashboard even when main.py ended with the
+      # deliberate "needs attention" exit code 1.
       - name: Commit and push dashboard
+        if: always() && steps.gate.outputs.run == 'true'
         run: |
           git config user.name  "MarketPulse Bot"
           git config user.email "actions@github.com"
-          git add index.html run_cache.json || true
-          git diff --staged --quiet || git commit -m "Auto-update: MarketPulse briefing $(date +'%Y-%m-%d')"
-          git push
+          for f in index.html run_cache.json dataroma_cache.json; do
+            [ -f "$f" ] && git add "$f"
+          done
+          if git diff --staged --quiet; then
+            echo "Nothing changed, nothing to commit."
+            exit 0
+          fi
+          git commit -m "Auto-update: MarketPulse briefing $(TZ=America/Boise date +'%Y-%m-%d')"
+          for i in 1 2 3; do
+            if git push; then
+              exit 0
+            fi
+            echo "Push failed (attempt $i). Rebasing on the latest main and retrying..."
+            git pull --rebase origin main || true
+            sleep 5
+          done
+          echo "Push failed 3 times."
+          exit 1

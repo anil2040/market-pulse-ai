@@ -3,130 +3,192 @@
 # Mean Reversion Macro Insights
 # ============================================================
 #
-# PUBLIC FUNCTIONS (called by main.py):
-#   fetch_superinvestor_buys() -> dict  {ticker: count}
-#   fetch_magic_formula()      -> list  [(ticker, rank_int), ...]
-#   fetch_acquirers_multiple() -> list  [(ticker, multiple_str), ...]
+# PUBLIC FUNCTIONS (called by main.py). Each returns (data, meta):
+#   fetch_superinvestor_buys() -> ({ticker: count},            meta)
+#   fetch_magic_formula()      -> ([(ticker, rank_int), ...],  meta)
+#   fetch_acquirers_multiple() -> ([(ticker, multiple_str)...], meta)
 #
-# RETURN TYPE CHANGE (Sep 2026):
-#   fetch_magic_formula() now returns an ORDERED LIST of (ticker, rank)
-#   tuples rather than a set. Rank 1 = highest conviction per Greenblatt.
-#   fetch_acquirers_multiple() now returns an ORDERED LIST of
-#   (ticker, multiple_str) tuples. Position 1 = lowest multiple =
-#   highest conviction. multiple_str is the raw EV/EBIT-style value
-#   from the table, e.g. "4.2" or "-" if not available.
-#   Both lists preserve the site's rank order (set destroyed it).
+#   meta = {"source": "live" | "cache",
+#           "as_of":  "YYYY-MM-DD",   (date the data was really fetched)
+#           "note":   short human text for the dashboard badge}
 #
-# IMPORTANT for main.py / html_builder.py:
-#   - mf_tickers: use set(t for t,_ in mf_list) for membership tests
-#   - am_tickers: use dict(am_list) for multiple lookup, set() for membership
-#   - SI tickers dict is unchanged: {ticker: count}
+# Every function RAISES ScreenError when it cannot produce data.
+# main.py catches that and falls back to run_cache.json. Nothing here
+# ever returns an empty result pretending to be a success.
 #
-# CACHE FILES (committed to repo, persist across ephemeral GH Actions runners):
-#   dataroma_cache.json -- written by fetch_cache.py, read here
-#   am_cache.json       -- written here on success, read on timeout/fail
-#                          Now stores list of [ticker, multiple] pairs
-#                          to preserve order and multiple values.
+# ONE-TIME BUG FIXED (Sep 29 2026):
+#   Old versions caught their own errors and returned {} or [].
+#   main.py then saw "success", wrote the EMPTY result over the last
+#   good copy in run_cache.json, and its fallback code never ran.
+#
+# CACHE FILES (just two in the whole project):
+#   run_cache.json      -- automatic fallback for everything, written by
+#                          main.py, committed by the workflow every day.
+#   dataroma_cache.json -- Dataroma 13F only. 13F data changes once a
+#                          quarter, so this file is used at ANY age.
+#                          Refreshed automatically when the live fetch
+#                          works, or by hand: python fetch_cache.py
+#                          on your PC (Dataroma sometimes blocks GitHub).
+#   (am_cache.json is gone -- it duplicated run_cache.json and was never
+#    committed, so it never survived a run.)
 # ============================================================
 
 import os
 import re
 import json
-from datetime import datetime
+import time
+from datetime import datetime, timezone
 import requests
 from bs4 import BeautifulSoup
 
-MFI_EMAIL    = os.environ.get("MFI_EMAIL")
-MFI_PASSWORD = os.environ.get("MFI_PASSWORD")
-AM_EMAIL     = os.environ.get("AM_EMAIL")
-AM_PASSWORD  = os.environ.get("AM_PASSWORD")
+MFI_EMAIL    = (os.environ.get("MFI_EMAIL")    or "").strip()
+MFI_PASSWORD = (os.environ.get("MFI_PASSWORD") or "").strip()
+AM_EMAIL     = (os.environ.get("AM_EMAIL")     or "").strip()
+AM_PASSWORD  = (os.environ.get("AM_PASSWORD")  or "").strip()
+
+DATAROMA_CACHE_FILE = "dataroma_cache.json"
+DATAROMA_URL        = "https://www.dataroma.com/m/g/portfolio_b.php?q=q"
+
+
+class ScreenError(Exception):
+    """Raised when a screen cannot produce usable data."""
+
+
+def _utc_now():
+    return datetime.now(timezone.utc)
+
+
+def _parse_utc(s):
+    """Parse an ISO timestamp. Old files were written without a timezone; treat as UTC."""
+    dt = datetime.fromisoformat(s)
+    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 # ============================================================
 # DATAROMA 13F SUPERINVESTOR BUYS
 # ============================================================
 
+def fetch_dataroma_live():
+    """
+    Live fetch from Dataroma. Returns dict {ticker: buy_count}.
+    Raises ScreenError on any failure (including too few rows parsed).
+    Retries twice for the temporary errors Dataroma throws at automated
+    traffic (409, 429, 5xx). Also used by fetch_cache.py on your PC.
+    """
+    hdrs = {
+        "User-Agent":      ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                            "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"),
+        "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+        "Referer":         "https://www.dataroma.com/m/home.php",
+    }
+    sess = requests.Session()
+    sess.headers.update(hdrs)
+    resp = None
+    last_err = ""
+    for attempt in (1, 2, 3):
+        try:
+            resp = sess.get(DATAROMA_URL, timeout=20)
+            print(f"   Status: {resp.status_code} (attempt {attempt})")
+            if resp.status_code == 200:
+                break
+            last_err = f"HTTP {resp.status_code}"
+        except Exception as e:
+            last_err = f"{type(e).__name__}: {str(e)[:80]}"
+            resp = None
+        if attempt < 3:
+            time.sleep(4 * attempt)
+    if resp is None or resp.status_code != 200:
+        raise ScreenError(f"Dataroma live fetch failed ({last_err})")
+
+    soup  = BeautifulSoup(resp.text, "html.parser")
+    buys  = {}
+    table = soup.find("table", {"id": "grid"})
+    if not table:
+        for t in soup.find_all("table"):
+            if len(t.find_all("tr")) > 5:
+                table = t
+                break
+    if not table:
+        raise ScreenError("Dataroma page had no data table")
+
+    rows    = table.find_all("tr")
+    headers = [th.get_text(strip=True) for th in rows[0].find_all(["th", "td"])]
+    sym_idx = next((i for i, h in enumerate(headers)
+                    if any(k in h for k in ["Symbol", "Ticker"])), 0)
+    buy_idx = next((i for i, h in enumerate(headers)
+                    if any(k in h for k in ["Buy", "Count"])), 3)
+    print(f"   Using: Symbol col={sym_idx}, Buys col={buy_idx}")
+    for row in rows[1:]:
+        cells = row.find_all("td")
+        if len(cells) > max(sym_idx, buy_idx):
+            ticker = re.sub(r"[^A-Z.]", "", cells[sym_idx].get_text(strip=True).upper())[:6]
+            if not ticker:
+                continue
+            try:
+                count = int(cells[buy_idx].get_text(strip=True).replace(",", ""))
+            except Exception:
+                count = 1
+            buys[ticker] = count
+
+    if len(buys) < 20:
+        raise ScreenError(f"Dataroma parsed only {len(buys)} rows (expected ~100)")
+    return buys
+
+
+def write_dataroma_cache(buys):
+    """Save the Dataroma result with a UTC timestamp."""
+    with open(DATAROMA_CACHE_FILE, "w", encoding="utf-8") as f:
+        json.dump({"fetched_at": _utc_now().isoformat(), "buys": buys}, f, indent=2)
+
+
+def read_dataroma_cache():
+    """Returns (buys_dict, fetched_datetime_utc) or (None, None). Age does not matter."""
+    try:
+        with open(DATAROMA_CACHE_FILE, "r", encoding="utf-8") as f:
+            cached = json.load(f)
+        buys = cached.get("buys") or {}
+        if not buys:
+            return None, None
+        return buys, _parse_utc(cached.get("fetched_at", "2000-01-01T00:00:00"))
+    except FileNotFoundError:
+        return None, None
+    except Exception as e:
+        print(f"   Cache read problem: {e}")
+        return None, None
+
+
 def fetch_superinvestor_buys():
     """
-    Fetch superinvestor 13F quarterly buys from Dataroma.
-    Reads dataroma_cache.json first (written by fetch_cache.py).
-    Falls back to live fetch if cache is missing or stale (>20hr).
-    Returns dict {ticker: buy_count}.
+    Dataroma 13F buys. Order of attempts:
+      1. Live fetch (freshest). On success it also refreshes dataroma_cache.json,
+         which the workflow commits, so the cache heals itself.
+      2. dataroma_cache.json at ANY age (13F data only changes quarterly).
+    Raises ScreenError if both fail; main.py then tries run_cache.json.
     """
-    CACHE_FILE    = "dataroma_cache.json"
-    CACHE_TTL_HRS = 20
-
     print("\n👑 Fetching Dataroma superinvestor quarterly buys...")
-
-    # Try cache first
+    live_err = ""
     try:
-        with open(CACHE_FILE, "r") as f:
-            cached = json.load(f)
-        fetched_at = datetime.fromisoformat(cached.get("fetched_at", "2000-01-01T00:00:00"))
-        age_hours  = (datetime.now() - fetched_at).total_seconds() / 3600
-        if age_hours < CACHE_TTL_HRS and cached.get("buys"):
-            buys = cached["buys"]
-            top3 = sorted(buys.items(), key=lambda x: -x[1])[:3]
-            print(f"   ✅ Dataroma (cache {age_hours:.1f}h old): {len(buys)} stocks | Top: {top3}")
-            return buys
-        else:
-            print(f"   Cache stale ({age_hours:.1f}h > {CACHE_TTL_HRS}h) -- fetching live")
-    except FileNotFoundError:
-        print("   No cache file -- fetching live")
-    except Exception as e:
-        print(f"   Cache error: {e} -- fetching live")
-
-    # Live fetch
-    try:
-        url  = "https://www.dataroma.com/m/g/portfolio_b.php?q=q"
-        hdrs = {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
-            "Accept":     "text/html,application/xhtml+xml",
-            "Referer":    "https://www.dataroma.com/",
-        }
-        resp = requests.get(url, headers=hdrs, timeout=15)
-        print(f"   Status: {resp.status_code}")
-        if resp.status_code != 200:
-            raise Exception(f"HTTP {resp.status_code}")
-
-        soup  = BeautifulSoup(resp.text, "html.parser")
-        buys  = {}
-        table = soup.find("table", {"id": "grid"})
-        if not table:
-            for t in soup.find_all("table"):
-                if len(t.find_all("tr")) > 5:
-                    table = t
-                    break
-
-        if table:
-            rows    = table.find_all("tr")
-            headers = [th.get_text(strip=True) for th in rows[0].find_all(["th", "td"])]
-            print(f"   Columns: {headers}")
-            sym_idx = next((i for i, h in enumerate(headers)
-                            if any(k in h for k in ["Symbol", "Ticker"])), 0)
-            buy_idx = next((i for i, h in enumerate(headers)
-                            if any(k in h for k in ["Buy", "Count"])), 3)
-            print(f"   Using: Symbol col={sym_idx}, Buys col={buy_idx}")
-            for row in rows[1:]:
-                cells = row.find_all("td")
-                if len(cells) > max(sym_idx, buy_idx):
-                    ticker = re.sub(r"[^A-Z.]", "",
-                                    cells[sym_idx].get_text(strip=True).upper())[:6]
-                    if not ticker:
-                        continue
-                    try:
-                        count = int(cells[buy_idx].get_text(strip=True).replace(",", ""))
-                    except Exception:
-                        count = 1
-                    buys[ticker] = count
-
+        buys = fetch_dataroma_live()
         top3 = sorted(buys.items(), key=lambda x: -x[1])[:3]
-        print(f"   ✅ Dataroma: {len(buys)} stocks (live) | Top: {top3}")
-        return buys
+        print(f"   ✅ Dataroma (live): {len(buys)} stocks | Top: {top3}")
+        try:
+            write_dataroma_cache(buys)
+        except Exception as e:
+            print(f"   Could not refresh cache file: {e}")
+        return buys, {"source": "live", "as_of": _utc_now().strftime("%Y-%m-%d"),
+                      "note": "live"}
+    except Exception as e:                     # ScreenError, or anything unexpected (never crash the run)
+        live_err = str(e) if isinstance(e, ScreenError) else f"{type(e).__name__}: {str(e)[:80]}"
+        print(f"   ⚠️ {live_err} -- trying dataroma_cache.json")
 
-    except Exception as e:
-        print(f"   ❌ Dataroma failed: {e}")
-        return {}
+    buys, fetched = read_dataroma_cache()
+    if buys:
+        age_days = (_utc_now() - fetched).days
+        print(f"   ♻️ Dataroma from dataroma_cache.json: {len(buys)} stocks, {age_days} days old")
+        return buys, {"source": "cache", "as_of": fetched.strftime("%Y-%m-%d"),
+                      "note": f"cache from {fetched.strftime('%b %d')} (live fetch blocked)"}
+    raise ScreenError(f"Dataroma unavailable: {live_err}; no dataroma_cache.json")
 
 
 # ============================================================
@@ -142,7 +204,7 @@ def fetch_magic_formula():
     Rank 1 = highest conviction (Greenblatt's composite score of
     earnings yield + ROIC; no raw score published, rank is the signal).
     """
-    print("\n🔮 Fetching Magic Formula top 30 stocks...")
+    print("\n🔮 Fetching Magic Formula stocks...")
     try:
         sess = requests.Session()
         sess.headers.update({
@@ -232,14 +294,18 @@ def fetch_magic_formula():
 
         # Return as (ticker, rank) tuples -- rank = position in list (1-based)
         result = [(t, i + 1) for i, t in enumerate(ordered)]
+        if len(result) < 10:
+            raise ScreenError(f"Magic Formula returned only {len(result)} tickers")
         print(f"   ✅ Magic Formula: {len(result)} tickers (ranked)")
-        if result:
-            print(f"   Sample: {result[:5]}")
-        return result
+        print(f"   Sample: {result[:5]}")
+        return result, {"source": "live", "as_of": _utc_now().strftime("%Y-%m-%d"),
+                        "note": "live"}
 
+    except ScreenError:
+        raise
     except Exception as e:
         print(f"   ❌ Magic Formula failed: {e}")
-        return []
+        raise ScreenError(f"Magic Formula failed: {str(e)[:100]}")
 
 
 # ============================================================
@@ -249,51 +315,13 @@ def fetch_magic_formula():
 def fetch_acquirers_multiple():
     """
     Fetch Acquirer's Multiple large-cap screen from acquirersmultiple.com.
-    Uses RCP WordPress login flow. Writes am_cache.json on success.
-    Falls back to am_cache.json on failure (48hr TTL).
-    Returns ORDERED LIST of (ticker, multiple_str) tuples.
+    Uses RCP WordPress login flow.
+    Returns (ordered list of (ticker, multiple_str) tuples, meta).
+    Raises ScreenError on failure; main.py falls back to run_cache.json.
     Position 1 = lowest EV/EBIT-style multiple = highest conviction.
     multiple_str is the raw value from the table (e.g. "4.2") or "-".
     """
-    AM_CACHE_FILE    = "am_cache.json"
-    AM_CACHE_TTL_HRS = 48
-
     print("\n📐 Fetching Acquirer's Multiple large-cap stocks...")
-
-    def _read_am_cache():
-        """Returns (ordered_list_of_tuples, age_hours) or (None, None)."""
-        try:
-            with open(AM_CACHE_FILE, "r") as f:
-                cached = json.load(f)
-            fetched_at = datetime.fromisoformat(
-                cached.get("fetched_at", "2000-01-01T00:00:00"))
-            age_hours = (datetime.now() - fetched_at).total_seconds() / 3600
-            if age_hours < AM_CACHE_TTL_HRS:
-                # Support both old format (list of strings) and new (list of pairs)
-                raw = cached.get("tickers_with_multiples") or cached.get("tickers")
-                if raw:
-                    if raw and isinstance(raw[0], list):
-                        return [tuple(x) for x in raw], age_hours
-                    else:
-                        # Old format: list of strings, no multiples
-                        return [(t, "-") for t in raw], age_hours
-        except Exception:
-            pass
-        return None, None
-
-    def _write_am_cache(ordered_pairs):
-        """ordered_pairs: list of (ticker, multiple_str) tuples."""
-        try:
-            with open(AM_CACHE_FILE, "w") as f:
-                json.dump({
-                    "fetched_at":            datetime.now().isoformat(),
-                    "tickers_with_multiples": [list(p) for p in ordered_pairs],
-                    # Legacy key for any old readers
-                    "tickers":               [t for t, _ in ordered_pairs],
-                }, f, indent=2)
-            print(f"   ✅ AM cache written ({len(ordered_pairs)} tickers with multiples)")
-        except Exception as e:
-            print(f"   ⚠️ Could not write AM cache: {e}")
 
     try:
         sess = requests.Session()
@@ -394,16 +422,16 @@ def fetch_acquirers_multiple():
         if ordered_pairs:
             print(f"   ✅ Acquirer's Multiple: {len(ordered_pairs)} tickers (ranked, with multiples)")
             print(f"   Top 5: {ordered_pairs[:5]}")
-            _write_am_cache(ordered_pairs)
-            return ordered_pairs
+            if len(ordered_pairs) < 10:
+                raise ScreenError(f"Acquirer's Multiple returned only {len(ordered_pairs)} tickers")
+            return ordered_pairs, {"source": "live",
+                                   "as_of": _utc_now().strftime("%Y-%m-%d"),
+                                   "note": "live"}
         else:
-            raise Exception("Live scrape returned 0 tickers")
+            raise ScreenError("Acquirer's Multiple live scrape returned 0 tickers")
 
+    except ScreenError:
+        raise
     except Exception as e:
-        print(f"   ❌ Acquirer's Multiple live fetch failed: {e}")
-        cached_list, age_h = _read_am_cache()
-        if cached_list:
-            print(f"   ⚠️ Using AM cache fallback ({age_h:.1f}h old, {len(cached_list)} stocks)")
-            return cached_list
-        print("   ❌ No AM cache available")
-        return []
+        print(f"   ❌ Acquirer's Multiple failed: {e}")
+        raise ScreenError(f"Acquirer's Multiple failed: {str(e)[:100]}")

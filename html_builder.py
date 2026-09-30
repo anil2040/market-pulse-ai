@@ -11,7 +11,29 @@
 #              run_log, run_start, cache,
 #              routine_data={}, routine_fresh=False) -> None
 #
-# CHANGES IN THIS VERSION (Sep 2026):
+# CHANGES (Sep 29 2026 overhaul -- "never be blindsided"):
+#   - build_html() takes 4 new optional arguments:
+#       health=[...]       list of health items from health.py
+#       screen_meta={...}  where each value screen's data came from
+#       routine_meta={...} REAL routine commit time from git history
+#       ai_info={...}      which AI models failed and why
+#   - Data Health banner at the very top: one green line when all is fine,
+#     an amber/red list when anything is stale, cached or missing.
+#   - ONE symbol for data problems: the warning triangle. Amber = cached or
+#     later than expected. Red = missing. Used on macro rows, sentiment rows,
+#     market card, valuation boxes, value-screen header, calendar.
+#   - Insight column: no leading symbols. (The legend used to say the
+#     triangle meant "interpretive insight", which was never true.)
+#   - Routine prices are used ONLY when the routine is fresh (before, an old
+#     routine file could show yesterday's prices as today's).
+#   - Boise time follows daylight saving (timeutil.py). Fixed a Windows
+#     crash in the calendar date labels (%-m is Linux-only).
+#   - Valuation text ("SIGNIFICANTLY CHEAPER") is now computed from the
+#     actual URTH vs EFA P/E instead of being hard-coded.
+#   - AI banner states the real reason (e.g. HTTP 503 overloaded), not a
+#     guess about quota.
+#
+# EARLIER CHANGES (Sep 2026):
 #   - Claude Routine JSON integrated:
 #       ETF PE source label shows "Claude Routine (HH:MM UTC)" when fresh
 #       Amber staleness banner in valuation block when routine is stale
@@ -30,9 +52,10 @@
 
 import re
 import time
-from datetime import datetime, timezone, timedelta, date
+from datetime import timedelta
 
-MT = timezone(timedelta(hours=-6))  # Boise MDT = UTC-6 summer
+from timeutil import now_mt as _now_mt
+import health as hl
 
 # ============================================================
 # HELPERS
@@ -100,19 +123,107 @@ def _sparkline_svg(cur_str, mo3_str, mo12_str):
         return ""
 
 
-def _cache_badge(cached_date):
-    """Amber pill shown when a value came from cache, not a live fetch."""
-    return (f'<span style="background:#b45309;color:white;padding:1px 6px;'
-            f'border-radius:3px;font-size:.58rem;font-weight:700;margin-left:4px;">'
-            f'cached {cached_date}</span>')
+_SIG_SYMBOLS = re.compile("[\u26a0\ufe0f\u2705\u2713\u2717\u26a1]")
 
-# ============================================================
-# GAUGE-STYLE MARKET PERFORMANCE
-# Matches the Chrome extension layout exactly:
-#   SELLOFF  DOWN  FLAT  UP  RALLY
-#   [=======o====================]  PILL
-#   value  +chg%
-# ============================================================
+
+def _clean_sig(sig):
+    """Insight text is plain words. Old cached rows may still carry symbols; strip them."""
+    s = re.sub(r"\s{2,}", " ", _SIG_SYMBOLS.sub("", str(sig or ""))).strip()
+    return re.sub(r"^\u2192\s*", "", s).replace("| \u2192 ", "| ").strip()
+
+
+def _warn_badge(text, level="warn"):
+    """
+    THE one data-problem symbol: a warning triangle.
+    amber (warn) = cached or later than expected. red (bad) = missing.
+    """
+    bg, fg, bd = (("#fef2f2", "#b91c1c", "#fca5a5") if level == "bad"
+                  else ("#fff7ed", "#b45309", "#fed7aa"))
+    return (f'<span title="{text}" style="background:{bg};color:{fg};border:1px solid {bd};'
+            f'padding:1px 6px;border-radius:4px;font-size:.58rem;font-weight:700;'
+            f'margin-left:5px;white-space:nowrap;">\u26a0\ufe0f {text}</span>')
+
+
+def _cache_badge(cached_date):
+    """Kept for compatibility: amber badge saying a value is a saved copy."""
+    return _warn_badge(f"cached {cached_date}")
+
+
+def _row_badge(r, today):
+    """Badge for one macro-indicator row, or "" when the row is fine."""
+    if r.get("current") == "N/A":
+        return _warn_badge("no data", "bad")
+    if r.get("cached"):
+        cd  = hl._to_date(r.get("cached_date", ""))
+        age = (today - cd).days if cd else 99
+        return _warn_badge(f"cached {r.get('cached_date', '')}", "bad" if age > 3 else "warn")
+    od  = hl._to_date(r.get("obs_date", ""))
+    lim = hl.MAX_AGE_DAYS.get(r.get("freq", "monthly"), 100)
+    if od is not None and (today - od).days > lim:
+        age = (today - od).days
+        return _warn_badge(f"{age}d old", "bad" if age > 2 * lim else "warn")
+    if r.get("source_note"):
+        return _warn_badge("fallback source")
+    if str(r.get("label", "")).startswith("Shiller CAPE") and (
+            r.get("mo3") == "N/A" or r.get("mo12") == "N/A"):
+        return _warn_badge("no history")
+    return ""
+
+
+def _build_health_banner(items, now_str):
+    """
+    Top-of-page banner. Green one-liner when everything is fine; otherwise a
+    list of every amber/red item. The AI item is skipped here because the
+    AI notice below the banner already covers it.
+    """
+    items = [i for i in (items or []) if i["source"] != "AI briefing"]
+    probs = [i for i in items if i["level"] != hl.OK]
+    if not items:
+        return ""
+    if not probs:
+        return ('<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;'
+                'padding:6px 14px;margin-bottom:12px;font-size:.72rem;color:#166534;">'
+                f'\u2705 <strong>Data health:</strong> all {len(items)} checks passed '
+                f'&nbsp;&middot;&nbsp; every source is fresh as of {now_str} MT</div>')
+    probs.sort(key=lambda i: 0 if i["level"] == hl.BAD else 1)
+    any_bad = any(i["level"] == hl.BAD for i in probs)
+    bg, bd, fg = (("#fef2f2", "#fca5a5", "#991b1b") if any_bad
+                  else ("#fff7ed", "#fed7aa", "#9a3412"))
+    shown = probs[:10]
+    rows = "".join(
+        f'<div style="padding:2px 0;font-size:.72rem;color:#374151;">'
+        f'<span style="color:{"#b91c1c" if i["level"] == hl.BAD else "#b45309"};">\u26a0\ufe0f</span> '
+        f'<strong>{i["source"]}</strong> &mdash; {i["detail"]}'
+        f'{(" (" + i["as_of"] + ")") if i.get("as_of") else ""}</div>'
+        for i in shown)
+    more = (f'<div style="font-size:.66rem;color:#6b7280;margin-top:3px;">'
+            f'+ {len(probs) - len(shown)} more (see the Run Log at the bottom)</div>'
+            if len(probs) > len(shown) else "")
+    n_bad = sum(1 for i in probs if i["level"] == hl.BAD)
+    n_warn = len(probs) - n_bad
+    counts = ", ".join(x for x in (f"{n_bad} missing/red" if n_bad else "",
+                                   f"{n_warn} stale/amber" if n_warn else "") if x)
+    return (f'<div style="background:{bg};border:1px solid {bd};border-radius:8px;'
+            f'padding:9px 14px;margin-bottom:12px;">'
+            f'<div style="font-weight:700;font-size:.78rem;color:{fg};margin-bottom:4px;">'
+            f'\u26a0\ufe0f Data health: {counts}</div>{rows}{more}</div>')
+
+
+def _screens_badges(screen_meta, health):
+    """Badges for the Value Screens header (visible even while the card is collapsed)."""
+    out = ""
+    by_src = {i["source"]: i for i in (health or [])}
+    for key, name, short in (("si", "Dataroma 13F", "13F"),
+                             ("mf", "Magic Formula", "Magic Formula"),
+                             ("am", "Acquirer's Multiple", "Acquirer's Multiple")):
+        it = by_src.get(name)
+        if it and it["level"] != hl.OK:
+            txt = it["detail"]
+            if len(txt) > 60:
+                txt = txt[:57] + "..."
+            out += _warn_badge(f"{short}: {txt}", it["level"])
+    return out
+
 
 def _gauge_row(name, value_str, chg_str, signal_lbl, signal_col, note=""):
     """
@@ -172,6 +283,7 @@ def _gauge_row(name, value_str, chg_str, signal_lbl, signal_col, note=""):
 # ============================================================
 
 def _build_fred_rows(fred_data, trend_color_fn, cache):
+    today_d = _now_mt().date()
     from fred import GROUP_META
     group_order = [
         "INFLATION", "RATES", "CREDIT", "LABOR",
@@ -179,26 +291,6 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
     ]
     rows = ""
     rn   = 1
-    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-
-    # Build a lookup of cache fetched dates by label so we can detect stale entries.
-    # main.py writes cache as: cache["fred_<label>"] = {"value": {...}, "fetched": "YYYY-MM-DD"}
-    # The indicator dict itself has no "cached" field -- we compare fetched date to today.
-    fred_fetched = {}
-    for key, val in cache.items():
-        if key.startswith("fred_") and isinstance(val, dict):
-            label = key[5:]  # strip "fred_" prefix
-            fred_fetched[label] = val.get("fetched", "")
-
-    # Amber badge staleness threshold:
-    # Pipeline and FRED don't update on weekends, so never flag stale on Sat/Sun.
-    # On weekdays, only flag if data is strictly older than yesterday (i.e. 2+ days old).
-    # This handles Mon correctly: Friday's data is 3 days old and should be flagged.
-    now_utc    = datetime.now(timezone.utc)
-    is_weekday = now_utc.weekday() < 5  # 0=Mon...4=Fri
-    # Stale = fetched date is earlier than yesterday (gives 1 day grace for lag)
-    stale_before = (now_utc - timedelta(days=1)).strftime("%Y-%m-%d")
-
     for g in group_order:
         gm    = GROUP_META.get(g, {"icon": "", "color": "#374151", "label": g})
         items = [r for r in fred_data if r.get("group") == g]
@@ -213,12 +305,7 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
             tc    = trend_color_fn(r["label"], g, r["trend"])
             spark = _sparkline_svg(r["current"], r["mo3"], r["mo12"])
 
-            # Amber badge: only on weekdays, only when data is 2+ days old
-            fetched_date = fred_fetched.get(r["label"], "")
-            is_stale     = bool(
-                is_weekday and fetched_date and fetched_date < stale_before
-            )
-            cache_html   = _cache_badge(fetched_date) if is_stale else ""
+            cache_html = _row_badge(r, today_d)
 
             rows += (
                 f'<tr style="border-bottom:1px solid #f3f4f6;">'
@@ -233,7 +320,7 @@ def _build_fred_rows(fred_data, trend_color_fn, cache):
                 f'<td style="padding:7px 6px;text-align:center;">{spark}</td>'
                 f'<td style="padding:7px 8px;font-size:.67rem;color:#9ca3af;white-space:nowrap;">{r["date"]}</td>'
                 f'<td style="padding:7px 10px;font-size:.7rem;color:#1e3a5f;min-width:200px;">'
-                f'{re.sub(chr(9888)+chr(65039)+"|"+chr(9888)+"|"+chr(9889)+"|"+chr(10003)+"|"+chr(10007), "", r.get("sig","")).strip()}</td>'
+                f'{_clean_sig(r.get("sig",""))}</td>'
                 f'</tr>'
             )
             rn += 1
@@ -411,7 +498,7 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
                            mf_only, am_only,
                            all3, two3, si_only,
                            cape_val, urth_disp, efa_disp,
-                           erp, cape_yield, ten_y_rate):
+                           erp, cape_yield, ten_y_rate, health_line=""):
     """
     mf_list:  full ordered (ticker, rank) list from Magic Formula
     am_list:  full ordered (ticker, multiple_str) list from Acquirer's Multiple
@@ -455,7 +542,7 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
         f"LABOR:{_ctx('Unemployment','Unemp')}(avg~5.7%historic)\n"
         f"COMMODITIES:{_ctx('WTI Crude Oil','WTI')}(>$85=inflation_risk)|"
         f"{_ctx('Gold Price','Gold')}(rising+lowVIX=stealth_fear)\n"
-        f"CURRENCY:{_ctx('US Dollar (DXY)','DXY')}(weak_dollar=tailwind_intl_ADRs)\n"
+        f"CURRENCY:{_ctx('US Dollar Index (Broad)','USD_BROAD')}(Fed_broad_dollar_index_26_currencies_NOT_ICE_DXY,weak_dollar=tailwind_intl_ADRs)\n"
         f"SENTIMENT_CONSUMER:{_ctx('Consumer Sentiment','ConsSent')}(avg~75,<60=stress)\n"
         f"SENTIMENT_MARKET:FG={fg_score}/100({fg_lbl})\n"
         f"VALUATION:CAPE={cape_val}(USonly,histAvg17x,98thPctileSince1881,src:multpl.com)"
@@ -469,6 +556,7 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
         f"MAGIC_FORMULA_FULL(all_ranked,Greenblatt_earnings_yield_plus_ROIC):{_tlist_mf_full(mf_list)}\n"
         f"ACQUIRERS_MULTIPLE_FULL(all_by_multiple,Carlisle_EV_over_EBIT):{_tlist_am_full(am_list)}\n"
         f"SUPER_INVESTORS_FULL(all_by_count,Dataroma_13F_quarterly):{_tlist_si_full(si_tickers)}"
+        + (f"\n{health_line}" if health_line else "")
     )
 
 # ============================================================
@@ -623,7 +711,7 @@ def _build_weekly_calendar(cache, yahoo_calendar):
     where week_of is the Monday date of the current week (ISO format).
     """
     # Determine this week's Monday
-    now               = datetime.now(MT)
+    now               = _now_mt()
     days_since_monday = now.weekday()  # 0=Mon, 6=Sun
     this_monday       = (now - timedelta(days=days_since_monday)).strftime("%Y-%m-%d")
 
@@ -632,7 +720,7 @@ def _build_weekly_calendar(cache, yahoo_calendar):
     week_dates = {}
     for i, day in enumerate(_WEEKDAYS):
         dt = monday_dt + timedelta(days=i)
-        week_dates[day] = dt.strftime("%-m/%-d")  # e.g. "9/15"
+        week_dates[day] = f"{dt.month}/{dt.day}"  # e.g. "9/15" (%-m is Linux-only; this works on Windows too)
 
     # On Monday (weekday==0): store fresh calendar from Yahoo Brief.
     # Sanity check: extracted calendar must contain at least one weekday name
@@ -670,7 +758,23 @@ def _build_weekly_calendar(cache, yahoo_calendar):
     else:
         # Tue-Fri: try cache first
         stored = cache.get("weekly_calendar", {})
-        if stored.get("week_of") == this_monday and stored.get("text"):
+        if (stored.get("week_of") == this_monday and stored.get("text")
+                and len(stored["text"]) == 3000 and _is_real_calendar(yahoo_calendar)):
+            # Old versions cut the stored calendar at exactly 3000 characters (Friday was
+            # lost mid-sentence). Today's brief now carries the rest of the week untruncated.
+            # Keep the saved days BEFORE the first day in today's brief (e.g. Monday),
+            # and take everything from that day onward from today's untruncated brief.
+            merged  = yahoo_calendar
+            m_fresh = _re.search(r"(?m)^(Monday|Tuesday|Wednesday|Thursday|Friday)\b", yahoo_calendar)
+            if m_fresh:
+                m_old = _re.search(rf"(?m)^{m_fresh.group(1)}\b", stored["text"])
+                if m_old:
+                    merged = stored["text"][:m_old.start()] + yahoo_calendar[m_fresh.start():]
+            cache["weekly_calendar"] = {"week_of": this_monday, "text": merged}
+            calendar_text = merged
+            print(f"  📅 Replaced truncated stored calendar with today's fuller one "
+                  f"({len(merged)} chars)")
+        elif stored.get("week_of") == this_monday and stored.get("text"):
             calendar_text = stored["text"]
             print(f"  📅 Using cached weekly calendar for week of {this_monday}")
         elif yahoo_calendar and len(yahoo_calendar.strip()) > 50:
@@ -918,7 +1022,8 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
                si_tickers, mf_list, am_list,
                run_log, run_start, cache=None,
                routine_data=None, routine_fresh=False,
-               yahoo_calendar=""):
+               yahoo_calendar="",
+               health=None, screen_meta=None, routine_meta=None, ai_info=None):
 
     from fred    import trend_color as _trend_color
     from market  import PE_LAST_UPDATED, compute_erp
@@ -928,13 +1033,16 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         cache = {}
     if routine_data is None:
         routine_data = {}
+    health      = list(health or [])
+    screen_meta = screen_meta or {}
+    ai_info     = ai_info or {}
 
     print("\n🎨 Building HTML dashboard...")
 
     secs     = parse_sections(briefing)
-    now_mt   = datetime.now(MT)
-    today    = now_mt.strftime("%A, %B %d, %Y")
-    now_str  = now_mt.strftime("%I:%M %p")
+    now_local = _now_mt()
+    today     = now_local.strftime("%A, %B %d, %Y")
+    now_str   = now_local.strftime("%I:%M %p")
 
     # ── Market values ────────────────────────────────────────────────────────
     # Primary source: routine_data["market_prices"] written by Claude Routine
@@ -967,7 +1075,10 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         return "Calm -- low fear, complacency = less opportunity for value investors"
 
     mp = (routine_data or {}).get("market_prices", {})
-    routine_fresh_prices = bool(mp and mp.get("sp500", {}).get("current"))
+    # Prices from the routine are used ONLY when the routine data is from today.
+    # (Before: any file with prices was used, so a stale file could show
+    # yesterday's prices as today's with no warning.)
+    routine_fresh_prices = bool(routine_fresh and mp and mp.get("sp500", {}).get("current"))
 
     if routine_fresh_prices:
         # ── Use Claude Routine prices (accurate, browser-fetched at ~7:45am MT)
@@ -995,8 +1106,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         vix_col   = _vix_color(vix_lbl)
         vix_sig   = _vix_sig(_vix_cur)
 
-        _src_time  = _spx.get("source_time_et", "")
-        _src_note  = f" · as of {_src_time} ET" if _src_time else ""
+        # Time shown = real commit time from git history, not the model's own guess
+        _src_note  = (f" · as of {routine_meta['label']} MT"
+                      if routine_meta and routine_meta.get("label") else "")
         mkt_state  = "ROUTINE"
         mkt_cached = False
         mkt_cdate  = ""
@@ -1078,32 +1190,47 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     else:
         mkt_banner = ""
 
-    # Cache warning for market data
+    # Data-problem badges for the market card (one symbol: the warning triangle)
     mkt_cache_banner = ""
     if mkt_cached:
-        mkt_cache_banner = (
-            f'<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;'
-            f'padding:4px 8px;margin-bottom:7px;font-size:.72rem;color:#b45309;">'
-            f'Market data from cache ({mkt_cdate}) -- live fetch failed</div>')
+        mkt_cache_banner += (f'<div style="margin-bottom:7px;">'
+                             f'{_warn_badge("cached " + str(mkt_cdate) + " (live fetch failed)")}</div>')
+    if routine_data and not routine_fresh:
+        mkt_cache_banner += (f'<div style="margin-bottom:7px;">'
+                             f'{_warn_badge("routine data is from " + str(routine_data.get("date", "unknown")) + ", not today", "bad")}</div>')
 
-    # Source label shown in card header
+    # Source label shown in card header. The time comes from git history
+    # (real commit time), not from the model's own guess in the JSON.
     if routine_fresh_prices:
-        _rt = (routine_data or {}).get("market_prices", {}).get("sp500", {})
-        _st = _rt.get("source_time_et", "")
-        mkt_src_label = f"as of {_st} ET · via Claude Routine" if _st else "via Claude Routine"
+        if routine_meta and routine_meta.get("label"):
+            mkt_src_label = f"as of {routine_meta['label']} MT · via Claude Routine"
+        else:
+            _rt = (routine_data or {}).get("market_prices", {}).get("sp500", {})
+            _st = _rt.get("source_time_et", "")
+            mkt_src_label = (f"via Claude Routine · time in file {_st} ET (unverified)"
+                             if _st else "via Claude Routine")
     else:
         mkt_src_label = f"as of pipeline run · {now_str} MT"
 
-    # AI failure alert
+    # AI notice: red when every model failed, amber when a fallback model wrote the briefing.
     ai_alert = ""
+    _attempts = ai_info.get("attempts") or []
+    _why = "; ".join(f"{a['model']}: {a['error']}" for a in _attempts)
     if ai_failed:
         ai_alert = ('<div style="background:#fef2f2;border:2px solid #fca5a5;border-radius:8px;'
-                    'padding:10px 16px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
-                    '<span style="font-size:1.3rem;">⚠️</span><div>'
+                    'padding:10px 16px;margin-bottom:12px;display:flex;align-items:flex-start;gap:10px;">'
+                    '<span style="font-size:1.3rem;">\u26a0\ufe0f</span><div>'
                     '<div style="font-weight:700;font-size:.82rem;color:#c81e1e;">AI Synthesis Unavailable</div>'
                     '<div style="font-size:.73rem;color:#6b7280;margin-top:2px;">'
-                    'Gemini quota exhausted AND Claude Haiku fallback failed. All data sections complete. '
-                    'Gemini resets at midnight UTC (6 PM MT).</div></div></div>')
+                    f'Every model failed. {_why or "No error details recorded."} '
+                    'A 503 means the provider was overloaded at that moment (not a quota or key problem). '
+                    'All data sections below are still built from live data; check the data health notice above for anything stale.'
+                    '</div></div></div>')
+    elif _attempts:
+        ai_alert = ('<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;'
+                    'padding:6px 14px;margin-bottom:12px;font-size:.72rem;color:#9a3412;">'
+                    f'\u26a0\ufe0f Briefing written by <strong>{ai_info.get("model", "backup model")}</strong> '
+                    f'because {_why}.</div>')
 
     # Gauge market performance -- Chrome extension style
     gauge_section = f"""
@@ -1213,10 +1340,32 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     cape_times  = round(cape_num / 17, 1) if cape_num else "?"
     cape_status = ("EXTREME (98th pctile)" if cape_num >= 40
                    else "ELEVATED"          if cape_num >= 30 else "MODERATE")
-    urth_note   = (' <span style="color:#b45309;font-size:.55rem;font-weight:700;">UPDATE NEEDED</span>'
-                   if urth_stale else "")
-    efa_note    = (' <span style="color:#b45309;font-size:.55rem;font-weight:700;">UPDATE NEEDED</span>'
-                   if efa_stale else "")
+    _pe_flag = {i["source"]: i for i in health
+                if i["source"] in ("URTH P/E", "EFA P/E") and i["level"] != hl.OK}
+    urth_note   = (_warn_badge("update needed") if urth_stale
+                   else _warn_badge("verify source") if "URTH P/E" in _pe_flag else "")
+    efa_note    = (_warn_badge("update needed") if efa_stale
+                   else _warn_badge("verify source") if "EFA P/E" in _pe_flag else "")
+
+    # Valuation wording follows the real numbers (was hard-coded "SIGNIFICANTLY CHEAPER")
+    if urth_pe and efa_pe:
+        _disc = (urth_pe - efa_pe) / urth_pe
+        if   _disc >= 0.10:  efa_tag = "SIGNIFICANTLY CHEAPER"
+        elif _disc >= 0.03:  efa_tag = "CHEAPER THAN WORLD"
+        elif _disc > -0.03:  efa_tag = "IN LINE WITH WORLD"
+        else:                efa_tag = "PRICIER THAN WORLD"
+        if _disc >= 0.10:
+            efa_why = (f"Ex-US developed markets ({efa_disp} PE) offer dramatically better valuation "
+                       f"support. Many AM screen picks are intl ADRs (EQNR, PBR, SNY, NVO, SHEL, BP) -- "
+                       f"cheaper valuations AND potential dollar weakness tailwind")
+        else:
+            efa_why = (f"Ex-US developed markets trade at {efa_disp} PE vs {urth_disp} for the world index, "
+                       f"so the valuation gap is small right now. Intl ADRs on the AM screen (EQNR, PBR, SNY, "
+                       f"NVO, SHEL, BP) still benefit if the dollar weakens")
+    else:
+        efa_tag = "N/A"
+        efa_why = "Ex-US P/E data unavailable today"
+    _usd = next((r["current"] for r in fred_data if r["label"] == "US Dollar Index (Broad)"), "N/A")
 
     # PE source note: Claude Routine > iShares CSV > PE_CONFIG fallback
     # Show just "Claude Routine" with no timestamp -- it always runs at 4am MT
@@ -1228,14 +1377,13 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         pe_updated  = PE_LAST_UPDATED.strftime("%b %Y")
         pe_src_note = f"PE_CONFIG fallback ({pe_updated})"
 
-    # Routine staleness banner for valuation block
+    # Routine staleness badge for valuation block
     routine_stale_banner = ""
     if routine_data and not routine_fresh:
         routine_date = routine_data.get("date", "unknown")
         routine_stale_banner = (
-            f'<div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:5px;'
-            f'padding:4px 8px;margin-bottom:8px;font-size:.72rem;color:#b45309;">'
-            f'Pre-market data from {routine_date} -- today\'s routine may not have run yet</div>'
+            f'<div style="margin-bottom:8px;">'
+            f'{_warn_badge("pre-market data is from " + str(routine_date) + ", today\'s routine did not run", "bad")}</div>'
         )
 
     if erp is not None:
@@ -1287,19 +1435,26 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
                   color:#1a56db;margin-bottom:4px;">ex-US Dev. P/E (EFA)</div>
       <div style="font-size:1.8rem;font-weight:800;color:#057a55;">{efa_disp}{efa_note}</div>
       <div style="font-size:.63rem;color:#6b7280;margin-top:3px;">Europe/Japan/Aus · trailing PE</div>
-      <div style="font-size:.6rem;color:#057a55;margin-top:2px;font-weight:600;">SIGNIFICANTLY CHEAPER</div>
+      <div style="font-size:.6rem;color:#057a55;margin-top:2px;font-weight:600;">{efa_tag}</div>
     </div>
   </div>
   {erp_html}
   <div style="font-size:.67rem;color:#374151;background:#f9fafb;border-radius:5px;
               padding:6px 10px;line-height:1.6;margin-top:8px;">
     <strong>Why this matters:</strong> US trades at {cape_times}x the 145-year historical average (CAPE 17x).
-    Ex-US developed markets ({efa_disp} PE) offer dramatically better valuation support.
-    Many AM screen picks are intl ADRs (EQNR, PBR, SNY, NVO, SHEL, BP) -- cheaper valuations
-    AND potential dollar weakness tailwind
-    (DXY {next((r['current'] for r in fred_data if r['label']=='US Dollar (DXY)'), 'N/A')}).
+    {efa_why}
+    (US Dollar Index, broad: {_usd}).
   </div>
 </div>"""
+
+    # Weekly calendar (built early so its health item is included in the banner)
+    calendar_html = _build_weekly_calendar(cache, yahoo_calendar)
+    _stored_cal   = cache.get("weekly_calendar", {}) or {}
+    _monday       = (now_local - timedelta(days=now_local.weekday())).strftime("%Y-%m-%d")
+    if now_local.weekday() < 5:
+        health.append(hl.check_calendar(_stored_cal.get("week_of", ""), _monday))
+    health_banner = _build_health_banner(health, now_str)
+    screens_badges = _screens_badges(screen_meta, health)
 
     # Value screens -- mf_list and am_list are ordered lists of tuples
     screens_html, all3, two3, si_only, mf_only, am_only = _build_screens_html(
@@ -1325,6 +1480,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         mf_only, am_only,
         all3, two3, si_only,
         cape_val, urth_disp, efa_disp, erp, cape_yield, ten_y_rate,
+        health_line=hl.context_line(health),
     )
 
     # Run log
@@ -1400,6 +1556,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 </div>
 
 <div class="container">
+  {health_banner}
   {ai_alert}
 
   <!-- 1. AI Fun Fact + AI Learning -- quick daily orientation -->
@@ -1425,7 +1582,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   </div>
 
   <!-- 2. Weekly Calendar -- what events matter this week, read before anything else -->
-  {_build_weekly_calendar(cache, yahoo_calendar)}
+  {calendar_html}
 
   <!-- 3. MHS -- macro posture, sets the decision framework -->
   <div class="card" style="margin-bottom:12px;border-left:4px solid {mhs_col};">
@@ -1506,7 +1663,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
         <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
           SI = super-investors 13F (3+ managers, ~45d lag) ·
           MF = Magic Formula (daily) · AM = Acquirer's Multiple (daily)
-        </span>
+        </span>{screens_badges}
       </h2>
       <span id="screens-tog" style="font-size:.72rem;color:#6b7280;white-space:nowrap;flex-shrink:0;margin-left:8px;">▶ Expand</span>
     </div>
@@ -1527,7 +1684,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <h2>🏦 Macro Indicators
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
         sparkline = 12mo → 3mo → today · green = good for equities · red = bad ·
-        ⚠️ = interpretive insight · 🟡 = cached (2+ days old)
+        ⚠️ = data problem (amber = cached or later than expected, red = missing)
       </span>
     </h2>
     <div style="overflow-x:auto;">

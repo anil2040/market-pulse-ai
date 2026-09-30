@@ -4,7 +4,9 @@
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py):
-#   synthesize_with_ai(...) -> (briefing_str, ai_failed_bool)
+#   synthesize_with_ai(...) -> (briefing_str, ai_failed_bool, ai_info_dict)
+#     ai_info = {"model": name that produced the text (or None),
+#                "attempts": [{"model": ..., "error": ...}, ...]}  <- what failed first
 #   parse_sections(text)    -> dict {section_name: content_str}
 #
 # PROMPT PHILOSOPHY:
@@ -21,7 +23,23 @@
 #   this provides today's context. When stale, it is included
 #   with a staleness note so the AI can weight it accordingly.
 #
-# FALLBACK CHAIN (one attempt per model, no retries):
+# CHANGES (Sep 29 2026):
+#   - Returns ai_info so the dashboard can say exactly WHY Gemini failed
+#     (a 503 "high demand" is Google's capacity, NOT your quota; the old
+#     banner wrongly said "quota exhausted").
+#   - Haiku uses the SDK's built-in retry for temporary server errors
+#     (max_retries=3). Gemini still gets a single attempt.
+#   - Keys are stripped of stray spaces/newlines (a pasted secret with a
+#     trailing newline causes odd "credential" errors).
+#   - Request id is logged on Anthropic errors so support can trace them.
+#   - News text that was refused as stale arrives empty and is shown to
+#     the model as "not available today".
+#   - Calendar sent to the model starts at TODAY (past days are noise).
+#   - Each macro indicator line carries its real "as of" date.
+#   - A short DATA CAVEATS block lists anything stale so the model does
+#     not build a narrative on old numbers.
+#
+# FALLBACK CHAIN (one attempt per Gemini model; Haiku via SDK retries):
 #   1. gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard)
 #   2. gemini-3.5-flash  (free, 1,500 RPD -- confirmed stable Sep 2026)
 #   3. claude-haiku-4-5  (paid ~$0.01-0.02/run -- varies with prompt size)
@@ -72,8 +90,8 @@ import re
 import concurrent.futures
 import requests
 
-GEMINI_API_KEY    = os.environ.get("GEMINI_API_KEY")
-ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY")
+GEMINI_API_KEY    = (os.environ.get("GEMINI_API_KEY") or "").strip()
+ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
 
 # ============================================================
 # MODEL CALLERS
@@ -98,45 +116,74 @@ def _call_gemini(prompt, model):
 def _call_haiku(prompt):
     """
     Call Claude Haiku 4.5. Returns (text, input_tokens, output_tokens).
-    Uses anthropic SDK when available; falls back to direct HTTP.
-    Token counts come from message.usage so cost logging is always accurate.
+    Uses the anthropic SDK, which retries temporary server errors (5xx, 429)
+    by itself with backoff (max_retries=3). Falls back to direct HTTP only
+    if the library is missing. Token counts come from message.usage.
     """
     if not ANTHROPIC_API_KEY:
         raise Exception("ANTHROPIC_API_KEY secret not set in GitHub repo")
     try:
         import anthropic
-        client  = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-        message = client.messages.create(
-            model      = "claude-haiku-4-5",
-            max_tokens = 1000,
-            messages   = [{"role": "user", "content": prompt}],
-        )
-        in_tok  = message.usage.input_tokens
-        out_tok = message.usage.output_tokens
-        return message.content[0].text, in_tok, out_tok
     except ImportError:
-        print("  ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
-        resp = requests.post(
-            "https://api.anthropic.com/v1/messages",
-            headers={
-                "x-api-key":         ANTHROPIC_API_KEY,
-                "anthropic-version": "2023-06-01",
-                "content-type":      "application/json",
-            },
-            json={
-                "model":      "claude-haiku-4-5",
-                "max_tokens": 1000,
-                "messages":   [{"role": "user", "content": prompt}],
-            },
-            timeout=90,
-        )
-        if resp.status_code != 200:
-            raise Exception(
-                f"Anthropic API HTTP {resp.status_code}: {resp.text[:500]}")
-        data    = resp.json()
-        in_tok  = data.get("usage", {}).get("input_tokens", 0)
-        out_tok = data.get("usage", {}).get("output_tokens", 0)
-        return data["content"][0]["text"], in_tok, out_tok
+        anthropic = None
+
+    if anthropic is not None:
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=3, timeout=40.0)
+        try:
+            message = client.messages.create(
+                model      = "claude-haiku-4-5",
+                max_tokens = 1000,
+                messages   = [{"role": "user", "content": prompt}],
+            )
+        except Exception as e:
+            rid = getattr(e, "request_id", None)
+            if rid:
+                print(f"  ℹ️ Anthropic request id: {rid} (quote this to Anthropic support)")
+            raise
+        return message.content[0].text, message.usage.input_tokens, message.usage.output_tokens
+
+    print("  ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
+    resp = requests.post(
+        "https://api.anthropic.com/v1/messages",
+        headers={
+            "x-api-key":         ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01",
+            "content-type":      "application/json",
+        },
+        json={
+            "model":      "claude-haiku-4-5",
+            "max_tokens": 1000,
+            "messages":   [{"role": "user", "content": prompt}],
+        },
+        timeout=60,
+    )
+    if resp.status_code != 200:
+        raise Exception(f"Anthropic API HTTP {resp.status_code} "
+                        f"(request-id {resp.headers.get('request-id', 'none')}): {resp.text[:400]}")
+    data = resp.json()
+    return (data["content"][0]["text"],
+            data.get("usage", {}).get("input_tokens", 0),
+            data.get("usage", {}).get("output_tokens", 0))
+
+
+def _short_error(e):
+    """Compact one-line error for the dashboard banner and health list."""
+    status = getattr(e, "status_code", None) or getattr(e, "code", None)
+    msg    = str(e)
+    m = (re.search(r"'message': '([^']{0,90})", msg)
+         or re.search(r'"message": ?"([^"]{0,90})', msg))
+    txt = m.group(1) if m else msg[:90]
+    return f"HTTP {status}: {txt}" if status else f"{type(e).__name__}: {txt}"
+
+
+def _calendar_from_today(calendar_text, today_name, limit=2000):
+    """Start the calendar at today's weekday header (past days are noise for the briefing)."""
+    if not calendar_text:
+        return ""
+    m = re.search(rf"(?m)^{re.escape(today_name)}\b", calendar_text)
+    if m and m.start() > 0:
+        calendar_text = calendar_text[m.start():]
+    return calendar_text[:limit]
 
 
 # ============================================================
@@ -237,12 +284,14 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                        fred_data, fg_data, mkt_data, mhs,
                        si_tickers, mf_list, am_list,
                        routine_data=None, routine_fresh=False,
-                       yahoo_calendar=""):
+                       yahoo_calendar="", health_notes=None, today_name=None):
     """
     Build prompt from all fetched data and call AI models in fallback order.
     routine_data: parsed clauderoutinedata.json (or {} if unavailable)
     routine_fresh: True if routine date matches today MT
-    Returns (briefing_str, ai_failed_bool).
+    health_notes: list of short strings describing stale/missing data
+    today_name: weekday name in Boise time ("Tuesday"), used to trim the calendar
+    Returns (briefing_str, ai_failed_bool, ai_info_dict).
     ai_failed=True means structured fallback was used (no AI narrative).
 
     NOTE: si_tickers, mf_list, am_list are accepted for signature compatibility
@@ -255,7 +304,8 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
         routine_data = {}
 
     fred_summary = "\n".join([
-        f"- {r['label']}: {r['current']} (3mo:{r['mo3']} 12mo:{r['mo12']} trend:{r['trend']})"
+        f"- {r['label']}: {r['current']} (as of {r.get('date', '?')}; "
+        f"3mo:{r['mo3']} 12mo:{r['mo12']} trend:{r['trend']})"
         for r in fred_data if r["current"] != "N/A"
     ])
 
@@ -266,10 +316,19 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
 
     routine_block = _format_routine_block(routine_data, routine_fresh)
 
+    if today_name is None:
+        from timeutil import now_mt
+        today_name = now_mt().strftime("%A")
     calendar_block = ""
     if yahoo_calendar and len(yahoo_calendar.strip()) > 50:
-        calendar_block = (f"\nWEEK AHEAD (from Yahoo Morning Brief -- use specific dates):\n"
-                          f"{yahoo_calendar[:2000]}")
+        calendar_block = (f"\nWEEK AHEAD (from Yahoo Morning Brief, from today onward -- use specific dates):\n"
+                          f"{_calendar_from_today(yahoo_calendar, today_name)}")
+
+    caveat_block = ""
+    if health_notes:
+        caveat_block = ("\nDATA CAVEATS (these inputs are stale or missing -- weight accordingly, "
+                        "do not build conclusions on them):\n"
+                        + "\n".join(f"- {n}" for n in health_notes[:8]))
 
     # ── Text limits with log notes ──────────────────────────────────────────
     # Raised from original 800/600/600. Log lines visible in GitHub Actions
@@ -278,9 +337,10 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
     _CNBC_LIMIT  = 1200
     _YAHOO_LIMIT = 1200
 
-    ej_trimmed    = ej_text   [:_EJ_LIMIT]
-    cnbc_trimmed  = cnbc_text [:_CNBC_LIMIT]
-    yahoo_trimmed = yahoo_text[:_YAHOO_LIMIT]
+    _NA = "(not available today)"
+    ej_trimmed    = ej_text   [:_EJ_LIMIT]    or _NA
+    cnbc_trimmed  = cnbc_text [:_CNBC_LIMIT]  or _NA
+    yahoo_trimmed = yahoo_text[:_YAHOO_LIMIT] or _NA
 
     if len(ej_text)    > _EJ_LIMIT:
         print(f"  [AI] Prompt: EJ news truncated {len(ej_text)} -> {_EJ_LIMIT} chars")
@@ -346,6 +406,7 @@ MACRO INDICATORS:
 
 {routine_block}
 {calendar_block}
+{caveat_block}
 
 NEWS SOURCES (for macro context -- no stock-specific stories):
 EDWARD JONES: {ej_trimmed}
@@ -362,6 +423,7 @@ YAHOO BRIEF: {yahoo_trimmed}
          lambda: _call_haiku(prompt)),
     ]
 
+    attempts = []          # what failed before something worked
     for model_id, model_name, call_fn in models_to_try:
         try:
             print(f"  Trying {model_name}...")
@@ -369,7 +431,6 @@ YAHOO BRIEF: {yahoo_trimmed}
                 fut    = ex.submit(call_fn)
                 result = fut.result(timeout=90)
 
-            # Extract text from result
             if model_id == "claude-haiku-4-5":
                 briefing, in_tok, out_tok = result
             else:
@@ -379,7 +440,6 @@ YAHOO BRIEF: {yahoo_trimmed}
             if not briefing or not briefing.strip():
                 raise ValueError("Blank response returned (0 usable chars)")
 
-            # Log success
             if model_id == "claude-haiku-4-5":
                 cost = (in_tok * 1.00 + out_tok * 5.00) / 1_000_000
                 print(f"  ✅ Claude Haiku used as fallback: {len(briefing)} chars")
@@ -388,37 +448,38 @@ YAHOO BRIEF: {yahoo_trimmed}
             else:
                 print(f"  ✅ {model_name}: {len(briefing)} chars")
 
-            return briefing, False
+            short_name = model_name.replace(" (free tier)", "")
+            return briefing, False, {"model": short_name, "attempts": attempts}
 
         except concurrent.futures.TimeoutError:
             print(f"  ⚠️ {model_name} timed out after 90s -- trying next model")
+            attempts.append({"model": model_name.replace(" (free tier)", ""),
+                             "error": "timed out after 90s"})
         except Exception as e:
             err_type = type(e).__name__
-            err_msg  = str(e)
-            # Extract HTTP/gRPC status code from SDK exceptions where available
-            # Gemini uses e.code (google.api_core.exceptions)
-            # Anthropic SDK uses e.status_code
             status   = getattr(e, "status_code", None) or getattr(e, "code", None)
             if status:
-                print(f"  ⚠️ {model_name} FAILED: {err_type} | HTTP {status} | {err_msg}")
+                print(f"  ⚠️ {model_name} FAILED: {err_type} | HTTP {status} | {str(e)}")
             else:
-                print(f"  ⚠️ {model_name} FAILED: {err_type} | {err_msg}")
+                print(f"  ⚠️ {model_name} FAILED: {err_type} | {str(e)}")
+            attempts.append({"model": model_name.replace(" (free tier)", ""),
+                             "error": _short_error(e)})
 
     print("  ❌ All AI models failed -- using structured fallback")
     fallback = """MARKET AND MACRO
-- AI synthesis unavailable -- all models failed or quota exhausted today
-- All data sections below are complete and current -- no data loss
+- AI synthesis unavailable today -- every model failed (see the notice at the top of the page)
+- Data tables below are still built from the live sources; check the data health notice for anything stale
 
 WHAT TO WATCH
-- Review Macro Heat Score and FRED indicator table -- all data is fresh
-- Value screen chips in the screens section show current conviction tickers
+- Review the Macro Heat Score, the weekly calendar and the indicator table directly
+- Value screen chips below show today's conviction tickers
 
 AI FUN FACT
 - Shiller CAPE above 40x has occurred only twice in 145 years: 1999 and today.
 
 AI LEARNING
 - Attention mechanism: lets LLMs weight relationships between all tokens simultaneously."""
-    return fallback, True
+    return fallback, True, {"model": None, "attempts": attempts}
 
 
 # ============================================================
