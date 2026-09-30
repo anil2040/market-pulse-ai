@@ -1,59 +1,65 @@
 {
   "date": "2026-09-29",
-  "time_collected_utc": "12:15",
+  "time_collected_utc": "03:26",
   "futures": {
-    "sp500":     {"change_pct": 0.10, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.20, "direction": "up"},
-    "dow":       {"change_pct": -0.10, "direction": "down"},
+    "sp500": {
+      "change_pct": null,
+      "direction": null
+    },
+    "nasdaq100": {
+      "change_pct": null,
+      "direction": null
+    },
+    "dow": {
+      "change_pct": null,
+      "direction": null
+    },
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 18.86, "proxy_for": "MSCI World",
-             "source": "gurufocus.com"},
-    "EFA":  {"pe_ttm": 18.71, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "ishares.com"}
+    "URTH": {
+      "pe_ttm": null,
+      "proxy_for": "MSCI World",
+      "source": "ishares.com",
+      "as_of": ""
+    },
+    "EFA": {
+      "pe_ttm": null,
+      "proxy_for": "MSCI EAFE ex-US Developed",
+      "source": "ishares.com",
+      "as_of": ""
+    }
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.24,
-    "crude_oil_usd": 98.15,
+    "treasury_10yr_pct": null,
+    "crude_oil_usd": null,
     "crude_oil_type": "WTI"
   },
-  "macro_events": [
-    "Fed tightening expectations remain elevated; markets price 72.5% chance of rate hike at October FOMC meeting after 10-year yield hit 5.24%",
-    "Trump dismissed Iran sanctions relief as a HOAX, pushing oil prices higher and keeping geopolitical risk premium elevated",
-    "JOLTS job openings and Consumer Confidence data due today; labor market resilience will drive Fed rate-path expectations"
-  ],
+  "macro_events": [],
   "sector_movers": {
-    "leading": [
-      {"sector": "Technology", "change_pct": 0.35, "reason": "Semiconductors rallying pre-market led by Micron and chip names on AI demand"},
-      {"sector": "Industrials", "change_pct": 0.20, "reason": "Rotation into cyclicals as investors seek quality amid mixed macro data"}
-    ],
-    "lagging": [
-      {"sector": "Communication Services", "change_pct": -0.50, "reason": "Continued pressure from rising yields reducing valuation multiples on growth names"},
-      {"sector": "Energy", "change_pct": -0.30, "reason": "Geopolitical noise around Iran-US talks creating uncertainty despite crude oil rising"}
-    ]
+    "leading": [],
+    "lagging": []
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "flat", "change_pct": 0.00},
-    "asia":   {"index": "Nikkei225", "direction": "down", "change_pct": -0.73}
-  },
-  "open_focus": "Traders are focused on whether Fed speakers and incoming JOLTS job openings data will confirm further tightening, following the 10-year yield pushing toward 5.25% amid oil-driven inflation concerns.",
-  "market_prices": {
-    "sp500": {
-      "prev_close": 7742.85,
-      "current":    7683.69,
-      "change_pct": -0.77,
-      "source_time_et": "08:15"
+    "europe": {
+      "index": "STOXX600",
+      "direction": null,
+      "change_pct": null
     },
-    "rut": {
-      "prev_close": 2835.57,
-      "current":    2820.00,
-      "change_pct": -0.55,
-      "source_time_et": "08:15"
-    },
-    "vix": {
-      "prev_close": 14.87,
-      "current":    16.40
+    "asia": {
+      "index": "Nikkei225",
+      "direction": null,
+      "change_pct": null
     }
-  }
+  },
+  "open_focus": "",
+  "market_prices": {},
+  "data_notes": [
+    "Search results were stale or undated; no value could be verified as today's, so all values left empty",
+    "Futures: results undated and mixed, left null; sentiment neutral by default",
+    "URTH and EFA P/E not available from ishares.com or blackrock.com in search",
+    "10Y yield and WTI results were stale (4.145 and 72.88 do not match recent levels), left null",
+    "Index level results were stale or wrong instrument, market_prices set to empty",
+    "Sector and global market results were undated or year-to-date only, left empty"
+  ]
 }
