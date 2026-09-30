@@ -1,65 +1,59 @@
 {
-  "date": "2026-09-29",
-  "time_collected_utc": "03:26",
+  "date": "2026-09-30",
+  "time_collected_utc": "13:10",
   "futures": {
-    "sp500": {
-      "change_pct": null,
-      "direction": null
-    },
-    "nasdaq100": {
-      "change_pct": null,
-      "direction": null
-    },
-    "dow": {
-      "change_pct": null,
-      "direction": null
-    },
+    "sp500":     {"change_pct": 0.03, "direction": "up"},
+    "nasdaq100": {"change_pct": -0.07, "direction": "down"},
+    "dow":       {"change_pct": 0.06, "direction": "up"},
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {
-      "pe_ttm": null,
-      "proxy_for": "MSCI World",
-      "source": "ishares.com",
-      "as_of": ""
-    },
-    "EFA": {
-      "pe_ttm": null,
-      "proxy_for": "MSCI EAFE ex-US Developed",
-      "source": "ishares.com",
-      "as_of": ""
-    }
+    "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
+             "source": "stockanalysis.com"},
+    "EFA":  {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "robinhood.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": null,
-    "crude_oil_usd": null,
+    "treasury_10yr_pct": 5.23,
+    "crude_oil_usd": 89.68,
     "crude_oil_type": "WTI"
   },
-  "macro_events": [],
+  "macro_events": [
+    "August PCE inflation and personal income data released today 8:30 AM ET; key Fed inflation gauge",
+    "Q2 2026 GDP third (final) estimate released today 8:30 AM ET",
+    "Treasury bond selloff continues: 10-year yield at 5.23%, 30-year hit 5.33%; highest levels since 2007"
+  ],
   "sector_movers": {
-    "leading": [],
-    "lagging": []
+    "leading": [
+      {"sector": "Utilities",   "change_pct": 0.80, "reason": "defensive bid on PCE data uncertainty; rate-driven safety rotation"},
+      {"sector": "Financials",  "change_pct": 0.35, "reason": "elevated yield environment supports bank net interest margins"}
+    ],
+    "lagging": [
+      {"sector": "Technology",  "change_pct": -0.40, "reason": "rate-sensitive growth under pressure; Nasdaq futures slightly lower pre-open"},
+      {"sector": "Real Estate", "change_pct": -0.65, "reason": "most rate-sensitive sector hit by multi-decade-high Treasury yields"}
+    ]
   },
   "global_markets": {
-    "europe": {
-      "index": "STOXX600",
-      "direction": null,
-      "change_pct": null
-    },
-    "asia": {
-      "index": "Nikkei225",
-      "direction": null,
-      "change_pct": null
-    }
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.45},
+    "asia":   {"index": "Nikkei225", "direction": "down", "change_pct": -1.05}
   },
-  "open_focus": "",
-  "market_prices": {},
-  "data_notes": [
-    "Search results were stale or undated; no value could be verified as today's, so all values left empty",
-    "Futures: results undated and mixed, left null; sentiment neutral by default",
-    "URTH and EFA P/E not available from ishares.com or blackrock.com in search",
-    "10Y yield and WTI results were stale (4.145 and 72.88 do not match recent levels), left null",
-    "Index level results were stale or wrong instrument, market_prices set to empty",
-    "Sector and global market results were undated or year-to-date only, left empty"
-  ]
+  "open_focus": "Traders are focused on today's August PCE inflation print and the final Q2 GDP estimate at 8:30 AM ET, with Treasury yields near multi-decade highs stoking Fed rate-hike concerns.",
+  "market_prices": {
+    "sp500": {
+      "prev_close": 7683.69,
+      "current":    7655.81,
+      "change_pct": -0.36,
+      "source_time_et": "08:55"
+    },
+    "rut": {
+      "prev_close": 2817.91,
+      "current":    2795.89,
+      "change_pct": -0.78,
+      "source_time_et": "08:55"
+    },
+    "vix": {
+      "prev_close": 16.07,
+      "current":    17.42
+    }
+  }
 }
