@@ -2,27 +2,62 @@
   "date": "2026-09-30",
   "time_collected_utc": "03:40",
   "futures": {
-    "sp500": {"change_pct": -0.02, "direction": "down"},
-    "nasdaq100": {"change_pct": 0.14, "direction": "up"},
-    "dow": {"change_pct": -0.15, "direction": "down"},
+    "sp500": {
+      "change_pct": -0.02,
+      "direction": "down"
+    },
+    "nasdaq100": {
+      "change_pct": 0.14,
+      "direction": "up"
+    },
+    "dow": {
+      "change_pct": -0.15,
+      "direction": "down"
+    },
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World", "source": "stockanalysis.com", "as_of": ""},
-    "EFA": {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed", "source": "robinhood.com", "as_of": ""}
+    "URTH": {
+      "pe_ttm": 24.7,
+      "proxy_for": "MSCI World",
+      "source": "stockanalysis.com",
+      "as_of": ""
+    },
+    "EFA": {
+      "pe_ttm": 17.98,
+      "proxy_for": "MSCI EAFE ex-US Developed",
+      "source": "robinhood.com",
+      "as_of": ""
+    }
   },
-  "rates_commodities": {"treasury_10yr_pct": null, "crude_oil_usd": null, "crude_oil_type": "WTI"},
+  "rates_commodities": {
+    "treasury_10yr_pct": null,
+    "crude_oil_usd": null,
+    "crude_oil_type": "WTI"
+  },
   "macro_events": [],
-  "sector_movers": {"leading": [], "lagging": []},
+  "sector_movers": {
+    "leading": [],
+    "lagging": []
+  },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": null, "change_pct": null},
-    "asia": {"index": "Nikkei225", "direction": null, "change_pct": null}
+    "europe": {
+      "index": "STOXX600",
+      "direction": null,
+      "change_pct": null
+    },
+    "asia": {
+      "index": "Nikkei225",
+      "direction": null,
+      "change_pct": null
+    }
   },
   "open_focus": "",
   "market_prices": {},
   "data_notes": [
     "Only futures (Benzinga, dated 2026-09-30) and ETF P/E were usable; other search results were stale, undated or internally inconsistent, so those fields are left empty",
     "10yr yield (4.145%) and WTI ($72.88) results were undated/stale and not recorded; sector, global markets, open focus and index prices not verifiable for today",
-    "EFA P/E from Robinhood fallback (stockanalysis.com page not returned); URTH P/E from stockanalysis.com, as-of date unknown"
+    "EFA P/E from Robinhood fallback (stockanalysis.com page not returned); URTH P/E from stockanalysis.com, as-of date unknown",
+    "Re-run: searches again returned stale/undated results (futures, yield, oil, global markets, index prices); no new verified values recorded"
   ]
 }
