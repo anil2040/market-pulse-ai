@@ -1,63 +1,50 @@
 {
   "date": "2026-09-30",
-  "time_collected_utc": "03:40",
+  "time_collected_utc": "12:55",
   "futures": {
-    "sp500": {
-      "change_pct": -0.02,
-      "direction": "down"
-    },
-    "nasdaq100": {
-      "change_pct": 0.14,
-      "direction": "up"
-    },
-    "dow": {
-      "change_pct": -0.15,
-      "direction": "down"
-    },
+    "sp500": {"change_pct": 0.33, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.31, "direction": "up"},
+    "dow": {"change_pct": 0.26, "direction": "up"},
     "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {
-      "pe_ttm": 24.7,
-      "proxy_for": "MSCI World",
-      "source": "stockanalysis.com",
-      "as_of": ""
-    },
-    "EFA": {
-      "pe_ttm": 17.98,
-      "proxy_for": "MSCI EAFE ex-US Developed",
-      "source": "robinhood.com",
-      "as_of": ""
-    }
+    "URTH": {"pe_ttm": 24.7, "proxy_for": "MSCI World", "source": "stockanalysis.com"},
+    "EFA": {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed", "source": "robinhood.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": null,
-    "crude_oil_usd": null,
+    "treasury_10yr_pct": 5.22,
+    "crude_oil_usd": 89.68,
     "crude_oil_type": "WTI"
   },
-  "macro_events": [],
+  "macro_events": [
+    "August core PCE inflation report released 7:30am ET",
+    "Treasury yields retreat after 30-year yield hit highest since 2002; 10-year near multi-decade highs",
+    "Markets price ~70% odds of an October Fed rate hike; September jobs report due Friday"
+  ],
   "sector_movers": {
-    "leading": [],
-    "lagging": []
+    "leading": [
+      {"sector": "Utilities", "change_pct": 1.16, "reason": "prior-session close; defensive bid"},
+      {"sector": "Communication Services", "change_pct": 0.38, "reason": "prior-session close"}
+    ],
+    "lagging": [
+      {"sector": "Energy", "change_pct": -0.9, "reason": "prior-session close; oil weakness"},
+      {"sector": "Consumer Staples", "change_pct": -0.65, "reason": "prior-session close"}
+    ]
   },
   "global_markets": {
-    "europe": {
-      "index": "STOXX600",
-      "direction": null,
-      "change_pct": null
-    },
-    "asia": {
-      "index": "Nikkei225",
-      "direction": null,
-      "change_pct": null
-    }
+    "europe": {"index": "STOXX600", "direction": null, "change_pct": null},
+    "asia": {"index": "Nikkei225", "direction": null, "change_pct": null}
   },
-  "open_focus": "",
-  "market_prices": {},
+  "open_focus": "Traders are focused on the August core PCE inflation print and its implications for a possible October Fed rate hike amid multi-decade-high Treasury yields.",
+  "market_prices": {
+    "sp500": {"prev_close": 7683.69, "current": 7655.81, "change_pct": -0.36, "source_time_et": "08:55"},
+    "rut": {"prev_close": 2817.91, "current": 2795.89, "change_pct": -0.78, "source_time_et": "08:55"},
+    "vix": {"prev_close": 16.07, "current": 16.29}
+  },
   "data_notes": [
-    "Only futures (Benzinga, dated 2026-09-30) and ETF P/E were usable; other search results were stale, undated or internally inconsistent, so those fields are left empty",
-    "10yr yield (4.145%) and WTI ($72.88) results were undated/stale and not recorded; sector, global markets, open focus and index prices not verifiable for today",
-    "EFA P/E from Robinhood fallback (stockanalysis.com page not returned); URTH P/E from stockanalysis.com, as-of date unknown",
-    "Re-run: searches again returned stale/undated results (futures, yield, oil, global markets, index prices); no new verified values recorded"
+    "Futures search results internally inconsistent (headline 'little changed'); values from quoted futures levels",
+    "10yr yield cross-checked (5.23% / 5.221%) vs prior stale 4.145% record",
+    "Sector movers are prior-session close; global markets search returned stale results so left null",
+    "EFA P/E from Robinhood fallback; index prices may be delayed/inconsistent with futures"
   ]
 }
