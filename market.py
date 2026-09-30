@@ -1,755 +1,546 @@
 # ============================================================
-# fred.py -- Macro indicator fetching
+# market.py -- Market data, PE config, MHS, ERP
 # Mean Reversion Macro Insights
 # ============================================================
 #
-# PUBLIC FUNCTION (called by main.py):
-#   fetch_fred_data() -> list[dict]
+# PUBLIC FUNCTIONS (called by main.py):
+#   fetch_market_indicators(routine_data={}) -> dict
+#   compute_mhs(fred_data, fg_data, mkt_data) -> dict
+#   compute_erp(fred_data, cape_val_str) -> (erp, cape_yield, ten_y) | (None,None,None)
 #
-# WHAT THIS DOES:
-#   Fetches all 18 macro series in parallel (20s timeout each).
-#   Routes each series by its id:
-#     _YAHOO_*       -> Yahoo Finance (gold GC=F, WTI oil CL=F)
-#     _SCRAPE_MULTPL -> multpl.com by-month table (Shiller CAPE)
-#     anything else  -> standard FRED API (limit=500, sort desc)
-#   Returns dicts with: label, id, group, freq, current, mo3, mo12,
-#     trend, date (display), obs_date (ISO, used for freshness checks),
-#     sig (insight text), insight (description)
+# ETF PE SOURCING STRATEGY (in priority order):
+#   0. Claude Routine JSON (clauderoutinedata.json, fresh = today's date)
+#      Written by the 4am Claude Routine, read before pipeline runs.
+#   1. iShares fund characteristics CSV (free, no auth, updated daily)
+#      Parses "P/E Ratio" row from the same CSV iShares uses for their pages.
+#   2. PE_CONFIG fallback (hardcoded quarterly from iShares.com)
+#      Update PE_LAST_UPDATED + PE_CONFIG values each quarter.
+#      Dashboard shows amber warning if data is >90 days stale.
 #
-# FRESHNESS FIX (Sep 29 2026): DAILY RATES
-#   10Y, 2Y and Fed Funds used FRED's MONTHLY averages (GS10, GS2,
-#   FEDFUNDS), so the dashboard showed August's 10Y (4.68%) when the
-#   market was at 5.24%, and "Fed on hold" after the Sep 16 hike.
-#   Now: DGS10, DGS2 (daily, ~1 business day lag) and DFF (daily
-#   effective fed funds). WTI comes from Yahoo CL=F (FRED's oil lags
-#   about a week) with DCOILWTICO as fallback.
+# Yahoo v8/v10: broken server-side for ETFs since mid-2026.
+# etf.com / etfdb.com: Cloudflare CDN blocks GitHub Actions.
+# Playwright: overkill for quarterly PE (adds 45-60s per run).
+# See debug_etf_pe.py for full source audit history.
 #
-# WINDOW FIX: each series has a "freq" so the 3-month and 12-month
-#   columns look back the right distance:
-#     daily 65/260 rows | calendar_daily (DFF) 91/365 | weekly (ICSA) 13/52
-#     monthly 3/12. ICSA used to look back 65 WEEKS by mistake.
+# _yq() CHG FIX (Sep 2026):
+#   Yahoo's regularMarketChangePercent resets to 0.00 in three windows:
+#   pre-market, first minutes after open, and after close.
+#   Fix: always compute chg = (price - previousClose) / previousClose * 100
+#   manually. Yahoo reliably returns price and previousClose at all times.
 #
-# STILL LAGGING BY NATURE (labelled with their real "as of" date):
-#   CPI, PCE, unemployment, consumer sentiment (monthly), GDP (quarterly).
-#   The government publishes these late; no data source can be faster.
+# MHS SCALE:
+#   0-33:  DEPLOY   -- panic/dislocation, deploy aggressively
+#   34-65: SELECTIVE -- best setups only, Left Leg <4, MoS >25%
+#   66-85: OVERHEATED -- build cash, trim winners
+#   86-100: EXTREME OVERHEATED -- most stretched macro since dot-com
 #
-# CAPE FIX: multpl.com's main page has no history table, so 3mo and 12mo
-#   silently equalled today's value (41.2 / 41.2 / 41.2). Now read from
-#   the by-month table (real values ~40.2 and ~38.6). If that fails the
-#   columns show N/A and the dashboard flags it.
-#
-# INSIGHT TEXT: no leading symbols. The trend arrow and colour already
-#   carry direction; the warning triangle is reserved for DATA problems.
-#
-# DOLLAR: the row is the Fed's Nominal BROAD Dollar Index (26 currencies,
-#   base 100 in Jan 2006, level ~120), NOT the ICE DXY (6 currencies,
-#   level ~90-110). Renamed "US Dollar Index (Broad)" to stop the
-#   confusion.
-#
-# LEADING INDICATORS:
-#   ICSA  -- Initial Jobless Claims, weekly, 4-week average in insight.
-#   GDPC1 -- Real GDP, quarterly, YoY % (v0 vs 4 quarters ago).
-#   (ISM PMI is intentionally NOT included: ISM had FRED remove it.)
+# MARKET STATE DETECTION:
+#   marketState from SPX (%5EGSPC) is the authoritative source.
+#   REGULAR -> OPEN, PRE -> PRE, POST -> POST, CLOSED -> CLOSED.
+#   VIX marketState is NOT used (it can differ from equity state).
 # ============================================================
 
 import os
 import re
 import concurrent.futures
-from datetime import datetime, timedelta, date, timezone
+from datetime import date, datetime, timezone
 import requests
-from bs4 import BeautifulSoup
-
-FRED_API_KEY = os.environ.get("FRED_API_KEY")
 
 # ============================================================
-# SERIES DEFINITIONS
+# ETF PE CONFIG -- quarterly fallback (last resort)
 # ============================================================
+# Update manually each quarter if iShares CSV fetch fails AND
+# Claude Routine is unavailable.
+# Check: iShares product page > Fund Characteristics > P/E Ratio
+# URTH: https://www.ishares.com/us/products/239696
+# EFA:  https://www.ishares.com/us/products/239727
 
-FRED_SERIES = [
-    # ---- INFLATION (monthly, published mid/late month for the prior month) ----
-    {"label": "CPI Inflation",        "id": "CPIAUCSL",      "freq": "monthly", "is_index": True,  "group": "INFLATION",
-     "insight": "Headline CPI incl food & energy · hist avg ~3%"},
-    {"label": "Core CPI",             "id": "CPILFESL",      "freq": "monthly", "is_index": True,  "group": "INFLATION",
-     "insight": "CPI ex food/energy · Fed watches this · avg ~2.5%"},
-    {"label": "PCE Inflation",        "id": "PCEPI",         "freq": "monthly", "is_index": True,  "group": "INFLATION",
-     "insight": "Fed preferred gauge (broader than CPI) · avg ~2.2%"},
-    {"label": "Core PCE",             "id": "PCEPILFE",      "freq": "monthly", "is_index": True,  "group": "INFLATION",
-     "insight": "THE key number · Fed 2% target · >3% = rates stay high"},
-    # ---- RATES (DAILY series: no more month-old averages) ----
-    {"label": "10Y Treasury",         "id": "DGS10",         "freq": "daily", "is_index": False, "group": "RATES",
-     "insight": "Risk-free rate · rising compresses P/E multiples · avg ~4%"},
-    {"label": "2Y Treasury",          "id": "DGS2",          "freq": "daily", "is_index": False, "group": "RATES",
-     "insight": "Fed expectations proxy · rising = no rate cuts priced in"},
-    {"label": "Yield Curve (10Y-2Y)", "id": "T10Y2Y",        "freq": "daily", "is_index": False, "group": "RATES",
-     "insight": "Negative = inverted = recession signal 12-18mo ahead"},
-    {"label": "Fed Funds Rate",       "id": "DFF",           "freq": "calendar_daily", "is_index": False, "group": "RATES",
-     "insight": "Effective rate, daily · cutting = tailwind for equities"},
-    # ---- CREDIT ----
-    {"label": "HY Credit Spread",     "id": "BAMLH0A0HYM2",  "freq": "daily", "is_index": False, "group": "CREDIT",
-     "insight": "Junk bond premium · <3%=calm · >6%=credit fear/stress"},
-    # ---- LABOR ----
-    {"label": "Unemployment",         "id": "UNRATE",        "freq": "monthly", "is_index": False, "group": "LABOR",
-     "insight": "Labor health · rising = consumer risk · hist avg ~5.7%"},
-    # ---- COMMODITIES (Yahoo futures: same-day; FRED oil is ~1 week late) ----
-    {"label": "WTI Crude Oil",        "id": "_YAHOO_CL",     "freq": "daily", "is_index": False, "group": "COMMODITIES",
-     "yahoo": "CL=F", "fmt": "usd1", "fallback_id": "DCOILWTICO", "prefix": "$",
-     "insight": "Energy price · >$85 = inflation pressure & input cost risk"},
-    {"label": "Gold Price",           "id": "_YAHOO_GCF",    "freq": "daily", "is_index": False, "group": "COMMODITIES",
-     "yahoo": "GC=F", "fmt": "usd0", "prefix": "$", "no_pct": True,
-     "insight": "Fear/inflation hedge · rising+lowVIX = stealth fear signal"},
-    # ---- CURRENCY ----
-    # Fed Nominal BROAD Dollar Index (26 currencies, Jan 2006 = 100). NOT the ICE DXY.
-    {"label": "US Dollar Index (Broad)", "id": "DTWEXBGS",   "freq": "daily", "is_index": False, "group": "CURRENCY",
-     "no_pct": True,
-     "insight": "Fed broad dollar index (26 currencies) · weak dollar = tailwind for intl ADRs (EQNR,PBR,SNY etc)"},
-    # ---- CONSUMER SENTIMENT ----
-    {"label": "Consumer Sentiment",   "id": "UMCSENT",       "freq": "monthly", "is_index": False, "group": "SENTIMENT_FRED",
-     "no_pct": True, "insight": "U of Michigan 0-100 · avg ~75 · <60 = consumer stress"},
-    # ---- VALUATION ----
-    {"label": "Shiller CAPE (US)",    "id": "_SCRAPE_MULTPL","freq": "daily", "is_index": False, "group": "VALUATION",
-     "no_pct": True,
-     "insight": "Cyclically Adj PE · 10yr smoothed · hist avg 17x · ~41 = 2nd highest ever"},
-    # ---- LEADING INDICATORS ----
-    # ICSA leads the monthly unemployment rate by 6-8 weeks: <250K=healthy, >300K=stress.
-    {"label": "Jobless Claims (ICSA)", "id": "ICSA",         "freq": "weekly", "is_index": False, "group": "LABOR",
-     "no_pct": True,
-     "insight": "Weekly initial claims · <250K=healthy · >300K=stress · leads unemployment 6-8wk"},
-    # GDPC1: quarterly. YoY % = v0 vs 4 quarters ago. 3mo col = prior quarter's YoY.
-    {"label": "GDP Growth YoY",       "id": "GDPC1",         "freq": "quarterly", "is_index": False, "group": "GROWTH",
-     "insight": "Real GDP YoY · >2%=above trend · <1%=stagnation · negative=recession"},
-]
+PE_LAST_UPDATED = date(2026, 9, 10)
 
-# Rows to look back for the "3mo ago" and "12mo ago" columns, by frequency
-LOOKBACK = {
-    "daily":          (65, 260),
-    "calendar_daily": (91, 365),
-    "weekly":         (13, 52),
-    "monthly":        (3, 12),
+PE_CONFIG = {
+    "URTH": {"pe": 22.57, "label": "iShares MSCI World ETF"},
+    "EFA":  {"pe": 18.35, "label": "iShares MSCI EAFE ETF"},
 }
 
-GROUP_META = {
-    "INFLATION":      {"icon": "🔥", "color": "#c81e1e", "label": "Inflation"},
-    "RATES":          {"icon": "📊", "color": "#1a56db", "label": "Interest Rates"},
-    "CREDIT":         {"icon": "💳", "color": "#7f1d1d", "label": "Credit"},
-    "LABOR":          {"icon": "👷", "color": "#b45309", "label": "Labor"},
-    "COMMODITIES":    {"icon": "🛢️", "color": "#d97706", "label": "Commodities"},
-    "CURRENCY":       {"icon": "💵", "color": "#6366f1", "label": "Currency"},
-    "SENTIMENT_FRED": {"icon": "🎭", "color": "#059669", "label": "Consumer Sentiment"},
-    "VALUATION":      {"icon": "📐", "color": "#7c3aed", "label": "Valuation"},
-    "GROWTH":         {"icon": "📈", "color": "#059669", "label": "Economic Growth"},
+# iShares fund characteristics CSV URLs
+# Return a short CSV with rows like: "P/E Ratio","23.14"
+ISHARES_CSV_URLS = {
+    "URTH": (
+        "https://www.ishares.com/us/products/239696/ISHARES-MSCI-WORLD-ETF"
+        "/1467271812596.ajax?fileType=csv&fileName=URTH_fund&dataType=fund"
+    ),
+    "EFA": (
+        "https://www.ishares.com/us/products/239727/ISHARES-MSCI-EAFE-ETF"
+        "/1467271812596.ajax?fileType=csv&fileName=EFA_fund&dataType=fund"
+    ),
 }
 
+# ============================================================
+# CLASSIFICATION HELPERS
+# ============================================================
+
+def _classify_vix(v):
+    if v < 15: return "CALM",    "#059669"
+    if v < 20: return "NORMAL",  "#6b7280"
+    if v < 25: return "CAUTIOUS","#e97316"
+    if v < 30: return "FEARFUL", "#c81e1e"
+    return "PANIC", "#7f1d1d"
+
+def _classify_idx(c):
+    if c >  1.0: return "RALLY",   "#057a55"
+    if c >  0.1: return "UP",      "#86c440"
+    if c > -0.1: return "FLAT",    "#6b7280"
+    if c > -1.0: return "DOWN",    "#e97316"
+    return "SELLOFF", "#c81e1e"
+
+def _vix_sig(v):
+    if v >= 30: return "⚠️ Panic -- forced selling, mean reversion entries emerging"
+    if v >= 25: return "⚠️ Elevated fear -- watch for entry points"
+    if v >= 20: return "→ Slightly elevated -- no broad panic signal"
+    if v >= 15: return "→ Normal -- market calm, no stress signal"
+    return "✅ Calm · low fear · complacency = less opportunity for value investors"
 
 # ============================================================
-# TREND COLOR
+# ETF PE FETCHERS -- priority 0: Claude Routine
 # ============================================================
 
-def trend_color(label, group, trend):
+def _routine_pe(ticker, routine_data):
     """
-    Return hex color for a trend arrow based on what direction is GOOD for equity investors.
-    Green = good. Red = bad. Amber = ambiguous/context-dependent.
+    Extract PE from clauderoutinedata.json if present and fresh.
+    Returns (pe_float, source_str) or (None, reason_str).
+    routine_data is the loaded dict; freshness already checked in main.py.
     """
-    if group == "INFLATION":
-        return "#057a55" if trend == "▼" else "#c81e1e" if trend == "▲" else "#6b7280"
-    elif group == "RATES":
-        if "Yield Curve" in label:
-            return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
-        return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
-    elif group in ("CREDIT", "LABOR"):
-        return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
-    elif group == "COMMODITIES":
-        if "Gold" in label:
-            return "#b45309" if trend == "▲" else "#6b7280"
-        return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
-    elif group == "CURRENCY":
-        return "#b45309" if trend == "▲" else "#059669" if trend == "▼" else "#6b7280"
-    elif group == "SENTIMENT_FRED":
-        return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
-    elif group == "VALUATION":
-        return "#c81e1e" if trend == "▲" else "#057a55" if trend == "▼" else "#6b7280"
-    elif group == "GROWTH":
-        # GDP: rising YoY = good for equities
-        return "#057a55" if trend == "▲" else "#c81e1e" if trend == "▼" else "#6b7280"
-    return "#6b7280"
-
-
-# ============================================================
-# SPARKLINE SVG
-# ============================================================
-
-def sparkline_svg(cur_str, mo3_str, mo12_str):
-    """Return a tiny 3-point SVG sparkline (12mo ago -> 3mo ago -> today)."""
+    if not routine_data:
+        return None, "no routine data"
+    etf_pe = routine_data.get("etf_pe", {})
+    entry  = etf_pe.get(ticker, {})
+    pe_val = entry.get("pe_ttm")
+    if pe_val is None:
+        return None, f"no {ticker} in routine etf_pe"
     try:
-        def parse(s):
-            return float(re.sub(r"[^0-9.\-]", "", str(s)))
-        v12 = parse(mo12_str)
-        v3  = parse(mo3_str)
-        v0  = parse(cur_str)
-        mn  = min(v12, v3, v0)
-        mx  = max(v12, v3, v0)
-        r   = mx - mn if mx != mn else 1
-
-        def y(v, h=24):
-            return round(h - (v - mn) / r * (h - 4) + 2, 1)
-
-        pts      = f"0,{y(v12)} 20,{y(v3)} 40,{y(v0)}"
-        line_col = "#c81e1e" if v0 > v12 else "#057a55"
-        return (
-            f'<svg width="42" height="28" viewBox="0 0 42 28" '
-            f'style="display:inline-block;vertical-align:middle;">'
-            f'<polyline points="{pts}" fill="none" stroke="{line_col}" '
-            f'stroke-width="1.8" stroke-linejoin="round"/>'
-            f'<circle cx="40" cy="{y(v0)}" r="2.5" fill="{line_col}"/>'
-            f'</svg>'
-        )
-    except Exception:
-        return ""
-
+        pe = float(pe_val)
+        if pe <= 0:
+            return None, f"routine {ticker} PE is zero or negative"
+        return pe, "Claude Routine"
+    except (ValueError, TypeError) as e:
+        return None, f"routine {ticker} PE parse error: {e}"
 
 # ============================================================
-# INSIGHT GENERATOR -- INTERPRETIVE, NOT DESCRIPTIVE
+# ISHARES PE FETCHERS -- priority 1
 # ============================================================
 
-def _insight_text(label, cur_str, mo3_str, mo12_str, trend):
+def _parse_ishares_csv_pe(csv_text):
     """
-    Generate interpretive macro insight for each indicator.
-    Answers "what does this mean?" not "what is the number?".
-    The table already shows current/3mo/12mo and trend arrows.
-    Do NOT restate those -- interpret the macro implication.
+    Parse P/E ratio from iShares fund characteristics CSV.
+    Looks for a line starting with 'P/E Ratio' and returns the float.
+    Returns None if row is missing or unparseable.
     """
+    for line in csv_text.splitlines():
+        if re.match(r'^["\s]*P/E Ratio', line, re.IGNORECASE):
+            parts = line.split(",")
+            if len(parts) >= 2:
+                val = re.sub(r"[^0-9.]", "", parts[-1])
+                if val:
+                    try:
+                        return float(val)
+                    except ValueError:
+                        pass
+    return None
+
+def _fetch_ishares_pe(ticker):
+    """
+    Try to fetch live PE from iShares fund characteristics CSV.
+    Returns (pe_float, source_str) or (None, reason_str).
+    """
+    url = ISHARES_CSV_URLS.get(ticker)
+    if not url:
+        return None, "no CSV URL configured"
     try:
-        cur  = float(re.sub(r"[%$,]", "", str(cur_str)))
-        mo3  = float(re.sub(r"[%$,]", "", str(mo3_str)))
-        mo12 = float(re.sub(r"[%$,]", "", str(mo12_str)))
-    except Exception:
-        return ""
-
-    rising3  = cur > mo3  + 0.05
-    falling3 = cur < mo3  - 0.05
-    rising12 = cur > mo12 + 0.05
-
-    # ----------------------------------------------------------
-    # INFLATION GROUP
-    # ----------------------------------------------------------
-
-    if label == "Core PCE":
-        above_pct = round((cur / 2.0 - 1) * 100)
-        if cur <= 2.0:
-            return "✅ Fed target achieved -- door open for cuts, tailwind for rate-sensitive equities"
-        elif cur > 3.0 and rising3:
-            return f"⚠️ Re-accelerating at {above_pct}% above Fed target -- hike risk rising, PE compression ahead"
-        elif cur > 3.0 and falling3:
-            return f"→ Still {above_pct}% above target but cooling -- Fed will want more evidence before cutting"
-        elif cur > 3.0:
-            return f"⚠️ Stuck {above_pct}% above target with no momentum -- rates stay higher for longer"
-        elif rising3:
-            return "⚠️ Ticking back up toward 3% -- watch next print, cuts may be off the table"
-        return "→ Elevated but drifting toward target -- cuts possible in 2-3 meetings if trend holds"
-
-    elif label == "CPI Inflation":
-        if cur > 4.0 and rising3:
-            return "⚠️ Broad inflation re-igniting -- input costs rising across sectors, margin compression risk"
-        elif cur > 3.5 and rising3:
-            return "⚠️ Above historical avg and accelerating -- pushes Fed toward holding or hiking"
-        elif cur > 3.0 and falling3:
-            return "→ Above avg but decelerating -- progress toward 2% but not there yet"
-        elif cur <= 2.5 and falling3:
-            return "✅ Returning to normal range -- removes a key macro headwind for equities"
-        elif falling3 and not rising12:
-            return "→ Disinflation trend intact -- confirms Fed has room to hold or cut"
-        return "→ Tracking near historical avg -- not a swing factor today"
-
-    elif label == "Core CPI":
-        if cur > 3.5 and rising3:
-            return "⚠️ Shelter and services inflation sticky -- Fed cannot declare victory, rates stay restrictive"
-        elif cur > 3.0 and falling3:
-            return "→ Slowly cooling but still above comfort zone -- Fed patience required"
-        elif cur <= 2.5:
-            return "✅ Approaching target -- supports case for eventual cuts"
-        elif rising3:
-            return "⚠️ Re-heating -- service sector inflation erodes real returns and PE expansion"
-        return "→ Moderate -- not forcing Fed's hand in either direction"
-
-    elif label == "PCE Inflation":
-        if cur > 3.5:
-            return "⚠️ Fed's own preferred gauge well above target -- gap between Wall St optimism and reality"
-        elif cur > 3.0 and rising3:
-            return "⚠️ Fed preferred measure re-accelerating -- cuts pushed further out, duration risk rises"
-        elif falling3:
-            return "→ PCE cooling -- early signal Fed may eventually get the all-clear"
-        return "→ Elevated but not accelerating -- watch next month's print for direction"
-
-    # ----------------------------------------------------------
-    # RATES GROUP
-    # ----------------------------------------------------------
-
-    elif label == "10Y Treasury":
-        if cur >= 5.0 and rising3:
-            return "⚠️ Surging past 5% -- PE multiples compress mechanically, bond math competes with equities"
-        elif cur >= 5.0:
-            return "⚠️ Above 5% -- discount rate headwind severe, especially for long-duration growth names"
-        elif cur >= 4.5 and rising3:
-            return "⚠️ Approaching levels where bonds compete with equities on yield -- watch spread compression"
-        elif cur >= 4.0 and rising3:
-            return "→ Rising toward 4.5% -- gradual valuation headwind, especially painful at CAPE 40x+"
-        elif cur <= 3.5 and falling3:
-            return "✅ Falling yields reduce the discount rate -- supports PE expansion and mean reversion setups"
-        elif falling3:
-            return "→ Easing -- early tailwind for rate-sensitive sectors and international ADRs"
-        return "→ Holding steady -- not adding incremental pressure on multiples today"
-
-    elif label == "2Y Treasury":
-        if cur >= 4.5 and rising3:
-            return "⚠️ Market pricing in zero rate cuts -- tight monetary policy embedded for the foreseeable future"
-        elif cur >= 4.0 and falling3:
-            return "→ Starting to price in eventual cuts -- watch 10Y-2Y spread for curve re-steepening signal"
-        elif falling3:
-            return "✅ Falling 2Y = market expecting cuts -- historically a tailwind for value stocks 6-12mo out"
-        elif rising3:
-            return "⚠️ Higher 2Y locks in restrictive financial conditions -- reduces room for P/E expansion"
-        return "→ Stable -- no new signal on Fed timing from short end of the curve"
-
-    elif label == "Yield Curve (10Y-2Y)":
-        if cur < -0.5:
-            return "⚠️ Deep inversion -- historically the strongest single recession predictor; 12-18mo lead time"
-        elif cur < 0.0:
-            return "⚠️ Inverted -- recession signal intact; value investors: watch credit spreads for the turn"
-        elif cur < 0.3:
-            return "→ Nearly flat -- disinversion underway but not yet a steepening growth signal; watch direction"
-        elif cur >= 0.5 and rising3:
-            return "✅ Steepening curve -- growth expectations improving, historically positive for cyclicals and banks"
-        return "✅ Positive slope -- no inversion signal; normal credit environment for long-term investors"
-
-    elif label == "Fed Funds Rate":
-        if cur >= 5.0 and rising3:
-            return "⚠️ Fed actively tightening -- max pressure on leveraged companies and rate-sensitive sectors"
-        elif cur >= 5.0:
-            return "⚠️ Restrictive territory -- financial conditions tight, separates quality from fragile businesses"
-        elif falling3:
-            return "✅ Cutting cycle -- historically the single strongest tailwind for mean reversion value setups"
-        elif rising3:
-            return "⚠️ Fed has been HIKING -- tightening restarted; pressure on long-duration valuations and leveraged balance sheets"
-        elif cur <= 3.0:
-            return "✅ Accommodative -- cheap capital supports business investment and consumer spending"
-        return "→ On hold -- Fed is watching; next move direction matters more than current level"
-
-    # ----------------------------------------------------------
-    # CREDIT GROUP
-    # ----------------------------------------------------------
-
-    elif label == "HY Credit Spread":
-        if cur <= 2.5:
-            return "⚠️ Historically tight -- credit markets fully complacent; no risk premium for bad outcomes"
-        elif cur <= 3.5 and falling3:
-            return "→ Tight and tightening further -- credit calm signals no systemic fear, but leaves no buffer"
-        elif cur <= 3.5:
-            return "→ Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
-        elif cur >= 6.0 and rising3:
-            return "⚠️ Wide and widening -- credit stress signal; historically precedes equity drawdowns by 2-4 weeks"
-        elif cur >= 6.0:
-            return "⚠️ Elevated stress -- forced sellers and credit fear creating value opportunities in quality names"
-        elif cur >= 4.5:
-            return "→ Widening toward historical average -- credit pricing in some risk; watch for acceleration"
-        return "→ Near normal range -- credit not flashing a directional macro signal today"
-
-    # ----------------------------------------------------------
-    # LABOR GROUP
-    # ----------------------------------------------------------
-
-    elif label == "Unemployment":
-        if cur >= 5.5:
-            return "⚠️ Labor loosening materially -- consumer spending risk, but also reduces wage inflation pressure"
-        elif cur >= 4.5 and rising3:
-            return "→ Rising unemployment softens consumer balance sheets -- watch retail and discretionary sectors"
-        elif cur <= 4.0 and falling3:
-            return "→ Very tight labor keeps wage inflation sticky -- good for workers, complicates Fed pivot timing"
-        elif cur <= 4.0:
-            return "→ Tight labor market -- supports consumer spending but keeps services inflation elevated"
-        elif rising3:
-            return "→ Gradual cooling -- reduces wage pressure; Fed may gain more flexibility on cuts"
-        return "→ Near historical norm -- labor not a swing factor for macro direction today"
-
-    # ----------------------------------------------------------
-    # COMMODITIES GROUP
-    # ----------------------------------------------------------
-
-    elif label == "WTI Crude Oil":
-        if cur >= 100 and rising3:
-            return "⚠️ Above $100 and rising -- stagflation risk: energy tax on consumers, input cost spike for industry"
-        elif cur >= 90 and rising3:
-            return "⚠️ Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
-        elif cur >= 90:
-            return "⚠️ Elevated energy costs compress margins across industrials, transport, chemicals -- watch pass-through"
-        elif cur <= 60 and falling3:
-            return "✅ Low energy costs -- consumer disposable income rises, input costs ease, disinflation support"
-        elif falling3:
-            return "✅ Easing energy prices -- removes one inflationary pressure; positive for Fed flexibility"
-        return "→ Moderate energy pricing -- not a dominant swing factor for the macro picture today"
-
-    elif label == "Gold Price":
-        pct12 = round((cur / mo12 - 1) * 100) if mo12 else 0
-        if pct12 > 25 and cur > 3000:
-            return f"⚠️ Gold +{pct12}% in 12mo with low VIX -- classic stealth fear signal; smart money hedging"
-        elif pct12 > 15 and rising3:
-            return f"→ Gold surging +{pct12}% yr -- real rates concern or dollar debasement fear; watch the dollar"
-        elif falling3 and pct12 < 0:
-            return "✅ Gold retreating -- fear premium fading; risk appetite improving"
-        elif falling3:
-            return "→ Gold cooling -- taking some heat out of the inflation/fear narrative"
-        return f"→ Gold {pct12:+d}% yr -- modest hedge; not yet a panic signal"
-
-    # ----------------------------------------------------------
-    # CURRENCY GROUP
-    # ----------------------------------------------------------
-
-    elif label == "US Dollar Index (Broad)":
-        pct12 = round((cur / mo12 - 1) * 100) if mo12 else 0
-        if cur >= 125 and rising3:
-            return "⚠️ Strong dollar headwind -- crushes earnings of multinationals and makes intl ADRs cheaper in USD"
-        elif falling3 and pct12 < -3:
-            return f"✅ Dollar weakening {pct12:+d}% yr -- direct tailwind for EQNR, PBR, SNY, NVO, SHEL and other intl ADRs"
-        elif falling3:
-            return "→ Dollar softening -- gradually improving backdrop for international ADR positions"
-        elif rising3 and pct12 > 5:
-            return f"⚠️ Dollar strengthening {pct12:+d}% yr -- headwind for intl ADR earnings translated back to USD"
-        return "→ Dollar stable -- currency not adding incremental tailwind or headwind today"
-
-    # ----------------------------------------------------------
-    # CONSUMER SENTIMENT GROUP
-    # ----------------------------------------------------------
-
-    elif label == "Consumer Sentiment":
-        if cur < 55:
-            return "⚠️ Consumer deeply pessimistic -- spending contraction risk; watch retail and discretionary sectors"
-        elif cur < 65 and falling3:
-            return "⚠️ Deteriorating consumer confidence -- historically leads spending cuts by 2-3 months"
-        elif cur < 65:
-            return "→ Below-average sentiment -- consumer cautious but not collapsing; watch for inflection"
-        elif cur >= 85:
-            return "⚠️ Euphoric sentiment -- peak optimism historically a contrarian signal for mean reversion investors"
-        elif cur >= 75 and rising3:
-            return "→ Recovering confidence -- consumer spending should support GDP; watch for sentiment-driven momentum"
-        elif rising3:
-            return "→ Improving -- early sign consumers are adjusting to higher rates; reduces recession risk"
-        return "→ Subdued but stable -- consumers cautious; not a crash signal, not a boom signal"
-
-    # ----------------------------------------------------------
-    # VALUATION GROUP
-    # ----------------------------------------------------------
-
-    elif label == "Shiller CAPE (US)":
-        pct   = round((cur / 17.0 - 1) * 100)
-        ratio = round(cur / 17.0, 1)
-        if cur >= 40:
-            return (f"⚠️ {ratio}x the 145yr avg -- only dot-com peak (44.2x, Dec 1999) was higher; "
-                    f"10yr forward returns historically near zero from this level")
-        elif cur >= 35:
-            return (f"⚠️ {pct}% above hist avg -- top decile of all valuations since 1881; "
-                    f"long-term mean reversion case strongly favors ex-US and deep value")
-        elif cur >= 30:
-            return f"⚠️ {pct}% above hist avg -- elevated; patience and selectivity essential"
-        elif cur >= 20:
-            return f"→ Moderately above avg -- reasonable entry possible with strong Left Leg and MoS"
-        return f"✅ Near or below hist avg 17x -- historically one of the most reliable buy signals"
-
-    # ----------------------------------------------------------
-    # LEADING INDICATORS GROUP
-    # ----------------------------------------------------------
-
-    elif label == "Jobless Claims (ICSA)":
-        # cur is the raw weekly claims number (e.g. 239000)
-        if cur >= 400000:
-            return "⚠️ Recession-territory claims -- labor market deteriorating rapidly, cyclical value traps ahead"
-        elif cur >= 350000:
-            return "⚠️ Elevated stress -- labor cracking 4-8 weeks before unemployment lags; watch cyclicals"
-        elif cur >= 300000 and rising3:
-            return "⚠️ Rising above 300K -- early labor softening signal; value trap risk in cyclicals growing"
-        elif cur >= 300000:
-            return "→ Above 300K threshold -- stress emerging but not accelerating; monitor weekly"
-        elif cur >= 250000 and rising3:
-            return "→ Trending higher from healthy range -- watch for 300K threshold breach"
-        elif cur <= 220000:
-            return "✅ Very tight labor -- consumer spending well supported; wage inflation risk remains"
-        return "✅ Healthy labor market -- no early recession warning from initial claims data"
-
-
-    elif label == "GDP Growth YoY":
-        # cur is the YoY % change (e.g. 2.3)
-        if cur < 0:
-            return "⚠️ Recession -- GDP contracting; even cheap stocks face earnings deterioration risk"
-        elif cur < 1.0:
-            return "⚠️ Stagnation -- below-trend growth; mean reversion requires a macro catalyst to materialize"
-        elif cur < 2.0:
-            return "→ Below-trend growth -- recovery slow; value stocks can outperform in this sluggish regime"
-        elif cur >= 3.0 and rising3:
-            return "✅ Above-trend expansion accelerating -- strong backdrop for cyclical value recovery"
-        elif cur >= 2.0:
-            return "✅ At/above trend growth -- healthy macro backdrop; not a headwind for mean reversion"
-        return "→ Near trend -- neutral regime; macro not adding tailwind or headwind"
-
-    # Fallback -- should never reach here if all 18 labels are matched above
-    return ""
-
-
-_LEADING_SYMBOL = re.compile(r"^(?:\u26a0\ufe0f|\u26a0|\u2705|\u2713|\u2192|\u26a1)\s*")
-
-
-def _insight(label, cur_str, mo3_str, mo12_str, trend):
-    """Insight text with no leading symbol (the warning triangle is reserved for data problems)."""
-    return _LEADING_SYMBOL.sub("", _insight_text(label, cur_str, mo3_str, mo12_str, trend)).strip()
-
-
-# ============================================================
-# INDIVIDUAL SERIES FETCH
-# ============================================================
-
-_YAHOO_HDRS = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)", "Accept": "application/json"}
-
-
-def _empty_row(cfg, sig=""):
-    return {**cfg, "current": "N/A", "mo3": "N/A", "mo12": "N/A",
-            "trend": "?", "date": "N/A", "obs_date": "", "sig": sig}
-
-
-def _fetch_yahoo_series(cfg):
-    """
-    Yahoo Finance daily bars for futures (gold GC=F, oil CL=F).
-    Raises on any problem so the caller can use a fallback.
-    """
-    ticker = cfg["yahoo"]
-    url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=400d"
-    resp = requests.get(url, headers=_YAHOO_HDRS, timeout=12)
-    result = resp.json()["chart"]["result"][0]
-    pairs  = [(t, c) for t, c in zip(result["timestamp"], result["indicators"]["quote"][0]["close"])
-              if c is not None]
-    if len(pairs) < 70:
-        raise ValueError(f"only {len(pairs)} bars from Yahoo {ticker}")
-    meta = result.get("meta", {})
-    v0   = float(meta.get("regularMarketPrice") or pairs[-1][1])
-    v3   = pairs[max(0, len(pairs) - 65)][1]
-    v12  = pairs[max(0, len(pairs) - 260)][1]
-    obs  = datetime.fromtimestamp(meta.get("regularMarketTime") or pairs[-1][0], tz=timezone.utc)
-
-    fmt = cfg.get("fmt", "usd0")
-    f   = (lambda v: f"${v:,.0f}") if fmt == "usd0" else (lambda v: f"${v:,.1f}")
-    dc, dm3, dm12 = f(v0), f(v3), f(v12)
-    trend = "▲" if v0 > v3 * 1.001 else "▼" if v0 < v3 * 0.999 else "→"
-    sig   = _insight(cfg["label"], dc, dm3, dm12, trend)
-    return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12, "trend": trend,
-            "date": obs.strftime("%b %d %Y"), "obs_date": obs.strftime("%Y-%m-%d"), "sig": sig}
-
-
-def _fetch_cape(cfg):
-    """
-    Shiller CAPE from multpl.com's BY-MONTH table (first row = latest reading,
-    then one row per month). 3mo and 12mo are the rows closest to those dates.
-    If the table cannot be read, current comes from the main page and the
-    history columns show N/A (never silently equal to today's value).
-    """
-    label = cfg["label"]
-    hdrs  = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"}
-    try:
-        resp = requests.get("https://www.multpl.com/shiller-pe/table/by-month",
-                            headers=hdrs, timeout=15)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        points = []
-        for tr in soup.find_all("tr"):
-            tds = tr.find_all("td")
-            if len(tds) < 2:
-                continue
-            try:
-                d = datetime.strptime(tds[0].get_text(strip=True), "%b %d, %Y")
-                v = float(re.sub(r"[^0-9.]", "", tds[1].get_text(strip=True)))
-            except Exception:
-                continue
-            points.append((d, v))
-        if len(points) >= 14:
-            points.sort(key=lambda p: p[0], reverse=True)
-            d0, v0 = points[0]
-
-            def nearest(days):
-                target = d0 - timedelta(days=days)
-                return min(points, key=lambda p: abs((p[0] - target).days))[1]
-
-            v3, v12 = nearest(91), nearest(365)
-            dc, dm3, dm12 = f"{v0:.1f}", f"{v3:.1f}", f"{v12:.1f}"
-            trend = "▲" if v0 > v3 + 0.2 else "▼" if v0 < v3 - 0.2 else "→"
-            sig   = _insight(label, dc, dm3, dm12, trend)
-            return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12, "trend": trend,
-                    "date": d0.strftime("%b %d %Y"), "obs_date": d0.strftime("%Y-%m-%d"), "sig": sig}
-        print(f"   ⚠️ CAPE by-month table: only {len(points)} rows parsed -- using main page")
+        hdrs = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36",
+            "Accept":     "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Referer":    "https://www.ishares.com/",
+        }
+        resp = requests.get(url, headers=hdrs, timeout=12)
+        if resp.status_code != 200:
+            return None, f"HTTP {resp.status_code}"
+        pe = _parse_ishares_csv_pe(resp.text)
+        if pe is None:
+            return None, "P/E row not found in CSV"
+        return pe, "iShares CSV (live)"
     except Exception as e:
-        print(f"   ⚠️ CAPE by-month failed: {str(e)[:60]} -- using main page")
+        return None, str(e)[:60]
 
-    # Fallback: current value only. History columns are honest N/A.
-    try:
-        resp = requests.get("https://www.multpl.com/shiller-pe", headers=hdrs, timeout=15)
-        soup = BeautifulSoup(resp.text, "html.parser")
-        div  = soup.find("div", {"id": "current"})
-        v0   = float(re.search(r"(\d+\.\d+)", div.get_text()).group(1))
-        today = datetime.now(timezone.utc)
-        return {**cfg, "current": f"{v0:.1f}", "mo3": "N/A", "mo12": "N/A", "trend": "?",
-                "date": today.strftime("%b %d %Y"), "obs_date": today.strftime("%Y-%m-%d"),
-                "sig": _insight(label, f"{v0:.1f}", f"{v0:.1f}", f"{v0:.1f}", "→"),
-                "source_note": "history unavailable"}
-    except Exception as e:
-        return _empty_row(cfg, f"CAPE multpl.com failed: {str(e)[:50]}")
-
-
-def _fetch_fred_standard(cfg, start_date, end_date):
-    """Standard FRED API series (sorted newest first)."""
-    label    = cfg["label"]
-    sid      = cfg["id"]
-    freq     = cfg.get("freq", "monthly")
-    is_index = cfg["is_index"]
-    no_pct   = cfg.get("no_pct", False)
-    prefix   = cfg.get("prefix", "")
-    empty    = _empty_row(cfg)
-
-    try:
-        url  = (
-            f"https://api.stlouisfed.org/fred/series/observations"
-            f"?series_id={sid}&api_key={FRED_API_KEY}&file_type=json"
-            f"&observation_start={start_date}&observation_end={end_date}"
-            f"&sort_order=desc&limit=500"
-        )
-        resp = requests.get(url, timeout=20)
-        obs  = [o for o in resp.json().get("observations", []) if o["value"] != "."]
-        if not obs:
-            return empty
-        obs_date = obs[0]["date"]
-
-        # ── GDPC1: quarterly GDP YoY special handling ──────────────────────
-        # Need v0 vs 4 quarters ago. 3mo col = prior quarter's YoY.
-        if sid == "GDPC1":
-            n = len(obs)
-            if n < 5:
-                return {**empty, "sig": "GDP: insufficient observations"}
-            try:
-                v0  = float(obs[0]["value"])
-                v1q = float(obs[min(1, n-1)]["value"])
-                v4q = float(obs[min(4, n-1)]["value"])
-                v5q = float(obs[min(5, n-1)]["value"])
-                v8q = float(obs[min(8, n-1)]["value"]) if n > 8 else v4q
-                if not v4q:
-                    return {**empty, "sig": "GDP: zero value in denominator"}
-                yoy_cur = (v0  - v4q) / v4q * 100
-                yoy_1q  = (v1q - v5q) / v5q * 100 if v5q else yoy_cur
-                yoy_2yr = (v4q - v8q) / v8q * 100 if v8q else yoy_cur
-                dc, dm3, dm12 = f"{yoy_cur:.1f}%", f"{yoy_1q:.1f}%", f"{yoy_2yr:.1f}%"
-                trend = ("▲" if yoy_cur > yoy_1q + 0.1
-                         else "▼" if yoy_cur < yoy_1q - 0.1 else "→")
-                pub_dt  = datetime.strptime(obs[0]["date"], "%Y-%m-%d")
-                pub     = f"Q{(pub_dt.month - 1) // 3 + 1} {pub_dt.year}"
-                return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12, "trend": trend,
-                        "date": pub, "obs_date": obs_date,
-                        "sig": _insight(label, dc, dm3, dm12, trend)}
-            except Exception as e:
-                return {**empty, "sig": f"GDP: {str(e)[:60]}"}
-
-        # ── Standard index / rate / value series ───────────────────────────
-        w3, w12  = LOOKBACK.get(freq, LOOKBACK["monthly"])
-        mo3_idx  = min(w3,  len(obs) - 1)
-        mo12_idx = min(w12, len(obs) - 1)
-        v0  = float(obs[0]["value"])
-        v3  = float(obs[mo3_idx]["value"])
-        v12 = float(obs[mo12_idx]["value"])
-
-        if is_index and v12:
-            cur     = (v0 - v12) / v12 * 100
-            v15_idx = min(mo12_idx + mo3_idx, len(obs) - 1)
-            v15     = float(obs[v15_idx]["value"])
-            mo3v    = (v3 - v15) / v15 * 100 if v15 else cur
-            dc      = f"{cur:.1f}%"
-            dm3     = f"{mo3v:.1f}%"
-            dm12    = f"{mo3v:.1f}%"
-            trend   = "▼" if cur < mo3v - 0.05 else "▲" if cur > mo3v + 0.05 else "→"
-        elif no_pct:
-            def fmt(v):
-                return (f"{prefix}{v:,.0f}" if v > 999
-                        else f"{prefix}{v:.2f}" if prefix
-                        else f"{v:.1f}")
-            dc, dm3, dm12 = fmt(v0), fmt(v3), fmt(v12)
-            trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
-        elif prefix:
-            dc, dm3, dm12 = f"{prefix}{v0:.1f}", f"{prefix}{v3:.1f}", f"{prefix}{v12:.1f}"
-            trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
+def _yq_pe(ticker, routine_data=None):
+    """
+    Return (pe_float, is_stale_bool, source_str) for URTH and EFA.
+    Priority 0: Claude Routine JSON (fresh = today)
+    Priority 1: iShares CSV (live)
+    Priority 2: PE_CONFIG (hardcoded quarterly fallback)
+    is_stale only applies to the PE_CONFIG fallback path.
+    """
+    # Priority 0: Claude Routine
+    if routine_data:
+        pe_routine, src_routine = _routine_pe(ticker, routine_data)
+        if pe_routine is not None:
+            print(f"  ✅ {ticker} PE from Claude Routine: {pe_routine:.2f}x ({src_routine})")
+            return pe_routine, False, src_routine
         else:
-            dc, dm3, dm12 = f"{v0:.2f}%", f"{v3:.2f}%", f"{v12:.2f}%"
-            trend = "▲" if v0 > v3 + 0.05 else "▼" if v0 < v3 - 0.05 else "→"
+            print(f"  ℹ️ {ticker} PE routine miss ({src_routine}) -- trying iShares CSV")
 
-        # Display date: day-level for daily/weekly series, month-level for monthly
-        d = datetime.strptime(obs_date, "%Y-%m-%d")
-        pub = d.strftime("%b %Y") if freq == "monthly" else d.strftime("%b %d %Y")
+    # Priority 1: iShares CSV
+    pe_live, source = _fetch_ishares_pe(ticker)
+    if pe_live is not None:
+        return pe_live, False, source
 
-        sig = _insight(label, dc, dm3, dm12, trend)
-        # ICSA: prefix insight with 4-week moving average for trend context
-        if sid == "ICSA" and len(obs) >= 4:
-            try:
-                ma4 = round(sum(float(obs[i]["value"]) for i in range(4)) / 4)
-                sig = f"4-wk avg: {ma4:,.0f} | {sig}"
-            except Exception:
-                pass
+    # Priority 2: PE_CONFIG hardcoded fallback
+    print(f"  ⚠️ {ticker} PE live fetch failed ({source}) -- using PE_CONFIG fallback")
+    cfg = PE_CONFIG.get(ticker)
+    if not cfg:
+        return None, False, "not configured"
+    days_stale = (date.today() - PE_LAST_UPDATED).days
+    return cfg["pe"], (days_stale > 90), f"PE_CONFIG ({PE_LAST_UPDATED})"
 
-        return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12, "trend": trend,
-                "date": pub, "obs_date": obs_date, "sig": sig}
+# ============================================================
+# YAHOO FINANCE PRICE FETCHER
+# ============================================================
+
+def _yq(ticker):
+    """
+    Fetch price, prev close, % change, market state from Yahoo Finance v8.
+    Returns (price, prev_close, pct_change, market_state).
+
+    PREVIOUS-CLOSE FIX (Sep 29 2026): the old code read meta["previousClose"],
+    a field the v8 chart endpoint does not return, so it silently fell back to
+    the current price and every change showed +0.00% FLAT. The chart endpoint
+    does return the daily bars, so the previous close is now taken from them:
+      - if the last bar is TODAY's (in progress or just closed), the previous
+        close is the bar before it;
+      - otherwise (pre-market, weekend) it is the last bar itself.
+    Change is always computed by hand, never from Yahoo's percent field.
+    """
+    url  = f"https://query1.finance.yahoo.com/v8/finance/chart/{ticker}?interval=1d&range=5d"
+    hdrs = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)",
+        "Accept":     "application/json",
+    }
+    resp   = requests.get(url, headers=hdrs, timeout=12)
+    result = resp.json()["chart"]["result"][0]
+    meta   = result["meta"]
+    p      = float(meta.get("regularMarketPrice", 0))
+
+    pairs = []
+    try:
+        pairs = [(t, c) for t, c in zip(result.get("timestamp", []),
+                                        result["indicators"]["quote"][0]["close"])
+                 if c is not None]
+    except Exception:
+        pairs = []
+
+    pv = None
+    rmt = meta.get("regularMarketTime")
+    if pairs and rmt:
+        last_day = datetime.fromtimestamp(pairs[-1][0], tz=timezone.utc).date()
+        quote_day = datetime.fromtimestamp(rmt, tz=timezone.utc).date()
+        if last_day == quote_day and len(pairs) >= 2:
+            pv = float(pairs[-2][1])
+        else:
+            pv = float(pairs[-1][1])
+    if pv is None:
+        pv = float(meta.get("previousClose") or meta.get("chartPreviousClose") or p)
+
+    chg = ((p - pv) / pv * 100) if pv else 0
+    return p, pv, chg, meta.get("marketState", "UNKNOWN")
+
+# ============================================================
+# MARKET INDICATORS
+# ============================================================
+
+def fetch_market_indicators(routine_data=None):
+    """
+    Fetch SPX, RUT, VIX in parallel via Yahoo Finance v8.
+    Market state is taken from SPX (authoritative), NOT VIX.
+    PE priority: Claude Routine -> iShares CSV -> PE_CONFIG fallback.
+    routine_data: loaded clauderoutinedata.json dict (or None/empty if unavailable).
+    """
+    if routine_data is None:
+        routine_data = {}
+
+    print("\n📊 Fetching Market Performance (SPX, RUT, VIX, URTH PE, EFA PE)...")
+
+    res = {
+        "vix":    {"value": "N/A", "label": "N/A", "color": "#6b7280",
+                   "signal": "", "prev": "N/A"},
+        "spx":    {"value": "N/A", "chg": "N/A", "label": "N/A",
+                   "color": "#6b7280", "prev": "N/A"},
+        "rut":    {"value": "N/A", "chg": "N/A", "label": "N/A",
+                   "color": "#6b7280", "prev": "N/A"},
+        "urth_pe": None, "urth_pe_stale": False, "urth_pe_source": "",
+        "efa_pe":  None, "efa_pe_stale":  False, "efa_pe_source":  "",
+        "market_state": "UNKNOWN", "market_status_label": "", "pulse": "",
+    }
+
+    try:
+        with concurrent.futures.ThreadPoolExecutor(max_workers=3) as ex:
+            fv = ex.submit(_yq, "%5EVIX")
+            fs = ex.submit(_yq, "%5EGSPC")
+            fr = ex.submit(_yq, "%5ERUT")
+
+        vp, vpr, _,  _   = fv.result(timeout=15)
+        sp, spr, sc, ss  = fs.result(timeout=15)  # ss = SPX market state (authoritative)
+        rp, rpr, rc, _   = fr.result(timeout=15)
+
+        urth_pe, urth_stale, urth_src = _yq_pe("URTH", routine_data)
+        efa_pe,  efa_stale,  efa_src  = _yq_pe("EFA",  routine_data)
+
+        res["urth_pe"]        = urth_pe
+        res["urth_pe_stale"]  = urth_stale
+        res["urth_pe_source"] = urth_src
+        res["efa_pe"]         = efa_pe
+        res["efa_pe_stale"]   = efa_stale
+        res["efa_pe_source"]  = efa_src
+
+        # Use SPX marketState as the single source of truth
+        state_map    = {"REGULAR": "OPEN", "PRE": "PRE", "POST": "POST", "CLOSED": "CLOSED"}
+        mkt_state    = state_map.get(ss, "OPEN")   # default OPEN if unrecognised
+        status_label = {
+            "OPEN":   "",
+            "PRE":    "Pre-Market",
+            "POST":   "After-Hours",
+            "CLOSED": "Last Close",
+        }.get(mkt_state, "")
+
+        res["market_state"]        = mkt_state
+        res["market_status_label"] = status_label
+
+        vl, vc = _classify_vix(vp)
+
+        # Classify SPX / RUT -- label and colour depend on market state
+        if mkt_state == "PRE":
+            sl,  sc2 = "PRE-MKT",  "#6366f1"
+            rl,  rc2 = "PRE-MKT",  "#6366f1"
+            scs      = "Pre-Market"
+            rcs      = "Pre-Market"
+        elif mkt_state in ("POST", "CLOSED"):
+            sl,  sc2 = _classify_idx(sc)
+            rl,  rc2 = _classify_idx(rc)
+            scs      = f"{sc:+.2f}%"
+            rcs      = f"{rc:+.2f}%"
+        else:  # OPEN
+            sl,  sc2 = _classify_idx(sc)
+            rl,  rc2 = _classify_idx(rc)
+            scs      = f"{sc:+.2f}%"
+            rcs      = f"{rc:+.2f}%"
+
+        res["vix"] = {"value": f"{vp:.2f}", "label": vl, "color": vc,
+                      "signal": _vix_sig(vp), "prev": f"{vpr:.2f}"}
+        res["spx"] = {"value": f"{sp:,.0f}", "chg": scs,
+                      "label": sl, "color": sc2, "prev": f"{spr:,.0f}"}
+        res["rut"] = {"value": f"{rp:,.0f}", "chg": rcs,
+                      "label": rl, "color": rc2, "prev": f"{rpr:,.0f}"}
+
+        # Pulse summary line
+        if mkt_state == "OPEN":
+            if vp >= 30 or sl == "SELLOFF":
+                tone = "broad stress -- mean reversion entries emerging"
+            elif sl in ("UP", "RALLY") and rl in ("UP", "RALLY"):
+                tone = "broad strength -- be selective"
+            elif sl == "FLAT":
+                tone = "indecisive -- focus on individual catalysts"
+            else:
+                tone = "mixed -- stay selective"
+            res["pulse"] = (f"S&P {scs} ({sl}) · Russell {rcs} ({rl}) "
+                            f"· VIX {vp:.1f} ({vl}) -- {tone}")
+        elif mkt_state == "PRE":
+            res["pulse"] = (f"Pre-Market · S&P last close {sp:,.0f} "
+                            f"· Russell {rp:,.0f} · VIX {vp:.1f} ({vl})")
+        else:
+            res["pulse"] = (f"S&P {sp:,.0f} ({scs}) · Russell {rp:,.0f} "
+                            f"({rcs}) · VIX {vp:.1f} ({vl})")
+
+        urth_str = f"URTH PE: {urth_pe:.1f}x ({urth_src})" if urth_pe else "URTH PE: N/A"
+        efa_str  = f"EFA PE: {efa_pe:.1f}x ({efa_src})"   if efa_pe  else "EFA PE: N/A"
+
+        print(f"  ✅ S&P 500:  {sp:,.0f} ({scs} {sl}) | State: {mkt_state} (from SPX)")
+        print(f"  ✅ Russell:  {rp:,.0f} ({rcs} {rl})")
+        print(f"  ✅ VIX:      {vp:.2f} ({vl})")
+        print(f"  ✅ {urth_str} | {efa_str}")
 
     except Exception as e:
-        return {**empty, "sig": str(e)[:50]}
+        print(f"  ❌ Market indicators failed: {e}")
+        res["pulse"] = "Market data unavailable."
 
+    return res
 
-def _fetch_one_fred(cfg, start_date, end_date):
-    """Route one series to the right source (Yahoo, multpl, or FRED)."""
-    sid = cfg["id"]
-    if sid.startswith("_YAHOO"):
+# ============================================================
+# MACRO HEAT SCORE
+# ============================================================
+
+def compute_mhs(fred_data, fg_data, mkt_data):
+    """
+    Compute Macro Heat Score (0-100 inverted -- higher = more overheated).
+    No aaii_data -- AAII removed (Incapsula CDN blocks GH Actions).
+    Scale: 0-33 DEPLOY | 34-65 SELECTIVE | 66-85 OVERHEATED | 86-100 EXTREME
+    """
+    raw       = 50
+    breakdown = []
+
+    def get_fred(lbl):
+        r = next((x for x in fred_data if x["label"] == lbl), None)
+        if not r or r["current"] == "N/A":
+            return None, None
         try:
-            return _fetch_yahoo_series(cfg)
-        except Exception as e:
-            fb = cfg.get("fallback_id")
-            if fb:
-                print(f"   ⚠️ {cfg['label']}: Yahoo failed ({str(e)[:50]}) -- using FRED {fb}")
-                row = _fetch_fred_standard({**cfg, "id": fb}, start_date, end_date)
-                row["id"] = sid
-                row["source_note"] = f"FRED {fb} fallback (about a week behind)"
-                return row
-            return _empty_row(cfg, f"{cfg['label']} Yahoo fetch failed: {str(e)[:50]}")
-    if sid == "_SCRAPE_MULTPL":
-        return _fetch_cape(cfg)
-    return _fetch_fred_standard(cfg, start_date, end_date)
+            return float(re.sub(r"[%$,]", "", r["current"])), r["trend"]
+        except Exception:
+            return None, None
 
+    # Core PCE
+    cp, cpt = get_fred("Core PCE")
+    if cp is not None:
+        if   cp > 3.5: adj = +15; note = f"Core PCE {cp:.1f}% -- well above 2% target"
+        elif cp > 3.0: adj = +10; note = f"Core PCE {cp:.1f}% -- above 2% target"
+        elif cp > 2.5: adj = +5;  note = f"Core PCE {cp:.1f}% -- mildly elevated"
+        elif cp > 2.0: adj = +2;  note = f"Core PCE {cp:.1f}% -- near target"
+        else:          adj = -5;  note = f"Core PCE {cp:.1f}% -- at/below 2% target"
+        if cpt == "▲": adj += 5; note += " & rising"
+        elif cpt == "▼": adj -= 5; note += " & cooling"
+        raw += adj; breakdown.append(f"Inflation {adj:+d} ({note})")
+
+    # VIX
+    try:
+        vix = float(mkt_data["vix"]["value"])
+        if   vix >= 40: adj = -20; note = f"VIX {vix:.1f} -- panic/forced selling"
+        elif vix >= 30: adj = -15; note = f"VIX {vix:.1f} -- fear"
+        elif vix >= 25: adj = -8;  note = f"VIX {vix:.1f} -- cautious"
+        elif vix >= 20: adj = -3;  note = f"VIX {vix:.1f} -- slightly elevated"
+        elif vix >= 15: adj = +5;  note = f"VIX {vix:.1f} -- calm/normal"
+        else:           adj = +10; note = f"VIX {vix:.1f} -- complacent"
+        raw += adj; breakdown.append(f"VIX {adj:+d} ({note})")
+    except Exception:
+        pass
+
+    # Fear & Greed
+    try:
+        fg = int(fg_data.get("score", 50))
+        if   fg <= 20: adj = -20; note = f"Fear and Greed {fg} -- extreme fear"
+        elif fg <= 35: adj = -12; note = f"Fear and Greed {fg} -- fear"
+        elif fg <= 50: adj = -4;  note = f"Fear and Greed {fg} -- mild fear"
+        elif fg <= 65: adj = +4;  note = f"Fear and Greed {fg} -- neutral/mild greed"
+        elif fg <= 80: adj = +12; note = f"Fear and Greed {fg} -- greed"
+        else:          adj = +20; note = f"Fear and Greed {fg} -- extreme greed"
+        raw += adj; breakdown.append(f"Fear&Greed {adj:+d} ({note})")
+    except Exception:
+        pass
+
+    # HY Credit Spread
+    hy, _ = get_fred("HY Credit Spread")
+    if hy is not None:
+        if   hy >= 8.0: adj = -15; note = f"HY {hy:.2f}% -- very wide (credit stress)"
+        elif hy >= 6.0: adj = -10; note = f"HY {hy:.2f}% -- wide"
+        elif hy >= 4.5: adj = -4;  note = f"HY {hy:.2f}% -- elevated"
+        elif hy <= 2.5: adj = +12; note = f"HY {hy:.2f}% -- very tight (complacent)"
+        elif hy <= 3.5: adj = +6;  note = f"HY {hy:.2f}% -- tight"
+        else:           adj = +2;  note = f"HY {hy:.2f}% -- normal"
+        raw += adj; breakdown.append(f"Credit {adj:+d} ({note})")
+
+    # Yield Curve
+    cv, _ = get_fred("Yield Curve (10Y-2Y)")
+    if cv is not None:
+        if   cv < -0.5: adj = -8; note = f"Deeply inverted {cv:.2f}%"
+        elif cv < 0.0:  adj = -4; note = f"Inverted {cv:.2f}%"
+        elif cv < 0.3:  adj = +2; note = f"Nearly flat {cv:.2f}%"
+        elif cv >= 0.5: adj = +4; note = f"Steep {cv:.2f}%"
+        else:           adj = +2; note = f"Positive {cv:.2f}%"
+        raw += adj; breakdown.append(f"Yield Curve {adj:+d} ({note})")
+
+    # Fed Posture
+    fed, fedt = get_fred("Fed Funds Rate")
+    if fed is not None:
+        if   fedt == "▼": adj = -6; note = f"Fed cutting at {fed:.2f}%"
+        elif fedt == "▲": adj = +8; note = f"Fed hiking at {fed:.2f}%"
+        elif fed >= 5.0:  adj = +6; note = f"Fed restrictive {fed:.2f}%"
+        elif fed <= 3.0:  adj = -4; note = f"Fed accommodative {fed:.2f}%"
+        else:             adj = +2; note = f"Fed on hold at {fed:.2f}%"
+        raw += adj; breakdown.append(f"Fed {adj:+d} ({note})")
+
+    # Shiller CAPE
+    cape, _ = get_fred("Shiller CAPE (US)")
+    if cape is not None:
+        if   cape >= 40: adj = +15; note = f"Shiller CAPE {cape:.1f}x -- extreme (98th pctile, only dot-com was higher)"
+        elif cape >= 35: adj = +12; note = f"Shiller CAPE {cape:.1f}x -- very high (>2x hist avg 17x)"
+        elif cape >= 30: adj = +8;  note = f"Shiller CAPE {cape:.1f}x -- elevated"
+        elif cape >= 25: adj = +5;  note = f"Shiller CAPE {cape:.1f}x -- moderately high"
+        elif cape >= 20: adj = 0;   note = f"Shiller CAPE {cape:.1f}x -- fair value range"
+        elif cape >= 15: adj = -5;  note = f"Shiller CAPE {cape:.1f}x -- below avg (opportunity)"
+        else:            adj = -15; note = f"Shiller CAPE {cape:.1f}x -- deep value territory"
+        raw += adj; breakdown.append(f"Shiller CAPE {adj:+d} ({note})")
+
+    # Gold Signal
+    gold, gold_trend = get_fred("Gold Price")
+    try:
+        vix_now = float(mkt_data["vix"]["value"])
+        if gold is not None and gold_trend == "▲" and vix_now < 20:
+            adj = +3; note = "Gold rising with low VIX -- stealth fear/inflation signal"
+            raw += adj; breakdown.append(f"Gold Signal {adj:+d} ({note})")
+        elif gold is not None and gold_trend == "▼" and vix_now >= 25:
+            adj = -3; note = "Gold falling with high VIX -- fear already priced in"
+            raw += adj; breakdown.append(f"Gold Signal {adj:+d} ({note})")
+    except Exception:
+        pass
+
+    score = max(0, min(100, round(raw)))
+
+    # MHS posture text: macro observation only, no stock-picking prescription
+    if score >= 86:
+        lbl    = "🚨 EXTREME OVERHEATED"
+        col    = "#7f1d1d"
+        action = "Macro is at its most stretched since dot-com."
+    elif score >= 66:
+        lbl    = "⛔ OVERHEATED"
+        col    = "#c81e1e"
+        action = (
+            "Build cash. Trim winners. "
+            "New positions only with Left Leg 0-2, MoS >25%, and a clear catalyst."
+        )
+    elif score >= 34:
+        lbl    = "🟠 SELECTIVE"
+        col    = "#b45309"
+        action = "Best setups only. Left Leg <4, MoS >25%. Measured pace. Keep 25%+ cash."
+    else:
+        lbl    = "🟢 DEPLOY"
+        col    = "#057a55"
+        action = "Aggressive deployment. Macro confirms STRONG BUY. Full position pace."
+
+    print(f"\n📊 MHS (Macro Heat Score): {score}/100 ({lbl})")
+    for b in breakdown:
+        print(f"   {b}")
+
+    return {"score": score, "label": lbl, "color": col,
+            "breakdown": breakdown, "action": action}
 
 # ============================================================
-# PUBLIC ENTRY POINT
+# EQUITY RISK PREMIUM
 # ============================================================
 
-def fetch_fred_data():
+def compute_erp(fred_data, cape_val_str):
     """
-    Fetch all 18 FRED series in parallel (20s timeout per call).
-    Gold routes to Yahoo GC=F, CAPE routes to multpl.com.
-    GDPC1 uses quarterly YoY special handling.
-    Returns list of enriched dicts in FRED_SERIES definition order.
+    Equity Risk Premium = (1/CAPE)*100 - 10Y Treasury yield (both as %).
+    Negative ERP = bonds yield more than stocks. Last negative: ~2002.
     """
-    print("\n🏦 Fetching FRED macro indicators (parallel, 20s timeout)...")
-    end   = date.today().strftime("%Y-%m-%d")
-    # 1200 days ensures GDPC1 gets 13+ quarterly obs (need 9 for correct 2yr comparison).
-    # 460 days only gave ~5 quarterly obs -- obs[8] fell back to obs[4] giving 0% (bug).
-    # Daily/monthly series unaffected: limit=500 caps the response naturally.
-    start = (date.today() - timedelta(days=1200)).strftime("%Y-%m-%d")
-    rmap  = {}
+    try:
+        cape = float(re.sub(r"[^0-9.]", "", str(cape_val_str)))
+        if cape <= 0:
+            return None, None, None
+        cape_yield = round((1 / cape) * 100, 2)
+    except Exception:
+        return None, None, None
 
-    with concurrent.futures.ThreadPoolExecutor(max_workers=17) as ex:
-        futs = {ex.submit(_fetch_one_fred, cfg, start, end): cfg for cfg in FRED_SERIES}
-        for f in concurrent.futures.as_completed(futs):
-            r    = f.result()
-            rmap[r["label"]] = r
-            icon = "✅" if r["current"] != "N/A" else "❌"
-            print(f"   {icon} {r['label']}: {r['current']} {r['trend']}")
+    ten_y_row = next((r for r in fred_data if r["label"] == "10Y Treasury"), None)
+    if not ten_y_row or ten_y_row["current"] == "N/A":
+        return None, None, None
+    try:
+        ten_y = float(re.sub(r"[^0-9.]", "", str(ten_y_row["current"])))
+    except Exception:
+        return None, None, None
 
-    results = [
-        rmap.get(c["label"], _empty_row(c))
-        for c in FRED_SERIES
-    ]
-    ok = sum(1 for r in results if r["current"] != "N/A")
-    status = "✅" if ok == len(results) else "⚠️"
-    print(f"   {status} FRED complete: {ok}/{len(results)} indicators fetched")
-    return results
+    return round(cape_yield - ten_y, 2), cape_yield, ten_y

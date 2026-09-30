@@ -27,8 +27,11 @@
 #   - Returns ai_info so the dashboard can say exactly WHY Gemini failed
 #     (a 503 "high demand" is Google's capacity, NOT your quota; the old
 #     banner wrongly said "quota exhausted").
-#   - Haiku uses the SDK's built-in retry for temporary server errors
-#     (max_retries=3). Gemini still gets a single attempt.
+#   - Haiku retries temporary server errors (503, 529, 429, timeouts)
+#     up to HAIKU_RETRIES = 2 times, waiting longer each time
+#     (exponential backoff: 5 s, then 10 s). Errors that retrying cannot
+#     fix (401 bad key, 400 bad request) fail immediately. Gemini still
+#     gets a single attempt per model.
 #   - Keys are stripped of stray spaces/newlines (a pasted secret with a
 #     trailing newline causes odd "credential" errors).
 #   - Request id is logged on Anthropic errors so support can trace them.
@@ -39,7 +42,7 @@
 #   - A short DATA CAVEATS block lists anything stale so the model does
 #     not build a narrative on old numbers.
 #
-# FALLBACK CHAIN (one attempt per Gemini model; Haiku via SDK retries):
+# FALLBACK CHAIN (one attempt per Gemini model; Haiku up to 1 + HAIKU_RETRIES tries):
 #   1. gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard)
 #   2. gemini-3.5-flash  (free, 1,500 RPD -- confirmed stable Sep 2026)
 #   3. claude-haiku-4-5  (paid ~$0.01-0.02/run -- varies with prompt size)
@@ -86,6 +89,7 @@
 # ============================================================
 
 import os
+import time
 import re
 import concurrent.futures
 import requests
@@ -113,12 +117,26 @@ def _call_gemini(prompt, model):
     return response.text
 
 
+HAIKU_RETRIES     = 2      # extra tries after the first one (so at most 3 calls)
+HAIKU_BASE_DELAY  = 5.0    # seconds before retry 1; doubles each time (5 s, 10 s)
+
+
+def _is_retryable(e):
+    """True for temporary problems (overload, rate limit, network). False for bad key / bad request."""
+    status = getattr(e, "status_code", None)
+    if status is not None:
+        return status in (408, 409, 429) or status >= 500
+    name = type(e).__name__
+    return "Connection" in name or "Timeout" in name
+
+
 def _call_haiku(prompt):
     """
     Call Claude Haiku 4.5. Returns (text, input_tokens, output_tokens).
-    Uses the anthropic SDK, which retries temporary server errors (5xx, 429)
-    by itself with backoff (max_retries=3). Falls back to direct HTTP only
-    if the library is missing. Token counts come from message.usage.
+    Retries temporary errors with exponential backoff (see HAIKU_RETRIES).
+    The SDK's own automatic retrying is switched OFF (max_retries=0) so the
+    number of tries and the waits are exactly what is written here.
+    Falls back to a single direct HTTP call only if the library is missing.
     """
     if not ANTHROPIC_API_KEY:
         raise Exception("ANTHROPIC_API_KEY secret not set in GitHub repo")
@@ -128,19 +146,25 @@ def _call_haiku(prompt):
         anthropic = None
 
     if anthropic is not None:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=3, timeout=40.0)
-        try:
-            message = client.messages.create(
-                model      = "claude-haiku-4-5",
-                max_tokens = 1000,
-                messages   = [{"role": "user", "content": prompt}],
-            )
-        except Exception as e:
-            rid = getattr(e, "request_id", None)
-            if rid:
-                print(f"  ℹ️ Anthropic request id: {rid} (quote this to Anthropic support)")
-            raise
-        return message.content[0].text, message.usage.input_tokens, message.usage.output_tokens
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=20.0)
+        for attempt in range(HAIKU_RETRIES + 1):
+            try:
+                message = client.messages.create(
+                    model      = "claude-haiku-4-5",
+                    max_tokens = 1000,
+                    messages   = [{"role": "user", "content": prompt}],
+                )
+                return message.content[0].text, message.usage.input_tokens, message.usage.output_tokens
+            except Exception as e:
+                rid = getattr(e, "request_id", None)
+                if rid:
+                    print(f"  ℹ️ Anthropic request id: {rid} (quote this to Anthropic support)")
+                if attempt >= HAIKU_RETRIES or not _is_retryable(e):
+                    raise
+                wait = HAIKU_BASE_DELAY * (2 ** attempt)
+                print(f"  ⏳ Haiku try {attempt + 1} failed ({_short_error(e)}) -- "
+                      f"waiting {wait:.0f}s before try {attempt + 2}")
+                time.sleep(wait)
 
     print("  ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
     resp = requests.post(
