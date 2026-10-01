@@ -201,13 +201,13 @@
       "fallback_id": "DCOILWTICO",
       "prefix": "$",
       "insight": "Energy price \u00b7 >$85 = inflation pressure & input cost risk",
-      "current": "$90.2",
-      "mo3": "$69.5",
-      "mo12": "$63.6",
+      "current": "$89.7",
+      "mo3": "$68.6",
+      "mo12": "$62.7",
       "trend": "\u25b2",
       "date": "Oct 01 2026",
       "obs_date": "2026-10-01",
-      "sig": "Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
+      "sig": "Moderate energy pricing -- not a dominant swing factor for the macro picture today"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
@@ -224,13 +224,13 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,192",
-      "mo3": "$4,038",
-      "mo12": "$3,678",
+      "current": "$4,188",
+      "mo3": "$4,082",
+      "mo12": "$3,706",
       "trend": "\u25b2",
       "date": "Oct 01 2026",
       "obs_date": "2026-10-01",
-      "sig": "Gold +14% yr -- modest hedge; not yet a panic signal"
+      "sig": "Gold +13% yr -- modest hedge; not yet a panic signal"
     },
     "fetched": "2026-09-30",
     "as_of": "2026-09-30"
