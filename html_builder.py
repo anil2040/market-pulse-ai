@@ -175,18 +175,29 @@ def _short(text, n=80):
     return text if len(text) <= n else text[:n - 1].rstrip() + "..."
 
 
+_ERR_HINTS = {
+    "HTTP 404": "model not found, check the name",
+    "HTTP 401": "key rejected",
+    "HTTP 403": "no access to this model",
+    "HTTP 400": "bad request",
+}
+
+
 def _err_brief(err):
-    """'HTTP 503: This model is currently...' -> 'HTTP 503'. Full text stays in the Run Log."""
+    """'HTTP 503: This model is currently...' -> 'HTTP 503'. Permanent errors get a short hint.
+    The full text stays in the Run Log."""
     err = str(err or "").strip()
     if err.startswith("HTTP"):
-        return err.split(":")[0]
+        code = err.split(":")[0]
+        hint = _ERR_HINTS.get(code)
+        return f"{code}, {hint}" if hint else code
     return _short(err, 32)
 
 
 def _build_status_line(items, ai_info, ai_failed):
     """
     ONE line at the top of the page.
-      Everything fine:  small grey text   "Data health OK · Briefing by Gemini 3.8 Flash"
+      Everything fine:  small grey text   "Data health OK · Briefing by Claude Sonnet 5.5"
       Something wrong:  an amber (or red) box. First line = the same summary with the problem
                         count; below it one short line per data problem. The page stays quiet
                         unless there is something to look at.
@@ -197,7 +208,7 @@ def _build_status_line(items, ai_info, ai_failed):
                       key=lambda i: 0 if i["level"] == hl.BAD else 1)
     ai_info  = ai_info or {}
     attempts = ai_info.get("attempts") or []
-    why      = ", ".join(f"{re.sub(r'^Gemini ', '', a['model'])} {_err_brief(a['error'])}" for a in attempts)
+    why      = "; ".join(f"{re.sub(r'^(Gemini|Claude) ', '', a['model'])} {_err_brief(a['error'])}" for a in attempts)
 
     if ai_failed:
         brief = f"Briefing unavailable, every AI model failed ({why})" if why else "Briefing unavailable, every AI model failed"
@@ -1712,7 +1723,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
     <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
     <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
-    Gemini (latest Flash) · Gemini 3.6 Flash · Gemini 3.5 Flash · Claude Haiku 4.5 (fallback)
+    Claude Sonnet 5.5 · Claude Haiku 4.5 (fallback) · Gemini 3.6 Flash (fallback)
   </div>
 </div>
 

@@ -17,7 +17,7 @@
 #   VIX/SPX/PE/MHS/ERP issues                      -> market.py
 #   Dataroma/Magic Formula/Acquirer's Multiple     -> screens.py
 #   Email / Edward Jones                           -> news.py
-#   Gemini/Haiku/AI output issues                  -> ai_synthesis.py
+#   AI models (Sonnet/Haiku/Gemini) and AI output  -> ai_synthesis.py
 #   Freshness rules, warning banner logic          -> health.py
 #   Dashboard display issues                       -> html_builder.py
 #   Boise time / daylight saving                   -> timeutil.py
@@ -43,7 +43,7 @@
 #   5.  Dataroma 13F, Magic Formula, Acquirer's Multiple (screens.py)
 #   6.  Edward Jones, CNBC, Yahoo Morning Brief (news.py)
 #   7.  Health checks on all of the above (health.py)
-#   8.  AI synthesis -- Gemini -> Haiku -> fallback text (ai_synthesis.py)
+#   8.  AI synthesis -- Sonnet 5.5 -> Haiku -> Gemini 3.6 (free) -> fallback text (ai_synthesis.py)
 #   9.  Build HTML dashboard (html_builder.py)
 #   10. Save run_cache.json. The workflow commits everything in ONE commit.
 #   11. If a source needing your attention is RED, exit with code 1 so the
@@ -585,7 +585,7 @@ if __name__ == "__main__":
     print("🚀 Mean Reversion Macro Insights -- Starting...")
     print("=" * 50)
     print(f"📧 Email: {'set' if YAHOO_EMAIL else 'NOT SET'}")
-    print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Haiku fallback unavailable'}")
+    print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Claude models unavailable'}")
     print(f"🔑 FRED key: {'set' if FRED_API_KEY else 'NOT SET'}")
 
     now       = now_mt()

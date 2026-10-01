@@ -27,11 +27,8 @@
 #   - Returns ai_info so the dashboard can say exactly WHY Gemini failed
 #     (a 503 "high demand" is Google's capacity, NOT your quota; the old
 #     banner wrongly said "quota exhausted").
-#   - Haiku retries temporary server errors (503, 529, 429, timeouts)
-#     up to HAIKU_RETRIES = 2 times, waiting longer each time
-#     (exponential backoff: 5 s, then 10 s). Errors that retrying cannot
-#     fix (401 bad key, 400 bad request) fail immediately. Gemini still
-#     gets a single attempt per model.
+#   - (Oct 1 2026: the Claude retries added here were REMOVED at the owner's request.
+#     Every model now gets exactly one try. See FALLBACK CHAIN below.)
 #   - Keys are stripped of stray spaces/newlines (a pasted secret with a
 #     trailing newline causes odd "credential" errors).
 #   - Request id is logged on Anthropic errors so support can trace them.
@@ -42,20 +39,27 @@
 #   - A short DATA CAVEATS block lists anything stale so the model does
 #     not build a narrative on old numbers.
 #
-# FALLBACK CHAIN (one attempt per Gemini model; Haiku up to 1 + HAIKU_RETRIES tries):
-#   1. gemini-flash-latest (Google's alias: always the newest Flash it offers, so new
-#                           Flash releases are picked up without touching this file.
-#                           The page shows the model it actually resolved to.)
-#   2. gemini-3.6-flash   (named, pinned; free tier ~20 requests/day per AI Studio dashboard)
-#   3. gemini-3.5-flash   (named, pinned; free tier ~1,500 requests/day)
-#   4. claude-haiku-4-5   (paid ~$0.01-0.02/run; pinned on purpose: Anthropic has no
-#                           "latest Haiku" alias across generations)
-#   5. structured text    (always works, no AI narrative)
-#   If the alias is unavailable (for example not on the free tier) or overloaded it just
-#   fails in a few seconds and the next model is tried. No Sonnet in chain.
-#   Blank response (empty/whitespace) treated as failure, falls through.
-#   WHEN A NEW FLASH ARRIVES: nothing to do for slot 1. Every few months, bump the two
-#   pinned Gemini names (slots 2 and 3) so the fallbacks do not go stale.
+# FALLBACK CHAIN (the owner's design, Oct 1 2026). ONE try per model. No retries anywhere.
+#   1. claude-sonnet-5-5  One try. Paid, $2 in / $10 out per million tokens (about 2 to 3 cents
+#                         per run). Chosen for the most nuanced macro interpretation.
+#        If it fails with a TEMPORARY error (overload 503/529, rate limit 429, timeout,
+#        network): wait SECONDS_BEFORE_HAIKU (10 s), then go to 2.
+#        If it fails with a PERMANENT error (404 model name not found or changed, 401 key
+#        rejected, 403 no access, 400 bad request): do NOT wait, go straight to 2. The top
+#        line of the page then names the error with a hint, so you know the primary model
+#        needs attention (for example "Sonnet 5.5 HTTP 404, model not found, check the name").
+#   2. claude-haiku-4-5   One try. Paid, $1 / $5. Pinned on purpose. Anthropic lists it Active,
+#                         retirement NOT sooner than Oct 15 2026, with at least 60 days notice:
+#                         watch for the email and for a newer Haiku.
+#   3. gemini-3.6-flash   One try, immediately (no wait). Free tier, a different company, so an
+#                         Anthropic outage does not leave the page without a briefing. Expected
+#                         to be used rarely. It sometimes answers 503 "high demand" on the free tier.
+#   4. structured text    Always works, no AI narrative. The top line then says every model failed.
+#   Why the Gemini-first order was dropped: on the free tier the newest Flash models answered
+#   503 "high demand" on many days and RPM limits were hit, which cost time and gave a different
+#   writing quality day to day.
+#   WHEN MODELS CHANGE: update the model names in models_to_try (and CLAUDE_PRICES) here, nowhere else.
+#   Blank response (empty/whitespace) is treated as a failure and falls through (no wait).
 #
 # GEMINI API NOTE:
 #   Uses generate_content (legacy but fully supported, stable, low latency).
@@ -89,10 +93,12 @@
 #   MARKET AND MACRO: max 5 bullets (left column)
 #   WHAT TO WATCH:    max 5 bullets (right column)
 #
-# HAIKU COST NOTE (confirmed from Anthropic dashboard Sep 2026):
+# CLAUDE COST NOTE:
 #   Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
-#   Observed range: $0.008 (light day) to $0.015 (heavy news day)
-#   Cost logged with actual token counts from message.usage each run.
+#     Observed (Anthropic dashboard, Sep 2026): $0.008 (light day) to $0.015 (heavy news day)
+#   Sonnet 5.5 pricing: $2.00/M input, $10.00/M output (released Sep 28 2026), so about
+#     twice Haiku: expect roughly $0.02 to $0.03 per run, about $0.50 a month.
+#   The actual cost of every run is printed in the Actions log from message.usage.
 # ============================================================
 
 import os
@@ -108,44 +114,37 @@ ANTHROPIC_API_KEY = (os.environ.get("ANTHROPIC_API_KEY") or "").strip()
 # MODEL CALLERS
 # ============================================================
 
-_LAST_MODEL_VERSION = None     # model name Google reports for the last successful Gemini call
-
-
-def _pretty_model(raw):
-    """'models/gemini-3.8-flash-001' -> 'Gemini 3.8 Flash' (what the page shows)."""
-    name  = re.sub(r"^models/", "", str(raw or ""))
-    name  = re.sub(r"-(\d{3}|preview.*|exp.*)$", "", name)
-    words = [w for w in name.split("-") if w]
-    if not words:
-        return "Gemini Flash (latest)"
-    return " ".join(w if w[0].isdigit() else w.capitalize() for w in words)
-
-
 def _call_gemini(prompt, model):
     """
     Call Gemini using generate_content (stable legacy API).
     Uses google.genai SDK v2.3+. Returns plain text string.
-    Also records which model Google actually used (response.model_version) in
-    _LAST_MODEL_VERSION, because the "gemini-flash-latest" alias can resolve to
-    a newer model than any name written in this file.
     """
-    global _LAST_MODEL_VERSION
     import google.genai as genai
     client = genai.Client(api_key=GEMINI_API_KEY)
     response = client.models.generate_content(
         model    = model,
         contents = [prompt],
     )
-    _LAST_MODEL_VERSION = getattr(response, "model_version", None) or model
     return response.text
 
 
-HAIKU_RETRIES     = 2      # extra tries after the first one (so at most 3 calls)
-HAIKU_BASE_DELAY  = 5.0    # seconds before retry 1; doubles each time (5 s, 10 s)
+SECONDS_BEFORE_HAIKU = 10.0   # wait after a TEMPORARY Sonnet failure, before Haiku (owner's choice)
+CLAUDE_MAX_TOKENS    = 1500   # output limit; the briefing is normally about 500 tokens
+CLAUDE_TIMEOUT       = 45.0   # seconds for the single call (a bigger model can take longer than Haiku)
+
+# USD per million tokens (input, output). Used only for the cost line in the Actions log.
+CLAUDE_PRICES = {
+    "claude-sonnet-5-5": (2.00, 10.00),
+    "claude-haiku-4-5":  (1.00, 5.00),
+}
 
 
-def _is_retryable(e):
-    """True for temporary problems (overload, rate limit, network). False for bad key / bad request."""
+def _is_temporary(e):
+    """
+    True for temporary problems (overload, rate limit, timeout, network): worth a short wait
+    before the next model. False for permanent ones (404 model not found, 401 bad key,
+    403 no access, 400 bad request) and for odd errors: no point waiting, move on at once.
+    """
     status = getattr(e, "status_code", None)
     if status is not None:
         return status in (408, 409, 429) or status >= 500
@@ -153,13 +152,29 @@ def _is_retryable(e):
     return "Connection" in name or "Timeout" in name
 
 
-def _call_haiku(prompt):
+class _HttpError(Exception):
+    """Direct-HTTP failure that carries the status code, so it is classified like the SDK's errors."""
+    def __init__(self, status_code, message):
+        super().__init__(message)
+        self.status_code = status_code
+
+
+def _claude_text(content_blocks):
+    """Join every text block (a model may put a 'thinking' block first; that is skipped)."""
+    parts = []
+    for b in content_blocks or []:
+        btype = b.get("type") if isinstance(b, dict) else getattr(b, "type", "")
+        if btype == "text":
+            parts.append(b.get("text", "") if isinstance(b, dict) else getattr(b, "text", ""))
+    return "".join(parts)
+
+
+def _call_claude(prompt, model):
     """
-    Call Claude Haiku 4.5. Returns (text, input_tokens, output_tokens).
-    Retries temporary errors with exponential backoff (see HAIKU_RETRIES).
-    The SDK's own automatic retrying is switched OFF (max_retries=0) so the
-    number of tries and the waits are exactly what is written here.
-    Falls back to a single direct HTTP call only if the library is missing.
+    Call a Claude model ONCE. Returns (text, input_tokens, output_tokens).
+    No retries: the SDK's own automatic retrying is switched OFF (max_retries=0), and any
+    error is raised to the caller, which decides what to do next (see FALLBACK CHAIN).
+    Falls back to a single direct HTTP call only if the anthropic library is missing.
     """
     if not ANTHROPIC_API_KEY:
         raise Exception("ANTHROPIC_API_KEY secret not set in GitHub repo")
@@ -169,25 +184,22 @@ def _call_haiku(prompt):
         anthropic = None
 
     if anthropic is not None:
-        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=20.0)
-        for attempt in range(HAIKU_RETRIES + 1):
-            try:
-                message = client.messages.create(
-                    model      = "claude-haiku-4-5",
-                    max_tokens = 1000,
-                    messages   = [{"role": "user", "content": prompt}],
-                )
-                return message.content[0].text, message.usage.input_tokens, message.usage.output_tokens
-            except Exception as e:
-                rid = getattr(e, "request_id", None)
-                if rid:
-                    print(f"  ℹ️ Anthropic request id: {rid} (quote this to Anthropic support)")
-                if attempt >= HAIKU_RETRIES or not _is_retryable(e):
-                    raise
-                wait = HAIKU_BASE_DELAY * (2 ** attempt)
-                print(f"  ⏳ Haiku try {attempt + 1} failed ({_short_error(e)}) -- "
-                      f"waiting {wait:.0f}s before try {attempt + 2}")
-                time.sleep(wait)
+        client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY, max_retries=0, timeout=CLAUDE_TIMEOUT)
+        try:
+            message = client.messages.create(
+                model      = model,
+                max_tokens = CLAUDE_MAX_TOKENS,
+                messages   = [{"role": "user", "content": prompt}],
+            )
+        except Exception as e:
+            rid = getattr(e, "request_id", None)
+            if rid:
+                print(f"  ℹ️ Anthropic request id: {rid} (quote this to Anthropic support)")
+            raise
+        if getattr(message, "stop_reason", "") == "max_tokens":
+            print(f"  ⚠️ {model}: answer hit the {CLAUDE_MAX_TOKENS}-token limit and may be cut off")
+        return (_claude_text(message.content),
+                message.usage.input_tokens, message.usage.output_tokens)
 
     print("  ℹ️ anthropic library not found -- using direct HTTP to Anthropic API")
     resp = requests.post(
@@ -198,17 +210,18 @@ def _call_haiku(prompt):
             "content-type":      "application/json",
         },
         json={
-            "model":      "claude-haiku-4-5",
-            "max_tokens": 1000,
+            "model":      model,
+            "max_tokens": CLAUDE_MAX_TOKENS,
             "messages":   [{"role": "user", "content": prompt}],
         },
-        timeout=60,
+        timeout=CLAUDE_TIMEOUT,
     )
     if resp.status_code != 200:
-        raise Exception(f"Anthropic API HTTP {resp.status_code} "
-                        f"(request-id {resp.headers.get('request-id', 'none')}): {resp.text[:400]}")
+        raise _HttpError(resp.status_code,
+                         f"Anthropic API HTTP {resp.status_code} "
+                         f"(request-id {resp.headers.get('request-id', 'none')}): {resp.text[:400]}")
     data = resp.json()
-    return (data["content"][0]["text"],
+    return (_claude_text(data.get("content")),
             data.get("usage", {}).get("input_tokens", 0),
             data.get("usage", {}).get("output_tokens", 0))
 
@@ -462,52 +475,54 @@ YAHOO BRIEF: {yahoo_trimmed}
 """
 
     models_to_try = [
-        ("gemini-flash-latest", "Gemini Flash (latest)",
-         lambda: _call_gemini(prompt, "gemini-flash-latest")),
+        ("claude-sonnet-5-5", "Claude Sonnet 5.5",
+         lambda: _call_claude(prompt, "claude-sonnet-5-5")),
+        ("claude-haiku-4-5", "Claude Haiku 4.5",
+         lambda: _call_claude(prompt, "claude-haiku-4-5")),
         ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",
          lambda: _call_gemini(prompt, "gemini-3.6-flash")),
-        ("gemini-3.5-flash", "Gemini 3.5 Flash (free tier)",
-         lambda: _call_gemini(prompt, "gemini-3.5-flash")),
-        ("claude-haiku-4-5", "Claude Haiku 4.5",
-         lambda: _call_haiku(prompt)),
     ]
 
-    attempts = []          # what failed before something worked
+    attempts = []              # what failed before something worked
+    wait_before_haiku = False  # set after a TEMPORARY Sonnet failure
     for model_id, model_name, call_fn in models_to_try:
+        is_claude  = model_id.startswith("claude-")
+        short_name = model_name.replace(" (free tier)", "")
+
+        # The only wait in the chain: between Sonnet and Haiku, and only for temporary errors.
+        if model_id == "claude-haiku-4-5" and wait_before_haiku:
+            print(f"  ⏳ Sonnet had a temporary problem: waiting {SECONDS_BEFORE_HAIKU:.0f}s before Haiku")
+            time.sleep(SECONDS_BEFORE_HAIKU)
+
         try:
             print(f"  Trying {model_name}...")
             with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ex:
                 fut    = ex.submit(call_fn)
-                result = fut.result(timeout=90)
+                result = fut.result(timeout=60 if is_claude else 90)
 
-            if model_id == "claude-haiku-4-5":
+            if is_claude:
                 briefing, in_tok, out_tok = result
             else:
                 briefing = result
 
-            # Blank response = failure -- fall through to next model
+            # Blank response = failure -- fall through to next model (no wait)
             if not briefing or not briefing.strip():
                 raise ValueError("Blank response returned (0 usable chars)")
 
-            if model_id == "claude-haiku-4-5":
-                cost = (in_tok * 1.00 + out_tok * 5.00) / 1_000_000
-                print(f"  ✅ Claude Haiku used as fallback: {len(briefing)} chars")
+            print(f"  ✅ {model_name}: {len(briefing)} chars")
+            if is_claude:
+                p_in, p_out = CLAUDE_PRICES.get(model_id, (0.0, 0.0))
+                cost = (in_tok * p_in + out_tok * p_out) / 1_000_000
                 print(f"  💰 Cost: ~${cost:.4f} "
                       f"(input {in_tok:,} tokens + output {out_tok:,} tokens)")
-            else:
-                print(f"  ✅ {model_name}: {len(briefing)} chars")
-
-            short_name = model_name.replace(" (free tier)", "")
-            if model_id == "gemini-flash-latest":
-                # Show the model Google actually used, e.g. "Gemini 3.8 Flash"
-                short_name = _pretty_model(_LAST_MODEL_VERSION)
-                print(f"  ℹ️ The latest-Flash alias resolved to: {_LAST_MODEL_VERSION}")
             return briefing, False, {"model": short_name, "attempts": attempts}
 
         except concurrent.futures.TimeoutError:
-            print(f"  ⚠️ {model_name} timed out after 90s -- trying next model")
-            attempts.append({"model": model_name.replace(" (free tier)", ""),
-                             "error": "timed out after 90s"})
+            limit = 60 if is_claude else 90
+            print(f"  ⚠️ {model_name} timed out after {limit}s -- trying next model")
+            attempts.append({"model": short_name, "error": f"timed out after {limit}s"})
+            if model_id == "claude-sonnet-5-5":
+                wait_before_haiku = True           # a timeout is a temporary problem
         except Exception as e:
             err_type = type(e).__name__
             status   = getattr(e, "status_code", None) or getattr(e, "code", None)
@@ -515,8 +530,11 @@ YAHOO BRIEF: {yahoo_trimmed}
                 print(f"  ⚠️ {model_name} FAILED: {err_type} | HTTP {status} | {str(e)}")
             else:
                 print(f"  ⚠️ {model_name} FAILED: {err_type} | {str(e)}")
-            attempts.append({"model": model_name.replace(" (free tier)", ""),
-                             "error": _short_error(e)})
+            attempts.append({"model": short_name, "error": _short_error(e)})
+            if model_id == "claude-sonnet-5-5":
+                wait_before_haiku = _is_temporary(e)
+                if not wait_before_haiku:
+                    print("  ℹ️ That error is permanent (model name, key or access): no wait, going straight to Haiku")
 
     print("  ❌ All AI models failed -- using structured fallback")
     fallback = """MARKET AND MACRO

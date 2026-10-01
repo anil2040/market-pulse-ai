@@ -106,7 +106,7 @@ Step 5:  value screens          (Dataroma: saved list, contacted only after a 13
                                  Magic Formula and Acquirer's Multiple: today's saved copy -> live -> run_cache.json)
 Step 6:  news                   (Edward Jones, CNBC, Yahoo Brief; real dates checked; no cache)
 Step 7:  health checks          (health.py: one list of ok/warn/bad items)
-Step 8:  synthesize_with_ai     (gemini-flash-latest -> gemini-3.6-flash -> gemini-3.5-flash -> Haiku -> fallback text)
+Step 8:  synthesize_with_ai     (Claude Sonnet 5.5 -> [10 s wait, only after a temporary failure] -> Claude Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text; ONE try each)
 Step 9:  build_html             (one-line status at the top, badges, all cards)
 Step 10: save run_cache.json    (workflow commits index.html + run_cache.json + dataroma_cache.json in ONE commit)
 Step 11: exit code 1 if a red item needs attention (GitHub then emails you); NOTIFY_ON_FAILURE in main.py
@@ -125,7 +125,7 @@ Stale content on weekends is expected (no routine, no run).
 | market.py | ~330 | Yahoo SPX/RUT/VIX (previous close from bars), Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | ~400 | Dataroma (saved list, live only after a 13F deadline, one try/day, last_attempt stored in dataroma_cache.json), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. |
 | news.py | ~430 | Edward Jones scrape, CNBC/Yahoo IMAP (INBOX + Bulk/Spam, real Date header, read-only), text cleaning, calendar extractor (6000 chars). Returns (text, meta). |
-| ai_synthesis.py | ~490 | gemini-flash-latest -> 3.6 flash -> 3.5 flash -> Haiku (2 retries, exponential wait) -> fallback. Reports the model the alias resolved to. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
+| ai_synthesis.py | ~500 | Sonnet 5.5 -> Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries; 10 s wait only between Sonnet and Haiku after a temporary error; 1500 max tokens. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
 | health.py | ~270 | All freshness rules and health items (ok/warn/bad), per-row age limits (max_age_for), 13F deadline helpers. Pure functions, no network. |
 | timeutil.py | ~70 | NEW. Boise time with daylight saving (zoneinfo, with a built-in fallback for Windows without tzdata). |
 | html_builder.py | ~1680 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header) |
@@ -473,8 +473,22 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
   When coding: deliver full files, list every change, and summarize at the end.
 - Dollar row: Fed broad index DTWEXBGS has a value for every day but FRED receives it weekly (Mondays, through the prior
   Friday), so it may be up to 10-11 days old: max_age_days = 11 in fred.py (health.max_age_for). Note text kept to 2 lines.
-- Gemini chain: alias first (auto-picks the newest Flash), then the two named Flash models, then Haiku (pinned). Bump the named
-  Gemini models every few months. Gemini free tier limits (per AI Studio): 3.6 about 20 requests/day, 3.5 about 1,500/day.
+- AI model chain (owner's design, Oct 1 2026): ONE try per model, NO retries (the owner does not want the assistant to
+  choose retry counts: ask before changing any of this). Order: Claude Sonnet 5.5 (about $0.02 to $0.03 per run, about $0.50
+  a month) -> Claude Haiku 4.5 -> Gemini 3.6 Flash (free tier, a different vendor) -> fallback text. The only wait in the
+  chain is SECONDS_BEFORE_HAIKU = 10 s, and only after a TEMPORARY Sonnet failure (503/529 overload, 429, timeout, network).
+  A PERMANENT error (404 model name not found or changed, 401 key rejected, 403 no access, 400 bad request) or a blank answer
+  skips the wait and goes straight to Haiku, and the top line of the page says so with a hint, for example
+  "Sonnet 5.5 HTTP 404, model not found, check the name". The Gemini-first order and the alias were dropped because the free
+  tier answered 503 and hit RPM limits. Gemini now runs only if both Claude models fail. Output limit 1500 tokens; all text
+  blocks are joined (a "thinking" block first is skipped). Evaluate Sonnet 5.5 after about a week (about Oct 8): if the
+  briefings are not better than Haiku, change the first entry back.
+- Haiku 4.5 retirement: Anthropic lists it Active with "tentative retirement not sooner than Oct 15 2026" (a floor, not a date)
+  and promises at least 60 days notice by email. Third-party sites that call Oct 15 a firm date are wrong. When Anthropic
+  deprecates it, move the second slot to the replacement.
+- Pricing reference (Sep 30 2026): Haiku 4.5 $1/$5, Sonnet 5.5 $2/$10 (released Sep 28), Opus 5.5 $4/$20, Gemini 3.8 Flash
+  $0.75/$3.75 (doubles Jan 1 2027; thinking tokens bill as output). Gemini free tier: rate limited, data may be used by Google.
+  Real Haiku cost from the Anthropic dashboard: $0.008 to $0.015 per run.
 - TEST ON THE WORKFLOW'S PYTHON (3.13 since Oct 1 2026; was 3.11). The Sep 30 outage came from testing on a newer Python
   than the workflow used (3.11 forbids backslashes inside f-string {...}). Keep the laptop and the workflow on the same version.
 - ROUTINE = SEARCH ONLY: the Claude Code routine environment blocks page fetching (proxy allowlist; every fetch fails).
@@ -563,11 +577,20 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
    - The backup schedule run appears around 9:17 AM and is a quick green "already built today" skip.
    - Actions list: no more "skipped twin" runs.
 
+   - Briefing line says "Briefing by Claude Sonnet 5.5" and the Actions log shows a "Cost: ~$0.02" line. If it says Haiku with
+     "(Sonnet 5.5 HTTP 404)", the API key has no access to the new model: tell the assistant (not a code bug).
+   - First Sonnet run time: watch that the whole pipeline stays near 1 to 2 minutes.
+   - If the top line says "Sonnet 5.5 HTTP 404, model not found, check the name", the model name in ai_synthesis.py (or the
+     account's access) needs attention; Haiku wrote that day's briefing.
+
    **To-dos for the owner:** (a) after Nov 2, glance at the routine time (should still be 7:40 local); (b) after Nov 17,
    watch for the amber 13F reminder, the pipeline retries daily, else run `python fetch_cache.py` on the PC and commit
    dataroma_cache.json; (c) optional cleanup when convenient: delete test_haiku.py and validate_routine.py (not used by the
    restored routine); (d) when a real Axios Markets / WSJ Markets A.M. issue arrives, copy the sender address so it can be
-   added to news.py; (e) decide later whether to keep the routine's stockanalysis.com / Robinhood P/E or switch to an
+   added to news.py; (f) about Oct 8: judge the Sonnet 5.5 briefings; (g) newsletters: Axios Markets arrives in the morning (add to the pipeline),
+   Axios Macro (Neil Irwin, around lunchtime ET) and Closer (after the close) arrive later in the day, so they suit personal
+   reading, not the 7:45 AM run; AM/PM/Finish Line are the general-news Daily Essentials bundle (Finish Line is wellness);
+   (h) try Claude Code in VS Code for a small task (Manual permission mode first); (e) decide later whether to keep the routine's stockanalysis.com / Robinhood P/E or switch to an
    iShares reference (both give the same URTH vs EFA discount of about 27%; absolute levels differ about 6%).
 
 2. **MHS 20-day SMA** -- will appear ~Oct 17 2026 (4 trading weeks from Sep 19 2026 start).
@@ -998,6 +1021,30 @@ The earlier assumption that a manual run had caused the 12:37 build was WRONG (b
 - Emails and Edward Jones are NOT cached (tiny requests; stale-news risk). A one-time CNBC welcome email counted as a real
   issue; owner chose not to build a check for it.
 - Both the URTH/EFA P/E sources (stockanalysis.com and Robinhood) and iShares give about a 27% ex-US discount.
+
+---
+
+### Session 14 (continued), part 4 -- Oct 1 2026 (evening): AI order and tooling answers
+**Files changed:** ai_synthesis.py, html_builder.py (footer and status-line wording), main.py (comments only), SESSION_LOG.md.
+Tested on Python 3.13 (eight scenarios including Sonnet down, no access to Sonnet, Claude both down, everything down) and 3.14.
+
+**Change (owner approved):** Claude Sonnet 5.5 first, Haiku 4.5 second, one free Gemini 3.5 Flash try third. See the rules above for
+the reasons and costs. The page line now reads "Data health OK · Briefing by Claude Sonnet 5.5".
+REVISED the same evening at the owner's request: no retries at all (one try per model), a single 10 s wait between Sonnet and
+Haiku only after a temporary error, permanent errors go straight to Haiku with a visible hint, and the last-resort Gemini is
+3.6 Flash (the owner's choice; note 3.6 answered 503 on some days while 3.5 answered, and the free tier allows few requests).
+
+**Answers recorded for the owner:**
+- Does a failed Gemini call count toward limits? Google does not say (not found). The dashboard showed RPM warnings, so quick
+  repeated calls are a plausible cause.
+- Seeing the screen: Claude in Chrome (extension side panel, Chrome only) reads and clicks pages; Claude Desktop computer use works
+  with desktop apps and asks permission per app. Images cost about width x height / 750 tokens (roughly 1,000 to 1,500 per screenshot).
+- VS Code Source Control: Commit = local snapshot; Commit & Push = save and upload; Commit & Sync = save, pull others' changes
+  (the routine and bot commit daily), then upload (best default); Amend = rewrite the last commit (avoid). Undo: Discard Changes
+  before committing; Undo Last Commit before pushing; after pushing git history still holds every version.
+- Claude Code in VS Code: with extension v2.1.283 or later the starting permission mode is Auto (edits most files without asking).
+  For a first try switch the mode chip at the bottom of the prompt box to Manual ("Ask before edits"). To use a newer model such as
+  Sonnet 5.5 the extension must be updated: Extensions view (Ctrl+Shift+X), find Claude Code, Update, then reload the window.
 
 ---
 
