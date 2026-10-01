@@ -39,27 +39,31 @@
 #   - A short DATA CAVEATS block lists anything stale so the model does
 #     not build a narrative on old numbers.
 #
-# FALLBACK CHAIN (the owner's design, Oct 1 2026). ONE try per model. No retries anywhere.
-#   1. claude-sonnet-5-5  One try. Paid, $2 in / $10 out per million tokens (about 2 to 3 cents
-#                         per run). Chosen for the most nuanced macro interpretation.
-#        If it fails with a TEMPORARY error (overload 503/529, rate limit 429, timeout,
-#        network): wait SECONDS_BEFORE_HAIKU (10 s), then go to 2.
-#        If it fails with a PERMANENT error (404 model name not found or changed, 401 key
-#        rejected, 403 no access, 400 bad request): do NOT wait, go straight to 2. The top
-#        line of the page then names the error with a hint, so you know the primary model
-#        needs attention (for example "Sonnet 5.5 HTTP 404, model not found, check the name").
-#   2. claude-haiku-4-5   One try. Paid, $1 / $5. Pinned on purpose. Anthropic lists it Active,
-#                         retirement NOT sooner than Oct 15 2026, with at least 60 days notice:
+# CHANGES (Session 15, Sep 30 2026): Sonnet 5.5 was DROPPED from the chain at the owner's request.
+#   Reason: Sonnet 5.5 thinks by default; it used all 1,500 output tokens thinking, returned no text,
+#   and Haiku wrote the briefing anyway (about 3 cents a run for Haiku quality text). Haiku is now first.
+#   The output limit was raised from 1500 to 2000 tokens (owner asked for a suggestion; one older
+#   Haiku run wrote 1,522 tokens). A higher limit costs nothing extra unless the model uses it.
+#   TO PUT SONNET BACK LATER: add ("claude-sonnet-5-5", "Claude Sonnet 5.5", ...) as the first entry of
+#   models_to_try, add "claude-sonnet-5-5": (2.00, 10.00) to CLAUDE_PRICES, and FIRST check Anthropic's
+#   docs for how to turn its up-front thinking off or limit it, or it will return a blank answer again.
+#
+# FALLBACK CHAIN (the owner's design, Session 15). ONE try per model. No retries anywhere. No waits.
+#   1. claude-haiku-4-5   One try. Paid, $1 in / $5 out per million tokens (about 1 to 1.5 cents per run).
+#                         Pinned on purpose. Anthropic lists it Active, retirement NOT sooner than
+#                         Oct 15 2026 (a floor, not a date), with at least 60 days notice by email:
 #                         watch for the email and for a newer Haiku.
-#   3. gemini-3.6-flash   One try, immediately (no wait). Free tier, a different company, so an
+#        If it fails (temporary or permanent), go straight to 2. The top line of the page names the
+#        error, for example "Haiku 4.5 HTTP 404: model not found" means the model name needs attention.
+#   2. gemini-3.6-flash   One try, immediately (no wait). Free tier, a different company, so an
 #                         Anthropic outage does not leave the page without a briefing. Expected
 #                         to be used rarely. It sometimes answers 503 "high demand" on the free tier.
-#   4. structured text    Always works, no AI narrative. The top line then says every model failed.
+#   3. structured text    Always works, no AI narrative. The top line then says every model failed.
 #   Why the Gemini-first order was dropped: on the free tier the newest Flash models answered
 #   503 "high demand" on many days and RPM limits were hit, which cost time and gave a different
 #   writing quality day to day.
 #   WHEN MODELS CHANGE: update the model names in models_to_try (and CLAUDE_PRICES) here, nowhere else.
-#   Blank response (empty/whitespace) is treated as a failure and falls through (no wait).
+#   Blank response (empty/whitespace) is treated as a failure and falls through.
 #
 # GEMINI API NOTE:
 #   Uses generate_content (legacy but fully supported, stable, low latency).
@@ -96,13 +100,11 @@
 # CLAUDE COST NOTE:
 #   Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
 #     Observed (Anthropic dashboard, Sep 2026): $0.008 (light day) to $0.015 (heavy news day)
-#   Sonnet 5.5 pricing: $2.00/M input, $10.00/M output (released Sep 28 2026), so about
-#     twice Haiku: expect roughly $0.02 to $0.03 per run, about $0.50 a month.
+#   (Sonnet 5.5 is $2.00/M input, $10.00/M output, about twice Haiku; not used at the moment.)
 #   The actual cost of every run is printed in the Actions log from message.usage.
 # ============================================================
 
 import os
-import time
 import re
 import concurrent.futures
 import requests
@@ -128,32 +130,17 @@ def _call_gemini(prompt, model):
     return response.text
 
 
-SECONDS_BEFORE_HAIKU = 10.0   # wait after a TEMPORARY Sonnet failure, before Haiku (owner's choice)
-CLAUDE_MAX_TOKENS    = 1500   # output limit; the briefing is normally about 500 tokens
-CLAUDE_TIMEOUT       = 45.0   # seconds for the single call (a bigger model can take longer than Haiku)
+CLAUDE_MAX_TOKENS = 2000   # output limit; the briefing is normally 500 to 1,500 tokens (raised from 1500 in Session 15)
+CLAUDE_TIMEOUT    = 45.0   # seconds for the single call
 
 # USD per million tokens (input, output). Used only for the cost line in the Actions log.
 CLAUDE_PRICES = {
-    "claude-sonnet-5-5": (2.00, 10.00),
-    "claude-haiku-4-5":  (1.00, 5.00),
+    "claude-haiku-4-5": (1.00, 5.00),
 }
 
 
-def _is_temporary(e):
-    """
-    True for temporary problems (overload, rate limit, timeout, network): worth a short wait
-    before the next model. False for permanent ones (404 model not found, 401 bad key,
-    403 no access, 400 bad request) and for odd errors: no point waiting, move on at once.
-    """
-    status = getattr(e, "status_code", None)
-    if status is not None:
-        return status in (408, 409, 429) or status >= 500
-    name = type(e).__name__
-    return "Connection" in name or "Timeout" in name
-
-
 class _HttpError(Exception):
-    """Direct-HTTP failure that carries the status code, so it is classified like the SDK's errors."""
+    """Direct-HTTP failure that carries the status code, so it is reported like the SDK's errors."""
     def __init__(self, status_code, message):
         super().__init__(message)
         self.status_code = status_code
@@ -475,8 +462,6 @@ YAHOO BRIEF: {yahoo_trimmed}
 """
 
     models_to_try = [
-        ("claude-sonnet-5-5", "Claude Sonnet 5.5",
-         lambda: _call_claude(prompt, "claude-sonnet-5-5")),
         ("claude-haiku-4-5", "Claude Haiku 4.5",
          lambda: _call_claude(prompt, "claude-haiku-4-5")),
         ("gemini-3.6-flash", "Gemini 3.6 Flash (free tier)",
@@ -484,15 +469,9 @@ YAHOO BRIEF: {yahoo_trimmed}
     ]
 
     attempts = []              # what failed before something worked
-    wait_before_haiku = False  # set after a TEMPORARY Sonnet failure
     for model_id, model_name, call_fn in models_to_try:
         is_claude  = model_id.startswith("claude-")
         short_name = model_name.replace(" (free tier)", "")
-
-        # The only wait in the chain: between Sonnet and Haiku, and only for temporary errors.
-        if model_id == "claude-haiku-4-5" and wait_before_haiku:
-            print(f"  ⏳ Sonnet had a temporary problem: waiting {SECONDS_BEFORE_HAIKU:.0f}s before Haiku")
-            time.sleep(SECONDS_BEFORE_HAIKU)
 
         try:
             print(f"  Trying {model_name}...")
@@ -505,7 +484,7 @@ YAHOO BRIEF: {yahoo_trimmed}
             else:
                 briefing = result
 
-            # Blank response = failure -- fall through to next model (no wait)
+            # Blank response = failure -- fall through to next model
             if not briefing or not briefing.strip():
                 raise ValueError("Blank response returned (0 usable chars)")
 
@@ -521,8 +500,6 @@ YAHOO BRIEF: {yahoo_trimmed}
             limit = 60 if is_claude else 90
             print(f"  ⚠️ {model_name} timed out after {limit}s -- trying next model")
             attempts.append({"model": short_name, "error": f"timed out after {limit}s"})
-            if model_id == "claude-sonnet-5-5":
-                wait_before_haiku = True           # a timeout is a temporary problem
         except Exception as e:
             err_type = type(e).__name__
             status   = getattr(e, "status_code", None) or getattr(e, "code", None)
@@ -531,10 +508,6 @@ YAHOO BRIEF: {yahoo_trimmed}
             else:
                 print(f"  ⚠️ {model_name} FAILED: {err_type} | {str(e)}")
             attempts.append({"model": short_name, "error": _short_error(e)})
-            if model_id == "claude-sonnet-5-5":
-                wait_before_haiku = _is_temporary(e)
-                if not wait_before_haiku:
-                    print("  ℹ️ That error is permanent (model name, key or access): no wait, going straight to Haiku")
 
     print("  ❌ All AI models failed -- using structured fallback")
     fallback = """MARKET AND MACRO
