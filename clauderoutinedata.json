@@ -1,11 +1,11 @@
 {
-  "date": "2026-09-30",
-  "time_collected_utc": "13:10",
+  "date": "2026-10-01",
+  "time_collected_utc": "12:10",
   "futures": {
-    "sp500":     {"change_pct": 0.03, "direction": "up"},
-    "nasdaq100": {"change_pct": -0.07, "direction": "down"},
-    "dow":       {"change_pct": 0.06, "direction": "up"},
-    "sentiment": "neutral"
+    "sp500":     {"change_pct": 0.40, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.85, "direction": "up"},
+    "dow":       {"change_pct": 0.20, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -14,46 +14,46 @@
              "source": "robinhood.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.23,
-    "crude_oil_usd": 89.68,
+    "treasury_10yr_pct": 5.33,
+    "crude_oil_usd": 91.50,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "August PCE inflation and personal income data released today 8:30 AM ET; key Fed inflation gauge",
-    "Q2 2026 GDP third (final) estimate released today 8:30 AM ET",
-    "Treasury bond selloff continues: 10-year yield at 5.23%, 30-year hit 5.33%; highest levels since 2007"
+    "10-year Treasury yield climbed to 5.3338%, its highest level since April 2002, as markets price in extended higher-for-longer Fed policy into Q4",
+    "Micron Technology crushed Q4 2026 earnings forecasts on AI-driven demand surge, reigniting semiconductor enthusiasm and lifting Nasdaq futures sharply",
+    "Alphabet unveiled Gemini 4 Argon, its most advanced AI model, adding to tech sector optimism ahead of the open"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Utilities",   "change_pct": 0.80, "reason": "defensive bid on PCE data uncertainty; rate-driven safety rotation"},
-      {"sector": "Financials",  "change_pct": 0.35, "reason": "elevated yield environment supports bank net interest margins"}
+      {"sector": "Technology",             "change_pct": 1.10, "reason": "Micron earnings beat and Alphabet Gemini 4 launch drove strong AI-sector demand"},
+      {"sector": "Communication Services", "change_pct": 0.60, "reason": "Alphabet Gemini 4 Argon launch lifted the sector broadly"}
     ],
     "lagging": [
-      {"sector": "Technology",  "change_pct": -0.40, "reason": "rate-sensitive growth under pressure; Nasdaq futures slightly lower pre-open"},
-      {"sector": "Real Estate", "change_pct": -0.65, "reason": "most rate-sensitive sector hit by multi-decade-high Treasury yields"}
+      {"sector": "Real Estate", "change_pct": -0.80, "reason": "Treasury yields near multi-decade highs continue to hammer rate-sensitive REITs"},
+      {"sector": "Utilities",   "change_pct": -0.50, "reason": "Surging bond yields reduce relative appeal of dividend-yielding defensives"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.45},
-    "asia":   {"index": "Nikkei225", "direction": "down", "change_pct": -1.05}
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.55},
+    "asia":   {"index": "Nikkei225", "direction": "up", "change_pct": 1.44}
   },
-  "open_focus": "Traders are focused on today's August PCE inflation print and the final Q2 GDP estimate at 8:30 AM ET, with Treasury yields near multi-decade highs stoking Fed rate-hike concerns.",
+  "open_focus": "Traders are focused on the surge in 10-year Treasury yields above 5.33%, their highest level since 2002, as a counterweight to the AI-driven tech rally fueled by Micron's blowout earnings and Alphabet's Gemini 4 launch.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7683.69,
-      "current":    7655.81,
-      "change_pct": -0.36,
-      "source_time_et": "08:55"
+      "prev_close": 7651.54,
+      "current":    7691.21,
+      "change_pct": 0.52,
+      "source_time_et": "08:10"
     },
     "rut": {
-      "prev_close": 2817.91,
-      "current":    2795.89,
-      "change_pct": -0.78,
-      "source_time_et": "08:55"
+      "prev_close": 2793.00,
+      "current":    2805.00,
+      "change_pct": 0.43,
+      "source_time_et": "08:10"
     },
     "vix": {
-      "prev_close": 16.07,
-      "current":    17.42
+      "prev_close": 18.10,
+      "current":    16.85
     }
   }
 }
