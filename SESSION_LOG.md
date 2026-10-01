@@ -1,4 +1,4 @@
-# Mean Reversion Macro Insights -- Session Log 14
+# Mean Reversion Macro Insights -- Session Log 15
 
 Paste this file at the start of any new session so Claude has full context.
 No need to summarize the previous chat.
@@ -59,7 +59,9 @@ Do NOT paste all modules at once -- that blows the context window immediately.
 
 3. **One file at a time.** If multiple files need changes, do them sequentially,
    one complete file (or one replacement script) per response.
-   Do not batch multiple files into one response.
+   Do not batch multiple files into one response, EXCEPT (owner's wish, Session 15): when the changes are
+   small and closely related, deliver them together to save steps and chat usage, and always list the exact
+   files to replace with their line counts so a bad copy can be spotted.
 
 4. **Confirm understanding before writing code.** State which file you are about to
    rewrite and what changes you are making, then write the full file.
@@ -89,7 +91,7 @@ Do NOT paste all modules at once -- that blows the context window immediately.
   pipeline now follows its push.
 - **Python:** GitHub workflow uses 3.13 (same as the owner's laptop, 3.13.15). Latest stable is 3.14; 3.15 is due
   Oct 1 2026; 3.11 is supported until Oct 2027. Test on the workflow's version before delivering.
-- **Runtime:** about 40 to 70 seconds, 17/17 indicators (Sep 30 2026)
+- **Runtime:** about 30 to 70 seconds, 17/17 indicators (27 s on the Sep 30 evening run, Haiku first)
 
 **9 GitHub Secrets (all confirmed set):**
 GEMINI_API_KEY, ANTHROPIC_API_KEY, YAHOO_EMAIL, YAHOO_APP_PASSWORD,
@@ -106,7 +108,7 @@ Step 5:  value screens          (Dataroma: saved list, contacted only after a 13
                                  Magic Formula and Acquirer's Multiple: today's saved copy -> live -> run_cache.json)
 Step 6:  news                   (Edward Jones, CNBC, Yahoo Brief; real dates checked; no cache)
 Step 7:  health checks          (health.py: one list of ok/warn/bad items)
-Step 8:  synthesize_with_ai     (Claude Sonnet 5.5 -> [10 s wait, only after a temporary failure] -> Claude Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text; ONE try each)
+Step 8:  synthesize_with_ai     (Claude Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text; ONE try each, no waits)
 Step 9:  build_html             (one-line status at the top, badges, all cards)
 Step 10: save run_cache.json    (workflow commits index.html + run_cache.json + dataroma_cache.json in ONE commit)
 Step 11: exit code 1 if a red item needs attention (GitHub then emails you); NOTIFY_ON_FAILURE in main.py
@@ -125,7 +127,7 @@ Stale content on weekends is expected (no routine, no run).
 | market.py | ~330 | Yahoo SPX/RUT/VIX (previous close from bars), Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | ~400 | Dataroma (saved list, live only after a 13F deadline, one try/day, last_attempt stored in dataroma_cache.json), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. |
 | news.py | ~430 | Edward Jones scrape, CNBC/Yahoo IMAP (INBOX + Bulk/Spam, real Date header, read-only), text cleaning, calendar extractor (6000 chars). Returns (text, meta). |
-| ai_synthesis.py | ~500 | Sonnet 5.5 -> Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries; 10 s wait only between Sonnet and Haiku after a temporary error; 1500 max tokens. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
+| ai_synthesis.py | ~570 | Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries, no waits; 2000 max tokens. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
 | health.py | ~270 | All freshness rules and health items (ok/warn/bad), per-row age limits (max_age_for), 13F deadline helpers. Pure functions, no network. |
 | timeutil.py | ~70 | NEW. Boise time with daylight saving (zoneinfo, with a built-in fallback for Windows without tzdata). |
 | html_builder.py | ~1680 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header) |
@@ -154,7 +156,7 @@ value is expected behaviour when CAPE hasn't moved in 3 months due to 10yr smoot
 
 **ETF PE (URTH/EFA) -- 3-priority system:**
 - Priority 0: Claude Routine JSON (clauderoutinedata.json, fresh = today's date).
-  Source label shows "Claude Routine" with no timestamp. Always fresh by 7:50am MT.
+  Source label shows "Claude Routine" with no timestamp. Fresh whenever the routine ran today (the pipeline now starts from its push).
 - Priority 1: iShares fund characteristics CSV (free, no auth, "P/E Ratio" row)
 - Priority 2: PE_CONFIG dict in market.py (hardcoded quarterly fallback)
   Shows amber "UPDATE NEEDED" warning if >90 days stale.
@@ -163,14 +165,14 @@ value is expected behaviour when CAPE hasn't moved in 3 months due to 10yr smoot
 
 **Claude Routine -- TWO separate routines:**
 
-Routine 1: 4:00am MT -- "Pre-Market Briefing" (personal reading only, no file output)
+Routine 1: 4:00am MT -- "Pre-Market Briefing" (personal reading only, no file output; not re-checked in Session 15: ask the owner if it still runs)
 - Outputs formatted pre-market text briefing for Anil to read
 - Covers: futures, overnight macro (3 events), global markets, rates/oil, what to watch
 - Format: emoji-headed sections (OVERNIGHT / GLOBAL MARKETS / FUTURES / RATES & OIL / WATCH TODAY)
 - NO GitHub commit, NO clauderoutinedata.json write
 
 Routine 2: 7:40am MT -- "Daily Market Warmup" (machine-readable JSON, writes clauderoutinedata.json)
-- 6-minute gap before 7:50am pipeline
+- (Old note: a 6 minute gap before a fixed 7:50am pipeline. Since the push-triggered change the pipeline starts from the routine's push, so no gap needs managing.)
 - Model: Sonnet 4.6 (changed from Opus 5.5 in Session 12 -- same output, lower cost)
 - Contains sections A-G: futures, ETF PE, macro/rates, sector movers, global markets,
   open_focus, AND market_prices
@@ -267,13 +269,14 @@ Routine 2: 7:40am MT -- "Daily Market Warmup" (machine-readable JSON, writes cla
 - REGULAR -> OPEN, PRE -> PRE, POST -> POST, CLOSED -> CLOSED.
 - GitHub Actions IPs blocked by Yahoo for JS/crumb-based API -- only v8 basic fetch works.
 
-**AI Synthesis fallback chain (confirmed working Sep 28 2026):**
+**AI Synthesis fallback chain (current since Session 15, Sep 30 2026; confirmed working on the 9:02 PM run):**
 ```
-gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard, resets daily)
-  -> gemini-3.5-flash  (free, 1,500 RPD, confirmed stable model ID)
-  -> claude-haiku-4-5  (paid, ~$0.01-0.02/run depending on prompt size)
-  -> structured text   (always works, no AI narrative)
+claude-haiku-4-5      (paid, $1 / $5 per million tokens, about $0.007 to $0.015 per run)
+  -> gemini-3.6-flash (free tier, one try, no wait, a different company)
+  -> structured text  (always works, no AI narrative)
 ```
+(Claude Sonnet 5.5 was first until Session 15 and was dropped, see the AI model chain rule below.
+gemini-3.5-flash was a second Gemini step earlier and was dropped from the chain before Session 15.)
 
 **Critical Gemini notes:**
 - _call_gemini() uses client.models.generate_content() NOT client.interactions.create()
@@ -282,10 +285,11 @@ gemini-3.6-flash  (free, ~20 RPD confirmed from AI Studio dashboard, resets dail
 - gemini-2.5-flash does NOT exist as a valid API model string -- causes 404. Use gemini-3.5-flash.
 - gemini-1.5-flash is dead/removed from free tier.
 - gemini-3.6-flash free tier limit: ~20 RPD (confirmed from AI Studio rate limit dashboard).
-  If RPD exceeded, falls through to gemini-3.5-flash, then Haiku.
+  If it fails (503 high demand or the daily limit), the fallback text is used. Gemini 3.8 Flash also exists (released
+  Sep 2 2026, paid $0.75 / $3.75 per million, doubles Jan 1 2027); it is not in the chain.
 - AFC warning from Google SDK is advisory only -- not an error. No code change needed.
   Appears as "Direct use of AFC in Models.generate_content is not recommended" in run log.
-- Do NOT set up Gemini billing -- Haiku fallback costs less and produces better output.
+- Do NOT set up Gemini billing -- Haiku costs less and produces better output (Haiku is now the first model).
 
 **Haiku cost math (confirmed from Anthropic dashboard Sep 2026):**
 - Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
@@ -455,7 +459,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Warning triangle = DATA problem only. Amber = cached or later than expected. Red = missing. Nothing else uses it.
 - Every source reports the date of its REAL content. Freshness rules live in health.py (MAX_AGE_DAYS by frequency).
 - Failure never becomes an empty success. Live -> saved copy -> visible flag. Never overwrite a good copy with empty.
-- The top of the page has ONE quiet line: "Data health OK · Briefing by Gemini 3.8 Flash" (plain grey text). It becomes an
+- The top of the page has ONE quiet line: "Data health OK · Briefing by Claude Haiku 4.5" (plain grey text). It becomes an
   amber or red box, listing each problem, only when something is wrong. There is no separate AI banner any more.
 - Red items marked notify=True end the run with exit code 1 (after publishing) so GitHub emails you.
   AI and news problems never trigger the email. Switch: NOTIFY_ON_FAILURE in main.py.
@@ -473,22 +477,26 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
   When coding: deliver full files, list every change, and summarize at the end.
 - Dollar row: Fed broad index DTWEXBGS has a value for every day but FRED receives it weekly (Mondays, through the prior
   Friday), so it may be up to 10-11 days old: max_age_days = 11 in fred.py (health.max_age_for). Note text kept to 2 lines.
-- AI model chain (owner's design, Oct 1 2026): ONE try per model, NO retries (the owner does not want the assistant to
-  choose retry counts: ask before changing any of this). Order: Claude Sonnet 5.5 (about $0.02 to $0.03 per run, about $0.50
-  a month) -> Claude Haiku 4.5 -> Gemini 3.6 Flash (free tier, a different vendor) -> fallback text. The only wait in the
-  chain is SECONDS_BEFORE_HAIKU = 10 s, and only after a TEMPORARY Sonnet failure (503/529 overload, 429, timeout, network).
-  A PERMANENT error (404 model name not found or changed, 401 key rejected, 403 no access, 400 bad request) or a blank answer
-  skips the wait and goes straight to Haiku, and the top line of the page says so with a hint, for example
-  "Sonnet 5.5 HTTP 404, model not found, check the name". The Gemini-first order and the alias were dropped because the free
-  tier answered 503 and hit RPM limits. Gemini now runs only if both Claude models fail. Output limit 1500 tokens; all text
-  blocks are joined (a "thinking" block first is skipped). Evaluate Sonnet 5.5 after about a week (about Oct 8): if the
-  briefings are not better than Haiku, change the first entry back.
+- AI model chain (owner's design, REVISED in Session 15, Sep 30 2026 evening): ONE try per model, NO retries, NO waits (the
+  owner does not want the assistant to choose retry counts or waits: ask before changing any of this). Order: Claude Haiku 4.5
+  ($1 / $5 per million tokens, about $0.007 to $0.015 per run) -> Gemini 3.6 Flash (free tier, a different vendor, one try,
+  immediately) -> fallback text. Output limit 2000 tokens (raised from 1500; the owner asked for a suggestion; Haiku wrote 608
+  tokens on the Sep 30 evening run and 1,522 on one older run). All text blocks are joined. A blank answer counts as a failure and
+  moves on. Any Haiku failure, temporary or permanent, goes straight to Gemini and the top line of the page says why, for example
+  "Haiku 4.5 HTTP 404: model not found".
+  WHY SONNET 5.5 WAS DROPPED: it thinks by default. On its first runs it used all 1,500 output tokens thinking, returned no text
+  ("Blank response"), and Haiku rescued every run, so each run cost about 3 cents for Haiku quality text. The owner was offered
+  A (turn Sonnet's up-front thinking off, about 1.7 cents a run), B (keep thinking, raise max tokens) and C (Haiku first) and
+  chose C. The planned Oct 8 Sonnet versus Haiku comparison therefore did not happen (Sonnet never produced a briefing).
+  TO TRY SONNET AGAIN: the header of ai_synthesis.py lists the three edits, and Anthropic's docs must be checked first for how
+  to switch off or limit its thinking (the setting names mentioned earlier, such as "between_tools", were NOT verified).
 - Haiku 4.5 retirement: Anthropic lists it Active with "tentative retirement not sooner than Oct 15 2026" (a floor, not a date)
   and promises at least 60 days notice by email. Third-party sites that call Oct 15 a firm date are wrong. When Anthropic
-  deprecates it, move the second slot to the replacement.
+  deprecates it, move the first slot to the replacement. Haiku became the FIRST model in Session 15, so a retirement email matters more now
+  (re-checked Sep 30 2026: still Active, floor Oct 15 2026, no replacement published).
 - Pricing reference (Sep 30 2026): Haiku 4.5 $1/$5, Sonnet 5.5 $2/$10 (released Sep 28), Opus 5.5 $4/$20, Gemini 3.8 Flash
   $0.75/$3.75 (doubles Jan 1 2027; thinking tokens bill as output). Gemini free tier: rate limited, data may be used by Google.
-  Real Haiku cost from the Anthropic dashboard: $0.008 to $0.015 per run.
+  Real Haiku cost from the Anthropic dashboard: $0.008 to $0.015 per run. Sep 30 9:02 PM run: $0.0065 (3,501 in + 608 out).
 - TEST ON THE WORKFLOW'S PYTHON (3.13 since Oct 1 2026; was 3.11). The Sep 30 outage came from testing on a newer Python
   than the workflow used (3.11 forbids backslashes inside f-string {...}). Keep the laptop and the workflow on the same version.
 - ROUTINE = SEARCH ONLY: the Claude Code routine environment blocks page fetching (proxy allowlist; every fetch fails).
@@ -513,6 +521,8 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Cannot write to GitHub directly -- no repo connector available in chat sessions
 - Produces full file rewrites you paste into VS Code and commit manually
 - Best for: code review, bug diagnosis, full module rewrites, architecture decisions
+- The LIVE SITE fetched through chat can be an OLD cached copy (on Sep 30 evening it returned the 12:37 PM build). To see what
+  the pipeline really built, clone the repo and read index.html, or read the Actions run summary.
 
 **Claude Code CLI -- what it adds:**
 - Native read/write access to your entire repo without pasting any files
@@ -568,30 +578,24 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 
 ## OPEN ITEMS / NEXT SESSION
 
-1. **Verify the first push-triggered run after the Oct 1 2026 deployment:**
+1. **Watch the next push-triggered run (Thu Oct 1 2026, about 7:40 to 7:50 AM MT) with Haiku first:**
    - After the routine's push, a "MarketPulse Daily Briefing" run starts within about a minute (event shows "push").
-   - Top of page: one grey line, e.g. "Data health OK · Briefing by Gemini 3.x Flash" (the alias shows the model it picked).
-   - Market Performance card has no "as of" time; the S&P / Russell line has none either.
-   - Dollar row note is two lines; no false amber on Friday.
-   - No "Not financial advice" in the footer; the AAII reminder is still there.
-   - The backup schedule run appears around 9:17 AM and is a quick green "already built today" skip.
-   - Actions list: no more "skipped twin" runs.
+   - Top of page: grey line "Data health OK · Briefing by Claude Haiku 4.5". The Actions log shows a Cost line of about $0.007
+     to $0.015 and no "hit the 2000-token limit" warning.
+   - Page footer lists Haiku 4.5, then Gemini 3.6 Flash (fixed in Session 15).
+   - The backup run around 9:17 AM is a quick green "already built today" skip.
+   - If the top line shows Gemini plus an error, Haiku had a problem: read the error text on the page and tell the assistant.
 
-   - Briefing line says "Briefing by Claude Sonnet 5.5" and the Actions log shows a "Cost: ~$0.02" line. If it says Haiku with
-     "(Sonnet 5.5 HTTP 404)", the API key has no access to the new model: tell the assistant (not a code bug).
-   - First Sonnet run time: watch that the whole pipeline stays near 1 to 2 minutes.
-   - If the top line says "Sonnet 5.5 HTTP 404, model not found, check the name", the model name in ai_synthesis.py (or the
-     account's access) needs attention; Haiku wrote that day's briefing.
-
-   **To-dos for the owner:** (a) after Nov 2, glance at the routine time (should still be 7:40 local); (b) after Nov 17,
-   watch for the amber 13F reminder, the pipeline retries daily, else run `python fetch_cache.py` on the PC and commit
-   dataroma_cache.json; (c) optional cleanup when convenient: delete test_haiku.py and validate_routine.py (not used by the
-   restored routine); (d) when a real Axios Markets / WSJ Markets A.M. issue arrives, copy the sender address so it can be
-   added to news.py; (f) about Oct 8: judge the Sonnet 5.5 briefings; (g) newsletters: Axios Markets arrives in the morning (add to the pipeline),
-   Axios Macro (Neil Irwin, around lunchtime ET) and Closer (after the close) arrive later in the day, so they suit personal
-   reading, not the 7:45 AM run; AM/PM/Finish Line are the general-news Daily Essentials bundle (Finish Line is wellness);
-   (h) try Claude Code in VS Code for a small task (Manual permission mode first); (e) decide later whether to keep the routine's stockanalysis.com / Robinhood P/E or switch to an
-   iShares reference (both give the same URTH vs EFA discount of about 27%; absolute levels differ about 6%).
+   **To-dos for the owner:** (a) after Nov 2, glance at the routine time (should still be 7:40 local); (b) after Nov 17, watch for
+   the amber 13F reminder, the pipeline retries daily, else run `python fetch_cache.py` on the PC and commit dataroma_cache.json;
+   (c) DONE: test_haiku.py and validate_routine.py were deleted (commit 63e1294); (d) when a real Axios Markets / WSJ Markets A.M.
+   issue arrives, copy the sender address so it can be added to news.py; (e) decide later whether to keep the routine's
+   stockanalysis.com / Robinhood P/E or switch to an iShares reference (both give the same URTH vs EFA discount of about 27%;
+   absolute levels differ about 6%); (f) the Sonnet evaluation was dropped in Session 15 (see the AI model chain rule);
+   (g) newsletters: Axios Markets arrives in the morning (add to the pipeline), Axios Macro (Neil Irwin, around lunchtime ET)
+   and Closer (after the close) arrive later in the day, so they suit personal reading, not the 7:45 AM run; AM/PM/Finish Line are
+   the general-news Daily Essentials bundle (Finish Line is wellness); (h) learning Claude Code in VS Code (Manual mode,
+   CLAUDE.md added): ask the assistant to explain its prompts; (i) watch for an Anthropic email about Haiku 4.5 retirement.
 
 2. **MHS 20-day SMA** -- will appear ~Oct 17 2026 (4 trading weeks from Sep 19 2026 start).
    No action needed, just wait for data to accumulate.
@@ -619,6 +623,26 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 
 8. **Future: read more newsletters in the pipeline** (WSJ Markets A.M., Axios Markets; Daily Upside optional; Yardeni is weekly
    and teaser-length so it is not worth a special freshness rule). Needs each sender address from a real issue.
+
+9. **Reword the top line when only the AI fell back** (owner item, not done): "Data health OK" next to a warning triangle looks odd.
+   Rarer now that Haiku is first. Propose the wording first.
+
+10. **Market state says OPEN at night** (found Sep 30 9:02 PM MDT: log and run log both said OPEN). market.py (about line 305) maps
+    Yahoo's marketState and DEFAULTS to OPEN for any value it does not list (Yahoo may send values such as "POSTPOST"). The exact
+    value was not seen, so the cause is unconfirmed. Harmless at 7:45 AM MT (market really is open). Propose a fix before coding.
+
+11. **AI prompt review** (owner decides, nothing changed): the Haiku briefing of Sep 30 evening was good, but bullets run longer
+    than the 20 word limit, some numbers are repeated (PCE, Macro Heat Score, CAPE) although the prompt says not to, and the text
+    contained an em dash. Option: add "no em dashes" and a firmer word limit to the prompt.
+
+12. **Macro Heat Score fell from 87 to 77 on Sep 30** (owner's analysis: only because of the Core PCE band and trend rules, a
+    cliff effect). The v1.0 thresholds stay LOCKED. Discuss changing them only if the owner asks.
+
+13. **Known stale comment:** main.py line 46 still says "Sonnet 5.5 -> Haiku -> Gemini 3.6 (free)". Comment only; fix the next
+    time main.py changes.
+
+14. **CNBC Squawk:** the only mail seen is the welcome email ("Thank you for signing up", dated Sep 30); no real issue has arrived,
+    so the page treats that welcome text as the CNBC news. The owner chose earlier not to build a check for it.
 
 ---
 
@@ -988,7 +1012,7 @@ first Tue-Fri run that has a fuller brief.
 
 ---
 
-### Session 14 (continued), part 3 -- Oct 1 2026: push-triggered pipeline and polish
+### Session 14 (continued), part 3 -- written as "Oct 1 2026" but really Sep 30 2026 Boise time (commit 1d3b504, 4:59 PM MDT): push-triggered pipeline and polish
 **Files changed:** daily.yml, main.py, screens.py, health.py, fred.py, ai_synthesis.py, html_builder.py, fetch_cache.py, SESSION_LOG.md.
 Unchanged: news.py, market.py, timeutil.py. Everything tested on Python 3.13 (five failure scenarios plus same-day reuse and
 a date-simulated Dataroma test).
@@ -1024,7 +1048,7 @@ The earlier assumption that a manual run had caused the 12:37 build was WRONG (b
 
 ---
 
-### Session 14 (continued), part 4 -- Oct 1 2026 (evening): AI order and tooling answers
+### Session 14 (continued), part 4 -- Sep 30 2026 evening (first written as "Oct 1", the UTC date): AI order and tooling answers (the Sonnet-first part was reversed in Session 15)
 **Files changed:** ai_synthesis.py, html_builder.py (footer and status-line wording), main.py (comments only), SESSION_LOG.md.
 Tested on Python 3.13 (eight scenarios including Sonnet down, no access to Sonnet, Claude both down, everything down) and 3.14.
 
@@ -1045,6 +1069,41 @@ Haiku only after a temporary error, permanent errors go straight to Haiku with a
 - Claude Code in VS Code: with extension v2.1.283 or later the starting permission mode is Auto (edits most files without asking).
   For a first try switch the mode chip at the bottom of the prompt box to Manual ("Ask before edits"). To use a newer model such as
   Sonnet 5.5 the extension must be updated: Extensions view (Ctrl+Shift+X), find Claude Code, Update, then reload the window.
+
+---
+
+### Session 15 -- Sep 30 2026 (evening, Boise time): Haiku first, Sonnet dropped, log cleanup
+**Files changed:** ai_synthesis.py, html_builder.py (two lines), SESSION_LOG.md. Tested on Python 3.13.13.
+
+**Problem found:** Sonnet 5.5 thinks by default, used all 1,500 output tokens thinking and returned no text ("Blank response").
+Haiku rescued every run, so each run cost about 3 cents for Haiku quality text. The live page showed it: "Briefing by Claude
+Haiku 4.5 (Sonnet 5.5 ValueError: Blank response...)".
+
+**Owner decision: option C.** Haiku 4.5 first, Sonnet dropped for now. Output limit raised 1500 to 2000 on the assistant's suggestion
+(owner asked for one). Item "judge Sonnet around Oct 8" is retired.
+
+**Changes:**
+1. ai_synthesis.py (full file, 566 lines): order Haiku -> Gemini 3.6 Flash -> fallback text; Sonnet removed; the 10 s wait, the
+   temporary-error check (_is_temporary) and the time import removed (they only served the Sonnet to Haiku wait); CLAUDE_MAX_TOKENS
+   2000; price table has Haiku only; header explains why Sonnet was dropped and how to put it back.
+2. html_builder.py (two lines): footer now says "Claude Haiku 4.5 · Gemini 3.6 Flash (fallback)"; a docstring example fixed.
+3. SESSION_LOG.md: stale parts fixed (old model chain, top-line example, finished to-dos, routine details, date labels), this entry
+   and open items 9 to 14 added.
+
+**Tested (fake network, real code, Python 3.13):** Haiku works; Haiku 503 then Gemini; Haiku 404 then Gemini; Haiku blank then
+Gemini; everything down gives the fallback text. No test waited at all.
+
+**Confirmed working: Sep 30 2026, 9:02 PM MDT manual run:** 17/17 indicators, 27 s, MHS 77/100 OVERHEATED, SPX 7,652, RUT 2,797,
+VIX 16.34, CAPE 41.0, Haiku 2,394 chars, cost $0.0065 (3,501 in + 608 out). Page top line: "Data health OK · Briefing by Claude Haiku 4.5".
+
+**Facts checked by search:** Haiku 4.5 is Active, retirement not sooner than Oct 15 2026 (a floor), at least 60 days notice. Gemini
+3.8 Flash is real (released Sep 2 2026); the chain keeps 3.6 Flash as the owner chose.
+
+**Found, not fixed (see open items):** market state says OPEN at night (10); Haiku bullets longer than the prompt limit, repeated
+numbers and an em dash (11); CNBC only sends its welcome email (14); main.py comment (13). The live site fetched through chat was an
+old cached copy, so the repo's index.html was used to verify the build.
+
+**Date note:** entries first written as "Oct 1 2026" in Session 14 were really Sep 30 evening Boise time (the UTC date had rolled over).
 
 ---
 

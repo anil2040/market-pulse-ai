@@ -197,7 +197,7 @@ def _err_brief(err):
 def _build_status_line(items, ai_info, ai_failed):
     """
     ONE line at the top of the page.
-      Everything fine:  small grey text   "Data health OK · Briefing by Claude Sonnet 5.5"
+      Everything fine:  small grey text   "Data health OK · Briefing by Claude Haiku 4.5"
       Something wrong:  an amber (or red) box. First line = the same summary with the problem
                         count; below it one short line per data problem. The page stays quiet
                         unless there is something to look at.
@@ -1723,7 +1723,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
     <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
     <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
     <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
-    Claude Sonnet 5.5 · Claude Haiku 4.5 (fallback) · Gemini 3.6 Flash (fallback)
+    Claude Haiku 4.5 · Gemini 3.6 Flash (fallback)
   </div>
 </div>
 
