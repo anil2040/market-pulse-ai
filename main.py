@@ -17,7 +17,7 @@
 #   VIX/SPX/PE/MHS/ERP issues                      -> market.py
 #   Dataroma/Magic Formula/Acquirer's Multiple     -> screens.py
 #   Email / Edward Jones                           -> news.py
-#   AI models (Sonnet/Haiku/Gemini) and AI output  -> ai_synthesis.py
+#   AI models (Haiku/Gemini) and AI output         -> ai_synthesis.py
 #   Freshness rules, warning banner logic          -> health.py
 #   Dashboard display issues                       -> html_builder.py
 #   Boise time / daylight saving                   -> timeutil.py
@@ -41,9 +41,10 @@
 #   3.  Market data: SPX, RUT, VIX, ETF PE (market.py)
 #   4.  MHS Macro Heat Score (market.py)
 #   5.  Dataroma 13F, Magic Formula, Acquirer's Multiple (screens.py)
-#   6.  Edward Jones, CNBC, Yahoo Morning Brief (news.py)
+#   6.  Edward Jones, CNBC, Yahoo Morning Brief, WSJ Markets A.M., Axios Markets,
+#       Yardeni QuickTakes (news.py)
 #   7.  Health checks on all of the above (health.py)
-#   8.  AI synthesis -- Sonnet 5.5 -> Haiku -> Gemini 3.6 (free) -> fallback text (ai_synthesis.py)
+#   8.  AI synthesis -- Haiku -> Gemini 3.6 (free) -> fallback text (ai_synthesis.py)
 #   9.  Build HTML dashboard (html_builder.py)
 #   10. Save run_cache.json. The workflow commits everything in ONE commit.
 #   11. If a source needing your attention is RED, exit with code 1 so the
@@ -76,7 +77,8 @@ from market  import (fetch_market_indicators, compute_mhs, PE_CONFIG, PE_LAST_UP
 from screens import (fetch_superinvestor_buys, fetch_magic_formula,
                      fetch_acquirers_multiple)
 from news    import (scrape_edward_jones, fetch_cnbc_email,
-                     fetch_yahoo_morning_brief)
+                     fetch_yahoo_morning_brief, fetch_wsj_email,
+                     fetch_axios_email, fetch_yardeni_email)
 from ai_synthesis import synthesize_with_ai
 from html_builder import build_html
 
@@ -487,8 +489,11 @@ def _news_log(name, text, meta):
     st = meta.get("status")
     if st == "ok":
         note = f" ({meta['detail']})" if meta.get("detail") else ""
-        log(f"{name}: {len(text)} chars, dated {meta.get('date') or 'n/a'}{note}",
+        found = f" of {meta['words_in']}" if meta.get("words_in") else ""
+        log(f"{name}: {len(text.split())}{found} words, dated {meta.get('date') or 'n/a'}{note}",
             "⚠️" if meta.get("detail") else "✅")
+    elif meta.get("optional"):
+        log(f"{name}: not used today ({meta.get('detail', 'no recent email')})", "ℹ️")
     elif st == "stale":
         log(f"{name}: NOT USED -- {meta.get('detail', 'content too old')}", "⚠️")
     else:
@@ -498,7 +503,8 @@ def _news_log(name, text, meta):
 def _wrap_news():
     """
     News/email sources. No cache: stale news is dropped, not replayed.
-    Returns ej_text, cnbc_text, yahoo_text, yahoo_calendar, metas dict.
+    Returns ej_text, cnbc_text, yahoo_text, yahoo_calendar, metas dict, extra dict.
+    extra = {"wsj": text, "axios": text, "yardeni": text} (optional newsletters).
     """
     metas = {}
 
@@ -524,7 +530,16 @@ def _wrap_news():
     if yahoo_cal:
         log(f"Yahoo calendar: {len(yahoo_cal)} chars")
 
-    return ej_text, cnbc_text, yahoo_text, yahoo_cal, metas
+    extra = {}
+    for key, label, fn in (("wsj", "WSJ Markets A.M.", fetch_wsj_email),
+                           ("axios", "Axios Markets", fetch_axios_email),
+                           ("yardeni", "Yardeni QuickTakes", fetch_yardeni_email)):
+        r = safe(label, fn)
+        extra[key], metas[key] = r if r else ("", {"status": "error", "optional": True,
+                                                   "detail": f"{label} crashed"})
+        _news_log(label, extra[key], metas[key])
+
+    return ej_text, cnbc_text, yahoo_text, yahoo_cal, metas, extra
 
 
 # ============================================================
@@ -548,6 +563,9 @@ def _collect_health(today, fred_data, routine_data, routine_fresh, commit,
     items.append(hl.check_news("Edward Jones", news_metas["ej"]))
     items.append(hl.check_news("CNBC Morning Squawk", news_metas["cnbc"]))
     items.append(hl.check_news("Yahoo Morning Brief", news_metas["yahoo"]))
+    items.append(hl.check_news("WSJ Markets A.M.", news_metas["wsj"]))
+    items.append(hl.check_news("Axios Markets", news_metas["axios"]))
+    items.append(hl.check_news("Yardeni QuickTakes", news_metas["yardeni"]))
     return items
 
 
@@ -617,7 +635,7 @@ if __name__ == "__main__":
     si_tickers, mf_list, am_list, screen_meta = _wrap_screens(cache)
 
     # Step 6: news & email
-    ej_text, cnbc_text, yahoo_text, yahoo_calendar, news_metas = _wrap_news()
+    ej_text, cnbc_text, yahoo_text, yahoo_calendar, news_metas, extra_news = _wrap_news()
 
     # Step 7: health checks (before the AI so it can be told what is stale)
     HEALTH = _collect_health(today_d, fred_data, routine_data, routine_fresh, commit,
@@ -634,6 +652,9 @@ if __name__ == "__main__":
         yahoo_calendar=yahoo_calendar,
         health_notes=hl.stale_notes_for_ai(HEALTH),
         today_name=now.strftime("%A"),
+        wsj_text=extra_news["wsj"],
+        axios_text=extra_news["axios"],
+        yardeni_text=extra_news["yardeni"],
     )
     HEALTH.append(hl.check_ai(ai_failed, ai_info))
     if ai_failed:

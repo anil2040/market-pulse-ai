@@ -114,7 +114,7 @@ Step 10: save run_cache.json    (workflow commits index.html + run_cache.json + 
 Step 11: exit code 1 if a red item needs attention (GitHub then emails you); NOTIFY_ON_FAILURE in main.py
 ```
 
-One normal run per weekday (plus the skip-if-built backup). Fun Fact and AI Learning regenerate each run.
+One normal run per weekday (plus the skip-if-built backup). Macro Insights and the Investor Note regenerate each run.
 Stale content on weekends is expected (no routine, no run).
 
 ---
@@ -126,12 +126,12 @@ Stale content on weekends is expected (no routine, no run).
 | fred.py | ~800 | Macro series (daily rates DGS10/DGS2/DFF), Yahoo gold and WTI (FRED oil fallback), CAPE from multpl by-month table, ICSA, GDPC1, lookback windows by frequency, trend colors, sparklines, interpretive insights (no symbols) |
 | market.py | ~330 | Yahoo SPX/RUT/VIX (previous close from bars), Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | ~400 | Dataroma (saved list, live only after a 13F deadline, one try/day, last_attempt stored in dataroma_cache.json), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. |
-| news.py | ~430 | Edward Jones scrape, CNBC/Yahoo IMAP (INBOX + Bulk/Spam, real Date header, read-only), text cleaning, calendar extractor (6000 chars). Returns (text, meta). |
-| ai_synthesis.py | ~570 | Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries, no waits; 2000 max tokens. Returns (briefing, failed, ai_info). Prompt has as-of dates, data caveats, calendar from today. |
-| health.py | ~270 | All freshness rules and health items (ok/warn/bad), per-row age limits (max_age_for), 13F deadline helpers. Pure functions, no network. |
+| news.py | ~750 | Edward Jones scrape (300 line cap), IMAP fetch of CNBC, Yahoo, WSJ Markets A.M., Axios Markets, Yardeni QuickTakes (INBOX + Bulk/Spam, real Date header, read-only). Cuts each newsletter BY SECTION (_extract_sections: start and end markers, sponsor blocks, noise lines), prints an input receipt per source, calendar extractor (6000 chars). Returns (text, meta). |
+| ai_synthesis.py | ~570 | Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries, no waits; 2000 max tokens. Returns (briefing, failed, ai_info). Short prompt (about 150 words) writing MACRO INSIGHTS (8 to 10 bullets) and INVESTOR NOTE from six news sources (whole kept text, 1500 word safety ceiling each). Prompt also has as-of dates, data caveats, calendar from today. |
+| health.py | ~335 | All freshness rules and health items (ok/warn/bad), per-row age limits (max_age_for), 13F deadline helpers. check_news treats meta["optional"] sources (WSJ, Axios, Yardeni) as OK when missing or old. Pure functions, no network. |
 | timeutil.py | ~70 | NEW. Boise time with daylight saving (zoneinfo, with a built-in fallback for Windows without tzdata). |
-| html_builder.py | ~1680 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header) |
-| main.py | ~690 | Orchestrator, per-source cache fallback, same-day reuse for Magic Formula / Acquirer's Multiple, health assembly, step summary, exit code |
+| html_builder.py | ~1700 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header), Investor Note card, one Macro Insights card, footer with FRED notice and AI line only |
+| main.py | ~700 | Orchestrator, per-source cache fallback, same-day reuse for Magic Formula / Acquirer's Multiple, six news sources, health assembly, step summary, exit code |
 | fetch_cache.py | ~60 | Local tool only (not in the workflow). Refreshes dataroma_cache.json from your PC. |
 | debug_etf_pe.py | 214 | Quarterly diagnostic -- run manually to re-audit PE sources |
 
@@ -297,13 +297,15 @@ gemini-3.5-flash was a second Gemini step earlier and was dropped from the chain
 - Token count varies because prompt includes news email text + calendar + FRED block (all variable)
 - Cost logged dynamically from message.usage object -- no hardcoded estimate
 
-**AI Synthesis -- 4 sections (Earnings & Events removed Sep 2026, VALUE SCREENS removed Session 14):**
+**AI Synthesis -- 2 sections (rewritten Session 15; before that 4 sections):**
 ```
-MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
+MACRO INSIGHTS | INVESTOR NOTE
 ```
-- MARKET AND MACRO and WHAT TO WATCH shown as true 2-column CSS grid.
-  Left col: "Macro Interpretation" (blue label). Right col: "What to Watch" (green label).
-- Both columns: max 5 bullets each (was 6-8 left / 3-4 right -- balanced in Session 14).
+- MACRO INSIGHTS: one full-width card, 8 to 10 bullets, most important first, ending with what could change
+  the picture. Each bullet 1 to 3 sentences. No "max 5" and no "max 20 words" any more.
+- INVESTOR NOTE: 1 or 2 sentences, a timeless value investing idea (no statistics, names or dates). Shown as
+  a small card at the top of the page. Replaced the Fun Fact and AI Learning cards.
+- The old two columns (Macro Interpretation / What to Watch) are gone: the weekly calendar box already lists events.
 - VALUE SCREENS intentionally NOT in AI prompt (removed Session 14):
   si_tickers, mf_list, am_list accepted as parameters for signature compat but NOT sent to AI.
   Saves ~200-250 input tokens/run. Prevents AI generating ticker-specific commentary in briefing.
@@ -311,9 +313,9 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 - No data regurgitation -- interpretive macro implications only.
 - Yahoo calendar injected as WEEK AHEAD block in prompt for date-specific events.
 - Claude Routine pre-market intelligence injected as PRE-MARKET INTELLIGENCE block (once only).
-- Fun Fact and AI Learning regenerate fresh every weekday run.
-- Text limits (raised Session 14): EJ 1500 chars, CNBC 1200 chars, Yahoo Brief 1200 chars.
-  Log line prints when any source is truncated (visible in GitHub Actions run log).
+- NEWS INPUT (Session 15): no character caps. news.py keeps the useful sections of each of six sources
+  (about 3,000 words in total); ai_synthesis.py sends them whole with a 1500 word safety ceiling per source
+  (a log line prints if it ever bites). Sources missing today are left out of the prompt.
 
 **Value Screens -- return types (Sep 2026):**
 - SI: dict {ticker: count} -- unchanged
@@ -415,12 +417,12 @@ MARKET AND MACRO | WHAT TO WATCH | AI FUN FACT | AI LEARNING
 
 **Dashboard layout (DO NOT CHANGE WIDTH/LAYOUT):**
 ```
-1.  Fun Fact + AI Learning        -- display:grid 1fr 1fr (same width as all cards)
+1.  Investor Note                 -- one full-width gradient card (Session 15)
 2.  Earnings & Economic Calendar  -- full width single card
 3.  MHS score + history SVG chart -- full width single card
 4.  Market Performance + Market Sentiment -- display:grid 1fr 1fr (always side by side)
 5.  Global Market Valuation       -- full width (CAPE + URTH + EFA + ERP)
-6.  Market & Macro                -- full width (2-col grid INSIDE card: Macro / What to Watch)
+6.  Macro Insights                -- full width, one bullet list (Session 15)
 7.  Value Screens                 -- full width, COLLAPSED by default (click header to expand)
 8.  Macro Indicators table        -- full width (17 rows: 15 original + ICSA + GDPC1)
 9.  Run log                       -- collapsed button, expands to show all pipeline steps
@@ -447,7 +449,15 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 - Calendar section is at the END of the email (~char 7,874 in clean text, ~20,000+ in raw HTML).
   char_limit must be None to avoid truncating before the calendar section.
 - _fetch_email_raw(prefer_html=True, char_limit=None) for Yahoo Brief only.
-- CNBC Morning Squawk: default (prefer_html=False, char_limit=2500) -- plain text works fine.
+- CNBC Morning Squawk: plain text part works fine; Session 15 keeps the market line and the five numbered items
+  and drops "The Daily Dividend" and everything after it.
+- Yahoo main text (Session 15): from "Good morning" up to "Market snapshot" (intro, issue list, what we are
+  watching, headlines), about 250 words. Safety net: if that cut is under 150 words it retries with the
+  "Powered by" line. The calendar is still extracted separately from the full email.
+- New optional sources (HTML, paragraphs kept together by _html_to_blocks): WSJ Markets A.M. (sender
+  access@interactive.wsj.com, subject must contain "Markets A.M.", domain fallback OFF), Axios Markets
+  (markets@axios.com), Yardeni QuickTakes (yardeni-research@ghost.io, domain fallback OFF, newest within 7 days,
+  cut at the "Upgrade to continue reading" paywall line, labelled "(Posted <date>)").
 
 **fetch_cache.py (RESOLVED Session 14 continued):**
 - It is no longer part of the workflow and no longer touches Acquirer's Multiple (that was the old
@@ -631,18 +641,33 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
     Yahoo's marketState and DEFAULTS to OPEN for any value it does not list (Yahoo may send values such as "POSTPOST"). The exact
     value was not seen, so the cause is unconfirmed. Harmless at 7:45 AM MT (market really is open). Propose a fix before coding.
 
-11. **AI prompt review** (owner decides, nothing changed): the Haiku briefing of Sep 30 evening was good, but bullets run longer
-    than the 20 word limit, some numbers are repeated (PCE, Macro Heat Score, CAPE) although the prompt says not to, and the text
-    contained an em dash. Option: add "no em dashes" and a firmer word limit to the prompt.
+11. **AI prompt review: DONE in Session 15 part 2.** New short prompt (see the ai_synthesis.py header). Judge the first real
+    briefings: are the bullets coherent, no invented reasons, no dashboard numbers repeated, no em dashes? If the ISM style
+    mistake (a forecast read as a limit) comes back, add one short line about "expected" values.
 
 12. **Macro Heat Score fell from 87 to 77 on Sep 30** (owner's analysis: only because of the Core PCE band and trend rules, a
     cliff effect). The v1.0 thresholds stay LOCKED. Discuss changing them only if the owner asks.
 
-13. **Known stale comment:** main.py line 46 still says "Sonnet 5.5 -> Haiku -> Gemini 3.6 (free)". Comment only; fix the next
-    time main.py changes.
+13. **Stale main.py comment about Sonnet: FIXED in Session 15 part 2.**
 
-14. **CNBC Squawk:** the only mail seen is the welcome email ("Thank you for signing up", dated Sep 30); no real issue has arrived,
-    so the page treats that welcome text as the CNBC news. The owner chose earlier not to build a check for it.
+14. **CNBC Squawk: RESOLVED.** Real issues arrive now (Oct 1 issue was 2,500 characters of news).
+
+15. **Check the first real run's INPUT RECEIPTS** (Actions log, lines starting with the receipt icon, and the Run Log on the
+    page). For each of WSJ, Axios, CNBC, Yahoo, Yardeni the method should say "sections". If it says "no markers" or "no end
+    marker", that newsletter's layout differs from the sample and its start or end markers in news.py need adjusting.
+    Also see how many words Edward Jones sends: the old cap was 120 lines and may have cut the recap; it is now 300 lines.
+    Expected total about 3,000 words. Mailbox logins went from 2 to 5 per run; if Yahoo ever throttles, look there first.
+
+16. **FRED terms of use (owner to read before sharing the page broadly).** The St. Louis Fed's 2024 update says the API may not be
+    used to store or cache FRED content, to give stored FRED content to third parties, or in connection with developing or
+    training AI systems. This pipeline keeps FRED values in run_cache.json (public repo) and sends them to Haiku in the prompt
+    (use, not training). Not a lawyer; the full terms text was not read. The footer now carries the notice the terms ask for.
+
+17. **Newsletters reviewed and skipped (do not revisit without a new reason):** Five With Fitz (his footer forbids submitting the
+    content to any AI tool, and the tone is momentum hype, the opposite of a value lens), The Daily Upside (about 10% macro, rest
+    single companies and ads), Morning Brew (about 20% macro, varying lead story, duplicates the others), Finks (three paid
+    sponsor blocks for an OTC share offering; the one useful nugget was memory stocks at single-digit forward earnings).
+    Morning Brew mentions a separate "Brew Markets" edition that was never seen.
 
 ---
 
@@ -1104,6 +1129,29 @@ numbers and an em dash (11); CNBC only sends its welcome email (14); main.py com
 old cached copy, so the repo's index.html was used to verify the build.
 
 **Date note:** entries first written as "Oct 1 2026" in Session 14 were really Sep 30 evening Boise time (the UTC date had rolled over).
+
+---
+
+### Session 15 part 2 -- Oct 1 2026 (evening, Boise time): six news sources, new prompt, one Macro Insights card
+**Why:** the AI only read about 200 words each of CNBC and Yahoo (1,200 character caps cut off the Fed story and most items). The
+owner wants the briefing to REPLACE reading the newsletters and to feed a stock-analysis project.
+
+**Owner decisions (all recorded here):**
+- Six sources: Edward Jones (website recap), CNBC, Yahoo, plus new WSJ Markets A.M., Axios Markets, Yardeni QuickTakes.
+  Skipped: see open item 17.
+- Words, not characters. Cut by section (ads, quote tables, sponsor blocks, sign-offs removed), not by a blind cap.
+- Source tags and "one strategist argues" attributions rejected as wasted output tokens. The sources are not named in the briefing.
+- Bullet limits dropped (5 bullets and 20 words were unrealistic). One Macro Insights card instead of two columns.
+- Fun Fact and AI Learning replaced by one Investor Note. Footer reduced to FRED (with its notice) and the AI line.
+- Yahoo: Monday's calendar is kept for the week by html_builder's cache (unchanged). The AI still gets the "week ahead from today" block.
+- The three new newsletters are OPTIONAL: missing or old is shown as OK ("not used today"), never as a warning.
+
+**Files changed (5):** news.py, main.py, health.py, ai_synthesis.py, html_builder.py (plus this log).
+**Tested (Python 3.13, fake network, your newsletter PDFs' text plus an HTML test):** each cut keeps what it should and drops what it should;
+changed layouts fall back to the whole email minus footer (1500 word ceiling); empty and missing emails are quiet; the AI answer parser
+handles markdown, bold, numbered and colon headers; all models failing still builds the page; the full dashboard builds.
+Prompt measured: about 2,840 news words, about 3,700 words in total, zero dashes. Expected cost about $0.01 to $0.015 per run.
+**Not tested (cannot be, offline):** the real HTML of today's emails. The first real run prints a receipt per source (open item 15).
 
 ---
 

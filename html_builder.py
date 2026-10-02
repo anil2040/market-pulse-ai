@@ -46,7 +46,9 @@
 #   - Dir column REMOVED from FRED table (redundant with Trend sparkline)
 #   - Cache badge: stale indicators show amber "cached [date]" pill
 #   - MHS scale: EXTREME OVERHEATED threshold at 86
-#   - AI briefing: 2-column grid (Market & Macro + Earnings & Events)
+#   - AI briefing (Session 15): ONE full-width Macro Insights card + a short Investor Note card
+#     at the top (replaced the two columns and the Fun Fact / AI Learning cards)
+#   - Footer: only FRED (with the notice its terms ask for) and the AI line
 #   - SI-only filter: >= 3 managers
 # ============================================================
 
@@ -1456,15 +1458,12 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     # FRED table
     fred_rows = _build_fred_rows(fred_data, _trend_color, cache)
 
-    # AI fun fact / learning
-    fun_raw   = secs.get("AI FUN FACT",  "").strip()
-    learn_raw = secs.get("AI LEARNING",  "").strip()
-    if fun_raw:   fun_raw   = re.sub(r"^[-•*]\s*", "", fun_raw.splitlines()[0].strip())
-    else:         fun_raw   = ("Shiller CAPE above 40x has occurred only twice in 145 years: "
-                               "at the dot-com peak in 1999, and today.")
-    if learn_raw: learn_raw = re.sub(r"^[-•*]\s*", "", learn_raw.splitlines()[0].strip())
-    else:         learn_raw = ("Attention mechanism: LLMs weight relationships between all tokens "
-                               "simultaneously, enabling context-aware reasoning across long documents.")
+    # Investor note (one short idea; 1 or 2 sentences, joined into a single paragraph)
+    note_lines = [re.sub(r"^[-•*]\s*", "", ln.strip())
+                  for ln in secs.get("INVESTOR NOTE", "").strip().splitlines() if ln.strip()]
+    note_raw = " ".join(note_lines)
+    if not note_raw:
+        note_raw = "Margin of safety: pay a price that leaves room for being wrong."
 
     # Market context for Chrome extension
     mctx = _build_market_context(
@@ -1551,25 +1550,14 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 <div class="container">
   {status_line}
 
-  <!-- 1. AI Fun Fact + AI Learning -- quick daily orientation -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-    <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;
-                padding:11px 16px;display:flex;align-items:center;gap:12px;">
-      <div style="font-size:1.3rem;flex-shrink:0;">🤖</div>
-      <div>
-        <div style="font-size:.55rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-                    opacity:.6;margin-bottom:2px;">Fun Fact</div>
-        <div style="font-size:.82rem;line-height:1.5;opacity:.92;">{fun_raw}</div>
-      </div>
-    </div>
-    <div style="background:linear-gradient(135deg,#064e3b,#059669);color:white;border-radius:10px;
-                padding:11px 16px;display:flex;align-items:center;gap:12px;">
-      <div style="font-size:1.3rem;flex-shrink:0;">🧠</div>
-      <div>
-        <div style="font-size:.55rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-                    opacity:.6;margin-bottom:2px;">AI Learning</div>
-        <div style="font-size:.82rem;line-height:1.5;opacity:.92;">{learn_raw}</div>
-      </div>
+  <!-- 1. Investor Note -- one short idea for a long-term value investor -->
+  <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;
+              padding:11px 16px;display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+    <div style="font-size:1.3rem;flex-shrink:0;">🧭</div>
+    <div>
+      <div style="font-size:.55rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
+                  opacity:.6;margin-bottom:2px;">Investor Note</div>
+      <div style="font-size:.82rem;line-height:1.5;opacity:.92;">{note_raw}</div>
     </div>
   </div>
 
@@ -1621,29 +1609,16 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   <!-- 5. Global Valuation -- the structural backdrop -->
   {valuation_block}
 
-  <!-- 6. Market & Macro + What to Watch -- AI interpretation, true 2-column -->
+  <!-- 6. Macro Insights -- AI summary of the morning newsletters, one list, most important first -->
   <div class="card ab" style="margin-bottom:12px;">
-    <h2>📊 Market &amp; Macro
+    <h2>📊 Macro Insights
       <span style="font-weight:400;color:var(--muted);font-size:.55rem;">
-        · macro interpretation + what to watch
+        · what this morning's news adds up to
       </span>
     </h2>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
-      <div>
-        <div style="font-size:.53rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-                    color:var(--blue);margin-bottom:6px;">Macro Interpretation</div>
-        <ul style="margin:0;">
-          {fmt_bullets(secs.get("MARKET AND MACRO",""))}
-        </ul>
-      </div>
-      <div>
-        <div style="font-size:.53rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-                    color:#059669;margin-bottom:6px;">What to Watch</div>
-        <ul style="margin:0;">
-          {fmt_bullets(secs.get("WHAT TO WATCH",""))}
-        </ul>
-      </div>
-    </div>
+    <ul style="margin:0;">
+      {fmt_bullets(secs.get("MACRO INSIGHTS",""))}
+    </ul>
   </div>
 
   <!-- 7. Value Screens -- collapsed by default, click header to expand -->
@@ -1713,17 +1688,9 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   {run_log_html}
 
   <div class="footer" style="margin-top:20px;">
-    <a href="https://fred.stlouisfed.org" target="_blank">FRED API</a> &nbsp;·&nbsp;
-    <a href="https://www.cnn.com/markets/fear-and-greed" target="_blank">CNN Fear &amp; Greed</a> &nbsp;·&nbsp;
-    <a href="https://www.edwardjones.com/us-en/market-news-insights/stock-market-news/daily-market-recap"
-       target="_blank">Edward Jones</a> &nbsp;·&nbsp;
-    <a href="https://www.cnbc.com/newsletters/" target="_blank">CNBC Squawk</a> &nbsp;·&nbsp;
-    <a href="https://finance.yahoo.com" target="_blank">Yahoo Finance</a> &nbsp;·&nbsp;
-    <a href="https://www.dataroma.com" target="_blank">Dataroma 13F</a> &nbsp;·&nbsp;
-    <a href="https://www.magicformulainvesting.com" target="_blank">Magic Formula</a> &nbsp;·&nbsp;
-    <a href="https://acquirersmultiple.com" target="_blank">Acquirer's Multiple</a> &nbsp;·&nbsp;
-    <a href="https://www.multpl.com/shiller-pe" target="_blank">multpl.com CAPE</a> &nbsp;·&nbsp;
-    Claude Haiku 4.5 · Gemini 3.6 Flash (fallback)
+    Data: <a href="https://fred.stlouisfed.org" target="_blank">FRED&reg; API</a>.
+    This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
+    &nbsp;&middot;&nbsp; AI: Claude Haiku 4.5 &middot; Gemini 3.6 Flash (fallback)
   </div>
 </div>
 

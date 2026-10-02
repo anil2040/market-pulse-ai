@@ -182,12 +182,17 @@ def check_pe_sanity(mkt_data, pe_config, pe_ref_date, tolerance=0.12):
 # ------------------------------------------------------------
 
 def check_news(name, meta):
-    """meta comes from news.py: status ok / stale / missing / error."""
+    """meta comes from news.py: status ok / stale / missing / error.
+    meta["optional"] = True: a missing or old email is shown as OK ("not used today"), not as a warning."""
     status = meta.get("status")
     if status == "ok":
         if meta.get("detail"):                       # e.g. arriving in Bulk folder
             return item(name, WARN, meta["detail"], meta.get("date", ""))
         return item(name, OK, "fresh", meta.get("date", ""))
+    if meta.get("optional"):
+        # Optional newsletters (WSJ, Axios, Yardeni): missing or old is not a warning.
+        return item(name, OK, "not used today: " + meta.get("detail", "no recent email"),
+                    meta.get("date", ""))
     if status == "stale":
         age = meta.get("age_days") or 0
         return item(name, BAD if age > 10 else WARN, meta.get("detail", "content is old"),

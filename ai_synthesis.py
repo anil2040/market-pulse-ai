@@ -9,12 +9,14 @@
 #                "attempts": [{"model": ..., "error": ...}, ...]}  <- what failed first
 #   parse_sections(text)    -> dict {section_name: content_str}
 #
-# PROMPT PHILOSOPHY:
-#   Do NOT restate indicator values -- those are already in the
-#   dashboard tables. The AI must interpret what the combination
-#   means, identify tensions or confirmations between signals,
-#   and surface non-obvious implications for a value investor.
-#   Regurgitation = failure.
+# PROMPT PHILOSOPHY (rewritten in Session 15):
+#   The investor has no time to read the newsletters. The briefing REPLACES
+#   reading them and is also pasted into a stock-analysis project, so it must
+#   tell one coherent, self-contained story of the day. The model may use only
+#   what is in the data below (no memory, no guessing reasons), must not repeat
+#   numbers the dashboard already shows, must not name its sources, and must not
+#   use em or en dashes. Short on purpose: about 150 words of instructions.
+#   Output: MACRO INSIGHTS (8 to 10 bullets) and INVESTOR NOTE (1 or 2 sentences).
 #
 # CLAUDE ROUTINE INTEGRATION:
 #   Pre-market intelligence (futures, sentiment, rates, sector
@@ -22,6 +24,15 @@
 #   7:40am Claude Routine is injected into the prompt. When fresh,
 #   this provides today's context. When stale, it is included
 #   with a staleness note so the AI can weight it accordingly.
+#
+# CHANGES (Session 15, Sep 30 2026, part 2):
+#   - New prompt (see PROMPT PHILOSOPHY). Two sections instead of four:
+#     MACRO INSIGHTS and INVESTOR NOTE. The old "max 5 bullets" and "max 20 words"
+#     limits are gone (Haiku ignored the 20 word limit and it was too tight for insight).
+#   - Six news sources instead of three: WSJ Markets A.M., Axios Markets, CNBC,
+#     Yahoo, Yardeni, Edward Jones. news.py cuts each one by section (ads and
+#     footers removed); this file sends the whole kept text. Words, not characters.
+#   - Sources that are missing today are left out of the prompt entirely.
 #
 # CHANGES (Sep 29 2026):
 #   - Returns ai_info so the dashboard can say exactly WHY Gemini failed
@@ -80,11 +91,10 @@
 #   message logged to GitHub Actions. No truncation. Makes quota exhaustion,
 #   model errors, and auth failures immediately readable in the run log.
 #
-# TEXT LIMITS IN PROMPT (raised from original 800/600/600):
-#   EJ: 1500 chars  |  CNBC: 1200 chars  |  Yahoo Brief: 1200 chars
-#   Log line prints when text is truncated -- visible in Actions.
-#   Yahoo Brief IMAP fetch uses char_limit=None (full email) so nothing
-#   is lost before the prompt slicing.
+# NEWS INPUT (Session 15):
+#   No character caps any more. news.py already removed ads, quote tables and
+#   footers. Safety ceiling here: 1500 words per source (a log line prints if it
+#   ever bites). Order in the prompt: WSJ, Axios, CNBC, Yahoo, Yardeni, Edward Jones.
 #
 # VALUE SCREENS NOT IN PROMPT (intentional):
 #   si_tickers, mf_list, am_list are accepted as parameters for signature
@@ -93,9 +103,10 @@
 #   not in the macro briefing. Removing them keeps the AI focused on
 #   macro interpretation and saves ~250 input tokens per run.
 #
-# TWO-COLUMN LAYOUT -- BALANCED AT MAX 5 BULLETS EACH:
-#   MARKET AND MACRO: max 5 bullets (left column)
-#   WHAT TO WATCH:    max 5 bullets (right column)
+# ONE CARD (Session 15):
+#   MACRO INSIGHTS: one full-width card on the dashboard, 8 to 10 bullets.
+#   INVESTOR NOTE:  one short card at the top of the page.
+#   (The old two columns and the Fun Fact / AI Learning cards were removed.)
 #
 # CLAUDE COST NOTE:
 #   Haiku 4.5 pricing: $1.00/M input tokens, $5.00/M output tokens
@@ -331,9 +342,12 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                        fred_data, fg_data, mkt_data, mhs,
                        si_tickers, mf_list, am_list,
                        routine_data=None, routine_fresh=False,
-                       yahoo_calendar="", health_notes=None, today_name=None):
+                       yahoo_calendar="", health_notes=None, today_name=None,
+                       wsj_text="", axios_text="", yardeni_text=""):
     """
     Build prompt from all fetched data and call AI models in fallback order.
+    ej_text, cnbc_text, yahoo_text, wsj_text, axios_text, yardeni_text: the kept text of each
+    news source ("" when missing; missing sources are left out of the prompt).
     routine_data: parsed clauderoutinedata.json (or {} if unavailable)
     routine_fresh: True if routine date matches today MT
     health_notes: list of short strings describing stale/missing data
@@ -377,72 +391,74 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                         "do not build conclusions on them):\n"
                         + "\n".join(f"- {n}" for n in health_notes[:8]))
 
-    # ── Text limits with log notes ──────────────────────────────────────────
-    # Raised from original 800/600/600. Log lines visible in GitHub Actions
-    # when text is actually truncated so nothing is silently lost.
-    _EJ_LIMIT    = 1500
-    _CNBC_LIMIT  = 1200
-    _YAHOO_LIMIT = 1200
+    # ── News inputs: the whole kept text of each source (news.py already cut ads and
+    # footers). Safety ceiling only; a log line prints when it bites.
+    _NEWS_WORD_CEILING = 1500
 
-    _NA = "(not available today)"
-    ej_trimmed    = ej_text   [:_EJ_LIMIT]    or _NA
-    cnbc_trimmed  = cnbc_text [:_CNBC_LIMIT]  or _NA
-    yahoo_trimmed = yahoo_text[:_YAHOO_LIMIT] or _NA
+    def _cut_words(txt, limit):
+        out, total = [], 0
+        for ln in txt.splitlines():
+            w = len(ln.split())
+            if total + w > limit:
+                break
+            out.append(ln)
+            total += w
+        return "\n".join(out)
 
-    if len(ej_text)    > _EJ_LIMIT:
-        print(f"  [AI] Prompt: EJ news truncated {len(ej_text)} -> {_EJ_LIMIT} chars")
-    if len(cnbc_text)  > _CNBC_LIMIT:
-        print(f"  [AI] Prompt: CNBC truncated {len(cnbc_text)} -> {_CNBC_LIMIT} chars")
-    if len(yahoo_text) > _YAHOO_LIMIT:
-        print(f"  [AI] Prompt: Yahoo Brief truncated {len(yahoo_text)} -> {_YAHOO_LIMIT} chars")
+    news_sources = [
+        ("WSJ MARKETS A.M.",    wsj_text),
+        ("AXIOS MARKETS",       axios_text),
+        ("CNBC MORNING SQUAWK", cnbc_text),
+        ("YAHOO MORNING BRIEF", yahoo_text),
+        ("YARDENI QUICKTAKES",  yardeni_text),
+        ("EDWARD JONES RECAP",  ej_text),
+    ]
+    news_parts, news_words = [], 0
+    for label, txt in news_sources:
+        txt = (txt or "").strip()
+        if not txt:
+            continue
+        n = len(txt.split())
+        if n > _NEWS_WORD_CEILING:
+            print(f"  [AI] Prompt: {label} cut {n} -> {_NEWS_WORD_CEILING} words")
+            txt = _cut_words(txt, _NEWS_WORD_CEILING)
+            n = len(txt.split())
+        news_parts.append(f"{label}:\n{txt}")
+        news_words += n
+    news_block = "\n\n".join(news_parts) if news_parts else "(no news sources available today)"
+    print(f"  [AI] Prompt news input: {len(news_parts)} sources, {news_words} words")
 
-    prompt = f"""You are a sharp financial analyst writing a morning briefing for a
-deep-value mean reversion investor (Greenblatt, Carlisle, Howard Marks, Burry, Pabrai
-style). US-focused but holds international ADRs. Long-term holder, not a trader.
+    from timeutil import now_mt
+    _now = now_mt()
+    today_label = f"{_now.strftime('%A, %B')} {_now.day}, {_now.year}"
 
-STRICT OUTPUT FORMAT -- use EXACTLY these 4 headers, nothing else:
+    prompt = f"""You are a financial analyst writing the morning briefing for a deep-value,
+mean-reversion investor (Greenblatt, Marks, Burry, Pabrai style). US focused,
+long-term holder, not a trader.
 
-MARKET AND MACRO
-WHAT TO WATCH
-AI FUN FACT
-AI LEARNING
+The investor has no time to read the newsletters below. Your briefing replaces
+them, and it is also pasted into a stock-analysis project as macro context. Tell
+one coherent story of what is happening in markets and the economy today and
+what it means for a long-term value investor.
 
-CRITICAL RULES -- READ CAREFULLY:
+Under the header MACRO INSIGHTS write 8 to 10 bullets, most important first,
+ending with what could change the picture next. Each bullet is 1 to 3 sentences
+and makes sense on its own. Merge repeated facts. Skip one-off company stories.
 
-1. DO NOT restate raw indicator numbers. VIX, SPX %, CAPE, Macro Heat Score,
-   Fear & Greed score -- these are already shown in the dashboard tables. The
-   investor sees them before reading your briefing. Repeating them is noise.
+Use only what the data below says. Add nothing from memory and do not guess
+reasons. If unsure, leave it out. Do not repeat numbers the dashboard already
+shows (VIX, index moves, CAPE, Macro Heat Score, Fear and Greed, the macro
+indicators). Do not name the sources.
 
-2. INTERPRET, do not describe. Instead of "VIX is 15 indicating calm markets",
-   say what that calm means for a value investor today given everything else --
-   e.g. "Low volatility with negative ERP is an unusual combination -- cheap
-   protection available while stocks price in perfection."
+Under the header INVESTOR NOTE write 1 or 2 sentences: a timeless value
+investing idea that fits today's picture. No statistics, names or dates.
 
-3. Look for TENSIONS and CONFIRMATIONS between signals. When two indicators
-   point different directions (e.g. credit spreads tight but gold rising),
-   name the tension and what it might mean. When multiple signals align
-   (e.g. CAPE extreme AND ERP negative AND Fear & Greed in greed), say what
-   that combination historically implies.
+One bullet per line starting with "- ". No bold or markdown. No em dashes or
+en dashes.
 
-4. MARKET AND MACRO: Max 5 bullets. Synthesize the FRED/macro picture WITH
-   the pre-market intelligence (futures, sectors, global moves, open focus).
-   Surface what the COMBINATION means.
-   If there is a key macro event this week (Fed decision, CPI, jobs),
-   mention it here with the date and its implications.
+Today is {today_label}.
 
-5. WHAT TO WATCH: Max 5 bullets. Actionable mean reversion lens.
-   Name the macro trip wires -- what data prints or events would shift
-   the Macro Heat Score meaningfully up or down?
-
-6. AI FUN FACT: 1 surprising fact about AI, markets, or investing history.
-   Max 25 words. Not about the current data.
-
-7. AI LEARNING: 1 AI/ML concept in plain English, relevant to investing
-   or data analysis. Max 30 words.
-
-8. Each bullet: dash (-) prefix, max 20 words, no bold, no markdown headers.
-
-DATA (for interpretation -- do NOT repeat these numbers verbatim):
+DATA (for interpretation, do not repeat these numbers):
 
 MACRO HEAT SCORE: {mhs['score']}/100 -- {mhs['label']} | Posture: {mhs['action']}
 VALUATION: US CAPE={cape_val} (hist avg 17x) | {urth_str} | {efa_str}
@@ -455,10 +471,8 @@ MACRO INDICATORS:
 {calendar_block}
 {caveat_block}
 
-NEWS SOURCES (for macro context -- no stock-specific stories):
-EDWARD JONES: {ej_trimmed}
-CNBC SQUAWK: {cnbc_trimmed}
-YAHOO BRIEF: {yahoo_trimmed}
+NEWS:
+{news_block}
 """
 
     models_to_try = [
@@ -510,19 +524,13 @@ YAHOO BRIEF: {yahoo_trimmed}
             attempts.append({"model": short_name, "error": _short_error(e)})
 
     print("  ❌ All AI models failed -- using structured fallback")
-    fallback = """MARKET AND MACRO
-- AI synthesis unavailable today -- every model failed (see the notice at the top of the page)
-- Data tables below are still built from the live sources; check the data health notice for anything stale
+    fallback = """MACRO INSIGHTS
+- AI synthesis unavailable today. Every model failed (see the notice at the top of the page).
+- The data tables below are still built from the live sources. Check the data health notice for anything stale.
+- Review the Macro Heat Score, the weekly calendar and the indicator table directly.
 
-WHAT TO WATCH
-- Review the Macro Heat Score, the weekly calendar and the indicator table directly
-- Value screen chips below show today's conviction tickers
-
-AI FUN FACT
-- Shiller CAPE above 40x has occurred only twice in 145 years: 1999 and today.
-
-AI LEARNING
-- Attention mechanism: lets LLMs weight relationships between all tokens simultaneously."""
+INVESTOR NOTE
+- The price you pay sets the return you earn, so patience and a margin of safety do most of the work."""
     return fallback, True, {"model": None, "attempts": attempts}
 
 
@@ -532,15 +540,13 @@ AI LEARNING
 
 def parse_sections(text):
     """
-    Split raw AI output into 4 named sections.
-    Handles slight header variations (numbered, prefixed with #, etc).
+    Split raw AI output into 2 named sections: MACRO INSIGHTS and INVESTOR NOTE.
+    Handles slight header variations (numbered, prefixed with #, bold stars, colon).
     Returns dict {section_name: raw_content_str}.
     """
     secs = {
-        "MARKET AND MACRO": "",
-        "WHAT TO WATCH":    "",
-        "AI FUN FACT":      "",
-        "AI LEARNING":      "",
+        "MACRO INSIGHTS": "",
+        "INVESTOR NOTE":  "",
     }
     current = None
     for line in text.splitlines():
@@ -549,13 +555,15 @@ def parse_sections(text):
         cln = re.sub(r"^#+\s*",         "", cln)
         cln = re.sub(r"^\*+\s*",        "", cln)
         cln = cln.encode("ascii", "ignore").decode().strip()
+        cln = cln.rstrip("*:# ").strip()
 
-        if   "MARKET AND MACRO"  in cln: current = "MARKET AND MACRO"; continue
-        elif "WHAT TO WATCH"     in cln: current = "WHAT TO WATCH";    continue
-        elif "AI FUN FACT"       in cln: current = "AI FUN FACT";      continue
-        elif "AI LEARNING"       in cln: current = "AI LEARNING";      continue
-        elif "MARKET SUMMARY"    in cln: current = "MARKET AND MACRO"; continue
-        elif "FUN FACT" in cln and "AI" not in cln: current = "AI FUN FACT"; continue
+        # Only short lines can be headers (a long bullet must never switch sections)
+        is_header = len(cln) <= 40 and not cln.startswith("-")
+        if is_header and ("MACRO INSIGHT" in cln or "MARKET AND MACRO" in cln
+                          or "MARKET SUMMARY" in cln):
+            current = "MACRO INSIGHTS"; continue
+        if is_header and "INVESTOR NOTE" in cln:
+            current = "INVESTOR NOTE"; continue
 
         if current and line.strip():
             secs[current] += line.strip() + "\n"
