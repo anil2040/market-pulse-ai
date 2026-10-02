@@ -1,10 +1,10 @@
 {
-  "date": "2026-10-01",
-  "time_collected_utc": "12:10",
+  "date": "2026-10-02",
+  "time_collected_utc": "12:07",
   "futures": {
-    "sp500":     {"change_pct": 0.40, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.85, "direction": "up"},
-    "dow":       {"change_pct": 0.20, "direction": "up"},
+    "sp500":     {"change_pct": 0.35, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.69, "direction": "up"},
+    "dow":       {"change_pct": 0.41, "direction": "up"},
     "sentiment": "bullish"
   },
   "etf_pe": {
@@ -14,46 +14,46 @@
              "source": "robinhood.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.33,
-    "crude_oil_usd": 91.50,
+    "treasury_10yr_pct": 5.24,
+    "crude_oil_usd": 91.48,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "10-year Treasury yield climbed to 5.3338%, its highest level since April 2002, as markets price in extended higher-for-longer Fed policy into Q4",
-    "Micron Technology crushed Q4 2026 earnings forecasts on AI-driven demand surge, reigniting semiconductor enthusiasm and lifting Nasdaq futures sharply",
-    "Alphabet unveiled Gemini 4 Argon, its most advanced AI model, adding to tech sector optimism ahead of the open"
+    "September 2026 Nonfarm Payrolls due at 8:30 AM ET today, the primary catalyst as a gauge for the Fed's next rate decision after the September hold",
+    "10-year Treasury yield eased to 5.24% from the multi-decade high of 5.33% hit on October 1, offering slight relief to rate-sensitive equities",
+    "STOXX 600 rebounded 1.12% on Friday as European equities recovered from a steep weekly decline with U.S. yield pressure easing marginally"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",             "change_pct": 1.10, "reason": "Micron earnings beat and Alphabet Gemini 4 launch drove strong AI-sector demand"},
-      {"sector": "Communication Services", "change_pct": 0.60, "reason": "Alphabet Gemini 4 Argon launch lifted the sector broadly"}
+      {"sector": "Energy",     "change_pct": 0.90, "reason": "WTI crude holding near $91.50 supports energy shares ahead of NFP data release"},
+      {"sector": "Financials", "change_pct": 0.70, "reason": "Slight retreat in 10-year yields from multi-decade highs lifts bank and financial stocks"}
     ],
     "lagging": [
-      {"sector": "Real Estate", "change_pct": -0.80, "reason": "Treasury yields near multi-decade highs continue to hammer rate-sensitive REITs"},
-      {"sector": "Utilities",   "change_pct": -0.50, "reason": "Surging bond yields reduce relative appeal of dividend-yielding defensives"}
+      {"sector": "Real Estate", "change_pct": -0.60, "reason": "10-year yield at 5.24% continues to pressure rate-sensitive REITs"},
+      {"sector": "Utilities",   "change_pct": -0.40, "reason": "Elevated bond yields reduce relative appeal of dividend-paying defensive stocks"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.55},
-    "asia":   {"index": "Nikkei225", "direction": "up", "change_pct": 1.44}
+    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 1.12},
+    "asia":   {"index": "HangSeng", "direction": "down", "change_pct": -1.37}
   },
-  "open_focus": "Traders are focused on the surge in 10-year Treasury yields above 5.33%, their highest level since 2002, as a counterweight to the AI-driven tech rally fueled by Micron's blowout earnings and Alphabet's Gemini 4 launch.",
+  "open_focus": "Traders are focused on the September 2026 Nonfarm Payrolls report due at 8:30 AM ET, with a strong print potentially pushing the 10-year yield back above 5.33% and a weak number opening the door to renewed Fed rate cut expectations.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7651.54,
-      "current":    7691.21,
-      "change_pct": 0.52,
-      "source_time_et": "08:10"
+      "prev_close": 7675.49,
+      "current":    7701.50,
+      "change_pct": 0.34,
+      "source_time_et": "07:07"
     },
     "rut": {
-      "prev_close": 2793.00,
-      "current":    2805.00,
-      "change_pct": 0.43,
-      "source_time_et": "08:10"
+      "prev_close": 2805.00,
+      "current":    2815.65,
+      "change_pct": 0.38,
+      "source_time_et": "07:07"
     },
     "vix": {
-      "prev_close": 18.10,
-      "current":    16.85
+      "prev_close": 16.85,
+      "current":    15.97
     }
   }
 }
