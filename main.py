@@ -78,7 +78,7 @@ from screens import (fetch_superinvestor_buys, fetch_magic_formula,
                      fetch_acquirers_multiple)
 from news    import (scrape_edward_jones, fetch_cnbc_email,
                      fetch_yahoo_morning_brief, fetch_wsj_email,
-                     fetch_axios_email, fetch_yardeni_email)
+                     fetch_axios_email, fetch_yardeni_email, close_mail)
 from ai_synthesis import synthesize_with_ai
 from html_builder import build_html
 
@@ -539,6 +539,7 @@ def _wrap_news():
                                                    "detail": f"{label} crashed"})
         _news_log(label, extra[key], metas[key])
 
+    close_mail()                                     # one shared Yahoo login for all emails
     return ej_text, cnbc_text, yahoo_text, yahoo_cal, metas, extra
 
 

@@ -15,8 +15,18 @@
 #   tell one coherent, self-contained story of the day. The model may use only
 #   what is in the data below (no memory, no guessing reasons), must not repeat
 #   numbers the dashboard already shows, must not name its sources, and must not
-#   use em or en dashes. Short on purpose: about 150 words of instructions.
-#   Output: MACRO INSIGHTS (8 to 10 bullets) and INVESTOR NOTE (1 or 2 sentences).
+#   use em or en dashes. Short on purpose: about 130 words of instructions.
+#   Output: one section, MACRO INSIGHTS (8 to 10 items; the page shows them numbered).
+#
+# SESSION 15 PART 3 (after the first real run, Oct 1 evening):
+#   - Dashboard numbers (FRED indicators, CAPE, ex-US P/E, Macro Heat Score): with them
+#     mixed into every insight, 5 of 10 insights blended dashboard numbers into the news
+#     story. Now they sit in their own block AFTER the news, and the model may use them
+#     ONLY in one FINAL bullet, a "dashboard read" (owner's idea). The other bullets come
+#     from the news only.
+#   - INVESTOR NOTE removed (owner: it repeated the same story, not useful).
+#   - Em and en dashes are replaced in code after the model answers (_no_dashes), because
+#     Haiku used them in spite of the instruction.
 #
 # CLAUDE ROUTINE INTEGRATION:
 #   Pre-market intelligence (futures, sentiment, rates, sector
@@ -338,6 +348,21 @@ ETF PE (routine source): URTH={urth_pe}x | EFA={efa_pe}x"""
 # MAIN SYNTHESIS
 # ============================================================
 
+def _no_dashes(text):
+    """
+    Owner rule: no em dashes or en dashes anywhere. Haiku uses them anyway, so replace them here.
+    Em dash -> comma ("wealth, now $74 trillion"); en dash between numbers -> hyphen ("3-4");
+    any other en dash -> comma.
+    """
+    if not text:
+        return text
+    text = re.sub(r"\s*\u2014\s*", ", ", text)
+    text = re.sub(r"(?<=\d)\s*\u2013\s*(?=\d)", "-", text)
+    text = re.sub(r"\s*\u2013\s*", ", ", text)
+    text = re.sub(r",\s*,", ",", text)
+    return text
+
+
 def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                        fred_data, fg_data, mkt_data, mhs,
                        si_tickers, mf_list, am_list,
@@ -441,31 +466,22 @@ them, and it is also pasted into a stock-analysis project as macro context. Tell
 one coherent story of what is happening in markets and the economy today and
 what it means for a long-term value investor.
 
-Under the header MACRO INSIGHTS write 8 to 10 bullets, most important first,
-ending with what could change the picture next. Each bullet is 1 to 3 sentences
-and makes sense on its own. Merge repeated facts. Skip one-off company stories.
+Under the header MACRO INSIGHTS write 8 to 10 bullets from the news, most
+important first, ending with what could change the picture next. Then add one
+final bullet, a dashboard read: what the dashboard numbers below say together
+(rates, inflation, credit, valuation, Macro Heat Score), tied to the day's news
+only where the news supports it. Each bullet is 1 to 3 sentences and makes sense
+on its own. Merge repeated facts. Skip one-off company stories.
 
 Use only what the data below says. Add nothing from memory and do not guess
-reasons. If unsure, leave it out. Do not repeat numbers the dashboard already
-shows (VIX, index moves, CAPE, Macro Heat Score, Fear and Greed, the macro
-indicators). Do not name the sources.
-
-Under the header INVESTOR NOTE write 1 or 2 sentences: a timeless value
-investing idea that fits today's picture. No statistics, names or dates.
+reasons. If unsure, leave it out. Apart from the final bullet, do not repeat
+numbers the dashboard already shows (VIX, index moves, CAPE, Macro Heat Score,
+Fear and Greed, the macro indicators). Do not name the sources.
 
 One bullet per line starting with "- ". No bold or markdown. No em dashes or
 en dashes.
 
 Today is {today_label}.
-
-DATA (for interpretation, do not repeat these numbers):
-
-MACRO HEAT SCORE: {mhs['score']}/100 -- {mhs['label']} | Posture: {mhs['action']}
-VALUATION: US CAPE={cape_val} (hist avg 17x) | {urth_str} | {efa_str}
-MARKET PULSE: {mkt_data['pulse']}
-
-MACRO INDICATORS:
-{fred_summary}
 
 {routine_block}
 {calendar_block}
@@ -473,6 +489,15 @@ MACRO INDICATORS:
 
 NEWS:
 {news_block}
+
+DASHBOARD NUMBERS (for the final bullet only):
+
+MACRO HEAT SCORE: {mhs['score']}/100 -- {mhs['label']} | Posture: {mhs['action']}
+VALUATION: US CAPE={cape_val} (hist avg 17x) | {urth_str} | {efa_str}
+MARKET PULSE: {mkt_data.get('pulse', 'N/A')}
+
+MACRO INDICATORS:
+{fred_summary}
 """
 
     models_to_try = [
@@ -502,6 +527,7 @@ NEWS:
             if not briefing or not briefing.strip():
                 raise ValueError("Blank response returned (0 usable chars)")
 
+            briefing = _no_dashes(briefing)
             print(f"  ✅ {model_name}: {len(briefing)} chars")
             if is_claude:
                 p_in, p_out = CLAUDE_PRICES.get(model_id, (0.0, 0.0))
@@ -527,10 +553,7 @@ NEWS:
     fallback = """MACRO INSIGHTS
 - AI synthesis unavailable today. Every model failed (see the notice at the top of the page).
 - The data tables below are still built from the live sources. Check the data health notice for anything stale.
-- Review the Macro Heat Score, the weekly calendar and the indicator table directly.
-
-INVESTOR NOTE
-- The price you pay sets the return you earn, so patience and a margin of safety do most of the work."""
+- Review the Macro Heat Score, the weekly calendar and the indicator table directly."""
     return fallback, True, {"model": None, "attempts": attempts}
 
 
@@ -540,13 +563,13 @@ INVESTOR NOTE
 
 def parse_sections(text):
     """
-    Split raw AI output into 2 named sections: MACRO INSIGHTS and INVESTOR NOTE.
+    Split raw AI output into its one section: MACRO INSIGHTS.
     Handles slight header variations (numbered, prefixed with #, bold stars, colon).
+    An INVESTOR NOTE section (removed in Session 15 part 3) is ignored if a model still writes one.
     Returns dict {section_name: raw_content_str}.
     """
     secs = {
         "MACRO INSIGHTS": "",
-        "INVESTOR NOTE":  "",
     }
     current = None
     for line in text.splitlines():
@@ -563,7 +586,7 @@ def parse_sections(text):
                           or "MARKET SUMMARY" in cln):
             current = "MACRO INSIGHTS"; continue
         if is_header and "INVESTOR NOTE" in cln:
-            current = "INVESTOR NOTE"; continue
+            current = None; continue
 
         if current and line.strip():
             secs[current] += line.strip() + "\n"

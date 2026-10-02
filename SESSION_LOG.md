@@ -126,11 +126,11 @@ Stale content on weekends is expected (no routine, no run).
 | fred.py | ~800 | Macro series (daily rates DGS10/DGS2/DFF), Yahoo gold and WTI (FRED oil fallback), CAPE from multpl by-month table, ICSA, GDPC1, lookback windows by frequency, trend colors, sparklines, interpretive insights (no symbols) |
 | market.py | ~330 | Yahoo SPX/RUT/VIX (previous close from bars), Claude Routine PE (priority 0), iShares CSV PE, PE_CONFIG fallback, MHS, ERP |
 | screens.py | ~400 | Dataroma (saved list, live only after a 13F deadline, one try/day, last_attempt stored in dataroma_cache.json), Magic Formula, Acquirer's Multiple. Every function returns (data, meta) and raises ScreenError on failure. |
-| news.py | ~750 | Edward Jones scrape (300 line cap), IMAP fetch of CNBC, Yahoo, WSJ Markets A.M., Axios Markets, Yardeni QuickTakes (INBOX + Bulk/Spam, real Date header, read-only). Cuts each newsletter BY SECTION (_extract_sections: start and end markers, sponsor blocks, noise lines), prints an input receipt per source, calendar extractor (6000 chars). Returns (text, meta). |
-| ai_synthesis.py | ~570 | Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries, no waits; 2000 max tokens. Returns (briefing, failed, ai_info). Short prompt (about 150 words) writing MACRO INSIGHTS (8 to 10 bullets) and INVESTOR NOTE from six news sources (whole kept text, 1500 word safety ceiling each). Prompt also has as-of dates, data caveats, calendar from today. |
+| news.py | ~790 | Edward Jones scrape (300 line cap), ONE shared Yahoo login per run (close_mail) for CNBC, Yahoo, WSJ Markets A.M., Axios Markets, Yardeni QuickTakes (INBOX + Bulk/Spam, real Date header, read-only). Cuts each newsletter BY SECTION (_extract_sections), prints an input receipt per source, calendar extractor (6000 chars). Returns (text, meta). |
+| ai_synthesis.py | ~580 | Haiku 4.5 -> Gemini 3.6 Flash (free) -> fallback text. One try each, no retries, no waits; 2000 max tokens. Returns (briefing, failed, ai_info). Short prompt (about 130 words) writing MACRO INSIGHTS (8 to 10 items) from the news only: six sources (whole kept text, 1500 word safety ceiling each), the Claude Routine pre-market block, the week-ahead calendar and data caveats. NO dashboard numbers in the prompt. _no_dashes() removes em and en dashes from every answer. |
 | health.py | ~335 | All freshness rules and health items (ok/warn/bad), per-row age limits (max_age_for), 13F deadline helpers. check_news treats meta["optional"] sources (WSJ, Axios, Yardeni) as OK when missing or old. Pure functions, no network. |
 | timeutil.py | ~70 | NEW. Boise time with daylight saving (zoneinfo, with a built-in fallback for Windows without tzdata). |
-| html_builder.py | ~1700 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges in header), Investor Note card, one Macro Insights card, footer with FRED notice and AI line only |
+| html_builder.py | ~1720 | Full dashboard HTML, one-line status at the top, warning-triangle badges, gauge cards, MHS history chart, 5-day calendar, conviction chips, collapsed screens card (badges and a 13F cadence line in its header), ONE numbered Macro Insights card, Run Log (also holds the FRED notice). No footer. |
 | main.py | ~700 | Orchestrator, per-source cache fallback, same-day reuse for Magic Formula / Acquirer's Multiple, six news sources, health assembly, step summary, exit code |
 | fetch_cache.py | ~60 | Local tool only (not in the workflow). Refreshes dataroma_cache.json from your PC. |
 | debug_etf_pe.py | 214 | Quarterly diagnostic -- run manually to re-audit PE sources |
@@ -297,15 +297,18 @@ gemini-3.5-flash was a second Gemini step earlier and was dropped from the chain
 - Token count varies because prompt includes news email text + calendar + FRED block (all variable)
 - Cost logged dynamically from message.usage object -- no hardcoded estimate
 
-**AI Synthesis -- 2 sections (rewritten Session 15; before that 4 sections):**
+**AI Synthesis -- 1 section (rewritten Session 15; before that 4 sections):**
 ```
-MACRO INSIGHTS | INVESTOR NOTE
+MACRO INSIGHTS
 ```
-- MACRO INSIGHTS: one full-width card, 8 to 10 bullets, most important first, ending with what could change
-  the picture. Each bullet 1 to 3 sentences. No "max 5" and no "max 20 words" any more.
-- INVESTOR NOTE: 1 or 2 sentences, a timeless value investing idea (no statistics, names or dates). Shown as
-  a small card at the top of the page. Replaced the Fun Fact and AI Learning cards.
-- The old two columns (Macro Interpretation / What to Watch) are gone: the weekly calendar box already lists events.
+- MACRO INSIGHTS: one full-width card shown as a NUMBERED list, 8 to 10 items, most important first, ending with what could
+  change the picture. Each item 1 to 3 sentences. The model writes "- " lines; the page numbers them (html_builder strips any
+  number or dash the model adds).
+- Removed along the way: the two columns (Macro Interpretation / What to Watch), Fun Fact, AI Learning, and (part 3) the
+  Investor Note, which repeated the same story every day.
+- The prompt contains NO dashboard indicators (part 3). The first real run showed why: with FRED values, CAPE and the Macro
+  Heat Score in the prompt, 5 of 10 insights mixed dashboard numbers into the news story and added opinions no newsletter
+  said. Prompt inputs now: the news, the Claude Routine pre-market block, the week-ahead calendar, data caveats.
 - VALUE SCREENS intentionally NOT in AI prompt (removed Session 14):
   si_tickers, mf_list, am_list accepted as parameters for signature compat but NOT sent to AI.
   Saves ~200-250 input tokens/run. Prevents AI generating ticker-specific commentary in briefing.
@@ -417,12 +420,12 @@ MACRO INSIGHTS | INVESTOR NOTE
 
 **Dashboard layout (DO NOT CHANGE WIDTH/LAYOUT):**
 ```
-1.  Investor Note                 -- one full-width gradient card (Session 15)
+1.  (Investor Note card removed in Session 15 part 3)
 2.  Earnings & Economic Calendar  -- full width single card
 3.  MHS score + history SVG chart -- full width single card
 4.  Market Performance + Market Sentiment -- display:grid 1fr 1fr (always side by side)
 5.  Global Market Valuation       -- full width (CAPE + URTH + EFA + ERP)
-6.  Macro Insights                -- full width, one bullet list (Session 15)
+6.  Macro Insights                -- full width, ONE NUMBERED list (Session 15)
 7.  Value Screens                 -- full width, COLLAPSED by default (click header to expand)
 8.  Macro Indicators table        -- full width (17 rows: 15 original + ICSA + GDPC1)
 9.  Run log                       -- collapsed button, expands to show all pipeline steps
@@ -639,7 +642,8 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 
 10. **Market state says OPEN at night** (found Sep 30 9:02 PM MDT: log and run log both said OPEN). market.py (about line 305) maps
     Yahoo's marketState and DEFAULTS to OPEN for any value it does not list (Yahoo may send values such as "POSTPOST"). The exact
-    value was not seen, so the cause is unconfirmed. Harmless at 7:45 AM MT (market really is open). Propose a fix before coding.
+    value was not seen, so the cause is unconfirmed. Harmless at 7:45 AM MT (market really is open). Seen again on the Oct 1 8 PM MDT
+    run (page said OPEN). Propose a fix before coding.
 
 11. **AI prompt review: DONE in Session 15 part 2.** New short prompt (see the ai_synthesis.py header). Judge the first real
     briefings: are the bullets coherent, no invented reasons, no dashboard numbers repeated, no em dashes? If the ISM style
@@ -656,18 +660,30 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
     page). For each of WSJ, Axios, CNBC, Yahoo, Yardeni the method should say "sections". If it says "no markers" or "no end
     marker", that newsletter's layout differs from the sample and its start or end markers in news.py need adjusting.
     Also see how many words Edward Jones sends: the old cap was 120 lines and may have cut the recap; it is now 300 lines.
-    Expected total about 3,000 words. Mailbox logins went from 2 to 5 per run; if Yahoo ever throttles, look there first.
+    Expected total about 3,000 words. The mailbox is logged into ONCE per run now (shared connection).
 
 16. **FRED terms of use (owner to read before sharing the page broadly).** The St. Louis Fed's 2024 update says the API may not be
     used to store or cache FRED content, to give stored FRED content to third parties, or in connection with developing or
     training AI systems. This pipeline keeps FRED values in run_cache.json (public repo) and sends them to Haiku in the prompt
-    (use, not training). Not a lawyer; the full terms text was not read. The footer now carries the notice the terms ask for.
+    (use, not training). Not a lawyer; the full terms text was not read. The footer was removed at the owner's request (part 3); the notice the terms ask for now sits inside the collapsed Run Log.
 
 17. **Newsletters reviewed and skipped (do not revisit without a new reason):** Five With Fitz (his footer forbids submitting the
     content to any AI tool, and the tone is momentum hype, the opposite of a value lens), The Daily Upside (about 10% macro, rest
     single companies and ads), Morning Brew (about 20% macro, varying lead story, duplicates the others), Finks (three paid
     sponsor blocks for an OTC share offering; the one useful nugget was memory stocks at single-digit forward earnings).
     Morning Brew mentions a separate "Brew Markets" edition that was never seen.
+
+18. **As-of dates one day ahead on evening runs** (found Oct 1 evening): the page showed WTI crude and Gold as of "Oct 02 2026"
+    on a run at 8:15 PM Boise time on Oct 1 (the UTC date had rolled over). Probably a UTC date used for quotes in fred.py.
+    Cosmetic. Propose a fix (use Boise time) before coding.
+
+19. **GDP row label** (check): the page shows "GDP Growth YoY 2.2%" for Q2 while the newsletters say Q2 growth was revised to 2.2%
+    ANNUALIZED quarter over quarter. Different measures; the match may be a coincidence. Verify how fred.py computes the row.
+
+20. **Briefing claims not traceable to the six newsletters** (Oct 1 evening run): ISM 54.5 with 14 months of expansion, "from 76%",
+    and Chinese export suspensions appear in no newsletter or routine file I could read. The Edward Jones recap (not visible to the
+    assistant) may carry them, because the run happened after the Oct 1 close. If it keeps happening, print the first and last
+    words of the Edward Jones text in the receipt, or ask the owner to compare with the Edward Jones page.
 
 ---
 
@@ -1152,6 +1168,30 @@ changed layouts fall back to the whole email minus footer (1500 word ceiling); e
 handles markdown, bold, numbered and colon headers; all models failing still builds the page; the full dashboard builds.
 Prompt measured: about 2,840 news words, about 3,700 words in total, zero dashes. Expected cost about $0.01 to $0.015 per run.
 **Not tested (cannot be, offline):** the real HTML of today's emails. The first real run prints a receipt per source (open item 15).
+
+---
+
+### Session 15 part 3 -- Oct 1 2026 (night, Boise time): after the first real run
+**What the first real run showed:** it worked (Haiku, 10 insights, optional sources fine). Checking the insights against the newsletters:
+facts taken from the newsletters were mostly faithful (wealth effect, Williams "no urgency", 38% October hike odds, Friday payrolls
+forecast). Problems: (1) five insights repeated dashboard numbers and mixed measures (a 3.7% CPI called "headline" next to 3.0% core
+PCE, while the newsletters said PCE was 3.4%); (2) opinions the newsletters never said ("credit stress building quietly", "not
+fundamentals"); (3) a hedged view ("most optimistic explanation" for higher yields) became a conclusion; (4) "nearly all the
+heavy lifting" overstated "half of consumption growth"; (5) four em dashes on the page despite the prompt.
+
+**Owner requests, all done:**
+- Numbered list (1, 2, 3...) for Macro Insights.
+- Investor Note removed (it repeated the same story). Prompt shortened.
+- Footer removed entirely (FRED notice moved into the Run Log).
+- Value Screens header shows the 13F quarter covered, when saved, next due date and refresh date.
+- One shared Yahoo login for all newsletters (was one per newsletter, 5 per run).
+- Replies should not list file sizes in bytes (wasted tokens).
+
+**Assistant decisions the owner can veto:** dashboard numbers removed from the prompt (see the AI Synthesis notes); em and en dashes are
+replaced in code (_no_dashes), so the prompt rule is no longer relied on.
+**Files changed:** news.py, main.py, ai_synthesis.py, html_builder.py (health.py unchanged this round), plus this log.
+**Tested (Python 3.13):** all earlier tests plus new ones for the shared login (one login, dead connection replaced, failed login not
+retried), dash removal, numbered list, no footer, 13F line, and the prompt without dashboard data.
 
 ---
 

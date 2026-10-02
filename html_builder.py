@@ -46,9 +46,11 @@
 #   - Dir column REMOVED from FRED table (redundant with Trend sparkline)
 #   - Cache badge: stale indicators show amber "cached [date]" pill
 #   - MHS scale: EXTREME OVERHEATED threshold at 86
-#   - AI briefing (Session 15): ONE full-width Macro Insights card + a short Investor Note card
-#     at the top (replaced the two columns and the Fun Fact / AI Learning cards)
-#   - Footer: only FRED (with the notice its terms ask for) and the AI line
+#   - AI briefing (Session 15): ONE full-width Macro Insights card, shown as a NUMBERED list
+#     (replaced the two columns and the Fun Fact / AI Learning cards; the short-lived
+#     Investor Note card was removed again in part 3)
+#   - Footer removed (part 3). The FRED API notice its terms ask for lives inside the Run Log.
+#   - Value Screens header shows which 13F quarter the saved list covers and the next due date
 #   - SI-only filter: >= 3 managers
 # ============================================================
 
@@ -76,6 +78,7 @@ def fmt_bullets(raw):
                       'margin:4px 0 4px -13px;padding:0;height:1px;"></li>\n')
             continue
         stripped = re.sub(r"^[-•*]\s*", "", stripped)
+        stripped = re.sub(r"^\d{1,2}[.)]\s+", "", stripped)       # the page numbers the list itself
         if stripped == "---":
             items += ('    <li style="list-style:none;border-top:1px solid #e5e7eb;'
                       'margin:4px 0 4px -13px;padding:0;height:1px;"></li>\n')
@@ -256,6 +259,29 @@ def _screens_badges(screen_meta, health):
                 txt = txt[:57] + "..."
             out += _warn_badge(f"{short}: {txt}", it["level"])
     return out
+
+
+def _13f_cadence_line(screen_meta, today):
+    """
+    One short line for the Value Screens header: which 13F quarter the saved list covers,
+    when it was saved, when the next filings are due and when the list refreshes.
+    13F filings are due 45 days after quarter end; the pipeline retries a few days later.
+    """
+    try:
+        meta   = (screen_meta or {}).get("si") or {}
+        as_of  = hl._to_date(meta.get("as_of", ""))
+        nxt    = hl.next_13f_deadline(today)
+        refresh = nxt + timedelta(days=hl._13F_GRACE_DAYS)
+        quarter = {2: "Q4", 5: "Q1", 8: "Q2", 11: "Q3"}
+        parts = []
+        if as_of:
+            dl = hl.last_13f_deadline(as_of)
+            yr = dl.year - 1 if dl.month == 2 else dl.year
+            parts.append(f"13F list covers {quarter[dl.month]} {yr} filings, saved {as_of.strftime('%b')} {as_of.day}")
+        parts.append(f"next filings due {nxt.strftime('%b')} {nxt.day}, list refreshes from {refresh.strftime('%b')} {refresh.day}")
+        return " · ".join(parts)
+    except Exception:
+        return ""
 
 
 def _gauge_row(name, value_str, chg_str, signal_lbl, signal_col, note=""):
@@ -1450,6 +1476,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
         health.append(hl.check_calendar(_stored_cal.get("week_of", ""), _monday))
     status_line = _build_status_line(health, ai_info, ai_failed)
     screens_badges = _screens_badges(screen_meta, health)
+    cadence_13f    = _13f_cadence_line(screen_meta, _now_mt().date())
 
     # Value screens -- mf_list and am_list are ordered lists of tuples
     screens_html, all3, two3, si_only, mf_only, am_only = _build_screens_html(
@@ -1457,13 +1484,6 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 
     # FRED table
     fred_rows = _build_fred_rows(fred_data, _trend_color, cache)
-
-    # Investor note (one short idea; 1 or 2 sentences, joined into a single paragraph)
-    note_lines = [re.sub(r"^[-•*]\s*", "", ln.strip())
-                  for ln in secs.get("INVESTOR NOTE", "").strip().splitlines() if ln.strip()]
-    note_raw = " ".join(note_lines)
-    if not note_raw:
-        note_raw = "Margin of safety: pay a price that leaves room for being wrong."
 
     # Market context for Chrome extension
     mctx = _build_market_context(
@@ -1495,6 +1515,9 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     <div style="font-size:.7rem;color:#9ca3af;margin-top:4px;padding-top:4px;
                 border-top:1px solid #e5e7eb;">
       Total runtime: {elapsed}s &nbsp;·&nbsp; {today} {now_str} MT
+    </div>
+    <div style="font-size:.65rem;color:#9ca3af;margin-top:4px;">
+      This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
     </div>
   </div>
 </div>"""
@@ -1531,6 +1554,10 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 .card ul li{{padding:5px 0 5px 13px;border-bottom:1px solid #f3f4f6;font-size:.82rem;line-height:1.5;color:#374151;position:relative;}}
 .card ul li:before{{content:"▸";position:absolute;left:0;color:var(--blue);font-size:.72rem;}}
 .card ul li:last-child{{border-bottom:none;}}
+.card ol.numbered{{margin:0;padding:0 0 0 22px;}}
+.card ol.numbered li{{padding:6px 0 6px 4px;border-bottom:1px solid #f3f4f6;font-size:.82rem;line-height:1.55;color:#374151;}}
+.card ol.numbered li::marker{{color:var(--blue);font-weight:700;font-size:.8rem;}}
+.card ol.numbered li:last-child{{border-bottom:none;}}
 .tbl{{width:100%;border-collapse:collapse;font-size:.8rem;}}
 .tbl th{{padding:6px 10px;text-align:left;font-size:.58rem;text-transform:uppercase;color:var(--muted);border-bottom:2px solid var(--border);background:#f9fafb;}}
 .footer{{text-align:center;color:var(--muted);font-size:.68rem;margin-top:22px;}}
@@ -1549,17 +1576,6 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 
 <div class="container">
   {status_line}
-
-  <!-- 1. Investor Note -- one short idea for a long-term value investor -->
-  <div style="background:linear-gradient(135deg,#1e3a5f,#1a56db);color:white;border-radius:10px;
-              padding:11px 16px;display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-    <div style="font-size:1.3rem;flex-shrink:0;">🧭</div>
-    <div>
-      <div style="font-size:.55rem;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;
-                  opacity:.6;margin-bottom:2px;">Investor Note</div>
-      <div style="font-size:.82rem;line-height:1.5;opacity:.92;">{note_raw}</div>
-    </div>
-  </div>
 
   <!-- 2. Weekly Calendar -- what events matter this week, read before anything else -->
   {calendar_html}
@@ -1616,9 +1632,9 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
         · what this morning's news adds up to
       </span>
     </h2>
-    <ul style="margin:0;">
+    <ol class="numbered">
       {fmt_bullets(secs.get("MACRO INSIGHTS",""))}
-    </ul>
+    </ol>
   </div>
 
   <!-- 7. Value Screens -- collapsed by default, click header to expand -->
@@ -1631,6 +1647,9 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
           SI = super-investors 13F (3+ managers, ~45d lag) ·
           MF = Magic Formula (daily) · AM = Acquirer's Multiple (daily)
         </span>{screens_badges}
+        <span style="display:block;font-weight:400;color:var(--muted);font-size:.55rem;margin-top:2px;">
+          {cadence_13f}
+        </span>
       </h2>
       <span id="screens-tog" style="font-size:.72rem;color:#6b7280;white-space:nowrap;flex-shrink:0;margin-left:8px;">▶ Expand</span>
     </div>
@@ -1686,12 +1705,6 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   </div>
 
   {run_log_html}
-
-  <div class="footer" style="margin-top:20px;">
-    Data: <a href="https://fred.stlouisfed.org" target="_blank">FRED&reg; API</a>.
-    This product uses the FRED&reg; API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.
-    &nbsp;&middot;&nbsp; AI: Claude Haiku 4.5 &middot; Gemini 3.6 Flash (fallback)
-  </div>
 </div>
 
 </body>

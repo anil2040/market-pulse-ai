@@ -51,6 +51,9 @@
 #
 # All IMAP fetches use Yahoo Mail (imap.mail.yahoo.com:993).
 # Credentials from env: YAHOO_EMAIL, YAHOO_APP_PASSWORD.
+# ONE LOGIN PER RUN (Session 15 part 3): the first fetch logs in, every other fetch
+# reuses the same connection, and main.py calls close_mail() after the news step.
+# (Before: one login per newsletter, 5 per run.) The folder list is also read once.
 # ============================================================
 
 import os
@@ -305,6 +308,42 @@ def scrape_edward_jones():
 # EMAIL (Yahoo IMAP)
 # ============================================================
 
+_MAIL = {"conn": None, "folders": None, "error": None}
+
+
+def _get_mail():
+    """One shared IMAP login for the whole run. Reconnects if the connection died."""
+    if _MAIL["error"]:
+        raise RuntimeError(_MAIL["error"])           # login already failed once this run
+    conn = _MAIL["conn"]
+    if conn is not None:
+        try:
+            conn.noop()
+            return conn
+        except Exception:
+            _MAIL["conn"] = None
+            _MAIL["folders"] = None
+    try:
+        conn = imaplib.IMAP4_SSL("imap.mail.yahoo.com", 993)
+        conn.login(YAHOO_EMAIL, YAHOO_PASSWORD)
+    except Exception as e:
+        _MAIL["error"] = str(e)[:120]
+        raise
+    _MAIL["conn"], _MAIL["folders"] = conn, None
+    return conn
+
+
+def close_mail():
+    """Log out of the shared connection (called once by main.py after the news step)."""
+    conn = _MAIL["conn"]
+    _MAIL["conn"], _MAIL["folders"], _MAIL["error"] = None, None, None
+    if conn is not None:
+        try:
+            conn.logout()
+        except Exception:
+            pass
+
+
 def _folder_names(mail):
     """Return all mail folder names on the account (used to find Bulk/Spam)."""
     names = []
@@ -357,9 +396,12 @@ def _find_latest(mail, sender, subject_contains=None, allow_domain_fallback=True
                       nothing. Switch OFF for shared domains (ghost.io, wsj.com).
     Returns dict {folder, id, date, subject} or None.
     """
-    names = _folder_names(mail)
-    if names:
-        print(f"   Mail folders: {names}")
+    names = _MAIL["folders"]
+    if names is None:
+        names = _folder_names(mail)
+        _MAIL["folders"] = names
+        if names:
+            print(f"   Mail folders: {names}")
     folders = ["INBOX"] + [n for n in names
                            if re.search(r"bulk|spam|junk", n, re.IGNORECASE)]
     domain = sender.split("@")[-1] if "@" in sender else sender
@@ -455,8 +497,7 @@ def _fetch_email_raw(sender, label, max_age_days=MAX_AGE_DAYS_EMAIL,
     if not YAHOO_EMAIL or not YAHOO_PASSWORD:
         return "", _meta("error", detail="YAHOO_EMAIL / YAHOO_APP_PASSWORD secrets not set")
     try:
-        mail = imaplib.IMAP4_SSL("imap.mail.yahoo.com", 993)
-        mail.login(YAHOO_EMAIL, YAHOO_PASSWORD)
+        mail = _get_mail()
         try:
             best = _find_latest(mail, sender, subject_contains, allow_domain_fallback)
             if not best:
@@ -488,10 +529,7 @@ def _fetch_email_raw(sender, label, max_age_days=MAX_AGE_DAYS_EMAIL,
             meta["posted"] = _posted_label(best["date"])
             return body, meta
         finally:
-            try:
-                mail.logout()
-            except Exception:
-                pass
+            pass                                      # shared connection: close_mail() logs out
     except Exception as e:
         print(f"   ❌ {label} IMAP failed: {e}")
         return "", _meta("error", detail=f"{label} mail login/search failed: {str(e)[:80]}")
