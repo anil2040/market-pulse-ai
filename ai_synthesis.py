@@ -104,7 +104,7 @@
 # NEWS INPUT (Session 15):
 #   No character caps any more. news.py already removed ads, quote tables and
 #   footers. Safety ceiling here: 1500 words per source (a log line prints if it
-#   ever bites). Order in the prompt: WSJ, Axios, CNBC, Yahoo, Yardeni, Edward Jones.
+#   ever bites). Order in the prompt: WSJ, Axios, CNBC, Yahoo, Goldman, Yardeni, McClellan, Edward Jones.
 #
 # VALUE SCREENS NOT IN PROMPT (intentional):
 #   si_tickers, mf_list, am_list are accepted as parameters for signature
@@ -368,10 +368,12 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
                        si_tickers, mf_list, am_list,
                        routine_data=None, routine_fresh=False,
                        yahoo_calendar="", health_notes=None, today_name=None,
-                       wsj_text="", axios_text="", yardeni_text=""):
+                       wsj_text="", axios_text="", yardeni_text="",
+                       goldman_text="", mcclellan_text=""):
     """
     Build prompt from all fetched data and call AI models in fallback order.
-    ej_text, cnbc_text, yahoo_text, wsj_text, axios_text, yardeni_text: the kept text of each
+    ej_text, cnbc_text, yahoo_text, wsj_text, axios_text, yardeni_text, goldman_text,
+    mcclellan_text: the kept text of each
     news source ("" when missing; missing sources are left out of the prompt).
     routine_data: parsed clauderoutinedata.json (or {} if unavailable)
     routine_fresh: True if routine date matches today MT
@@ -435,7 +437,9 @@ def synthesize_with_ai(ej_text, cnbc_text, yahoo_text,
         ("AXIOS MARKETS",       axios_text),
         ("CNBC MORNING SQUAWK", cnbc_text),
         ("YAHOO MORNING BRIEF", yahoo_text),
+        ("GOLDMAN SACHS BRIEFINGS", goldman_text),
         ("YARDENI QUICKTAKES",  yardeni_text),
+        ("MCCLELLAN CHART IN FOCUS", mcclellan_text),
         ("EDWARD JONES RECAP",  ej_text),
     ]
     news_parts, news_words = [], 0

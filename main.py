@@ -42,7 +42,7 @@
 #   4.  MHS Macro Heat Score (market.py)
 #   5.  Dataroma 13F, Magic Formula, Acquirer's Multiple (screens.py)
 #   6.  Edward Jones, CNBC, Yahoo Morning Brief, WSJ Markets A.M., Axios Markets,
-#       Yardeni QuickTakes (news.py)
+#       Yardeni QuickTakes, Goldman Sachs Briefings, McClellan Chart In Focus (news.py)
 #   7.  Health checks on all of the above (health.py)
 #   8.  AI synthesis -- Haiku -> Gemini 3.6 (free) -> fallback text (ai_synthesis.py)
 #   9.  Build HTML dashboard (html_builder.py)
@@ -78,7 +78,8 @@ from screens import (fetch_superinvestor_buys, fetch_magic_formula,
                      fetch_acquirers_multiple)
 from news    import (scrape_edward_jones, fetch_cnbc_email,
                      fetch_yahoo_morning_brief, fetch_wsj_email,
-                     fetch_axios_email, fetch_yardeni_email, close_mail)
+                     fetch_axios_email, fetch_yardeni_email, fetch_goldman_email,
+                     fetch_mcclellan_email, close_mail)
 from ai_synthesis import synthesize_with_ai
 from html_builder import build_html
 
@@ -504,7 +505,7 @@ def _wrap_news():
     """
     News/email sources. No cache: stale news is dropped, not replayed.
     Returns ej_text, cnbc_text, yahoo_text, yahoo_calendar, metas dict, extra dict.
-    extra = {"wsj": text, "axios": text, "yardeni": text} (optional newsletters).
+    extra = {"wsj": ..., "axios": ..., "yardeni": ..., "goldman": ..., "mcclellan": ...} (optional newsletters).
     """
     metas = {}
 
@@ -533,7 +534,9 @@ def _wrap_news():
     extra = {}
     for key, label, fn in (("wsj", "WSJ Markets A.M.", fetch_wsj_email),
                            ("axios", "Axios Markets", fetch_axios_email),
-                           ("yardeni", "Yardeni QuickTakes", fetch_yardeni_email)):
+                           ("yardeni", "Yardeni QuickTakes", fetch_yardeni_email),
+                           ("goldman", "Goldman Sachs Briefings", fetch_goldman_email),
+                           ("mcclellan", "McClellan Chart In Focus", fetch_mcclellan_email)):
         r = safe(label, fn)
         extra[key], metas[key] = r if r else ("", {"status": "error", "optional": True,
                                                    "detail": f"{label} crashed"})
@@ -567,6 +570,8 @@ def _collect_health(today, fred_data, routine_data, routine_fresh, commit,
     items.append(hl.check_news("WSJ Markets A.M.", news_metas["wsj"]))
     items.append(hl.check_news("Axios Markets", news_metas["axios"]))
     items.append(hl.check_news("Yardeni QuickTakes", news_metas["yardeni"]))
+    items.append(hl.check_news("Goldman Sachs Briefings", news_metas["goldman"]))
+    items.append(hl.check_news("McClellan Chart In Focus", news_metas["mcclellan"]))
     return items
 
 
@@ -656,6 +661,8 @@ if __name__ == "__main__":
         wsj_text=extra_news["wsj"],
         axios_text=extra_news["axios"],
         yardeni_text=extra_news["yardeni"],
+        goldman_text=extra_news["goldman"],
+        mcclellan_text=extra_news["mcclellan"],
     )
     HEALTH.append(hl.check_ai(ai_failed, ai_info))
     if ai_failed:

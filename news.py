@@ -10,6 +10,8 @@
 #   fetch_wsj_email()             -> (text, meta)   WSJ Markets A.M.   (optional source)
 #   fetch_axios_email()           -> (text, meta)   Axios Markets      (optional source)
 #   fetch_yardeni_email()         -> (text, meta)   Yardeni QuickTakes (optional source)
+#   fetch_goldman_email()         -> (text, meta)   Goldman Sachs Briefings (optional source)
+#   fetch_mcclellan_email()       -> (text, meta)   McClellan Chart In Focus (optional source)
 #
 #   meta = {"status": "ok" | "stale" | "missing" | "error",
 #           "date":   "YYYY-MM-DD" of the REAL source (email Date header or
@@ -125,6 +127,7 @@ _BLOCK_TAGS = ["p", "div", "li", "tr", "td", "th", "table", "ul", "ol", "blockqu
 def _tidy_line(ln):
     """Remove emoji and links, turn em/en dashes into plain hyphens, collapse spaces."""
     ln = _EMOJI.sub("", ln)
+    ln = re.sub("^[\\u25aa\\u25a0\\u25cf\\u2022]\\s*", "", ln)      # leading bullet glyphs
     ln = _URLS.sub("", ln)
     ln = ln.replace("\u2014", " - ").replace("\u2013", "-")
     return re.sub(r"[ \t]+", " ", ln).strip()
@@ -146,7 +149,7 @@ def _n_words(s):
 
 
 def _extract_sections(text, start_pats=(), end_pats=(), drop_blocks=(), drop_lines=(),
-                      fallback_words=None):
+                      fallback_words=None, max_words=None):
     """
     Keep the useful part of a newsletter.
       start_pats : list of (compiled_regex, offset). First pattern that matches a line
@@ -157,10 +160,13 @@ def _extract_sections(text, start_pats=(), end_pats=(), drop_blocks=(), drop_lin
                    than max_words words (sponsor blocks).
       drop_lines : compiled regexes for single lines to drop.
       fallback_words: word limit used when no end marker was found (default ceiling).
+      max_words  : hard word limit that always applies (on top of SOURCE_WORD_CEILING).
     Returns (kept_text, info) with info = {words_in, words_kept, method}.
     """
-    lines = [ln for ln in text.splitlines() if ln.strip()]
-    words_in = sum(_n_words(l) for l in lines)
+    raw_lines = [ln for ln in text.splitlines() if ln.strip()]
+    words_in = sum(_n_words(l) for l in raw_lines)
+    # Match every pattern on the CLEANED line (emoji, links and leading bullet glyphs removed)
+    lines = [t for t in (_tidy_line(l) for l in raw_lines) if t]
 
     start, start_found = 0, False
     for pat, off in start_pats:
@@ -211,6 +217,8 @@ def _extract_sections(text, start_pats=(), end_pats=(), drop_blocks=(), drop_lin
         kept.append(t)
 
     limit = SOURCE_WORD_CEILING
+    if max_words:
+        limit = min(limit, max_words)
     if not end_found and fallback_words:
         limit = min(limit, fallback_words)
     out, total, capped = [], 0, False
@@ -722,7 +730,7 @@ def fetch_yahoo_morning_brief():
 def _fetch_optional_email(label, sender, subject_contains=None,
                           max_age_days=MAX_AGE_DAYS_EMAIL, start_pats=(), end_pats=(),
                           drop_blocks=(), drop_lines=(), fallback_words=None,
-                          add_posted_label=False):
+                          add_posted_label=False, max_words=None):
     raw, meta = _fetch_email_raw(
         sender, label, max_age_days=max_age_days, prefer_html=True, char_limit=None,
         subject_contains=subject_contains, allow_domain_fallback=False, blocks=True,
@@ -731,7 +739,7 @@ def _fetch_optional_email(label, sender, subject_contains=None,
     if not raw:
         return "", meta
     text, info = _extract_sections(raw, start_pats, end_pats, drop_blocks, drop_lines,
-                                   fallback_words)
+                                   fallback_words, max_words)
     _receipt(label, text, info)
     meta.update(info)
     if info["words_kept"] < 40:
@@ -785,5 +793,38 @@ def fetch_yardeni_email():
         start_pats=[(_C(r"^YARDENI QUICKTAKES$", re.I), 1)],
         end_pats=[_C(r"upgrade to continue reading", re.I), _C(r"become a paid member", re.I)],
         drop_lines=[_C(r"^By .*\d{4}$"), _C(r"^View in browser$", re.I), _C(r"^Photo by", re.I)],
+        add_posted_label=True,
+    )
+
+
+def fetch_goldman_email():
+    """
+    Goldman Sachs Briefings (daily): the "key insights" headline list plus the first section
+    (usually a Goldman Research view on the economy or markets). The other sections (interns,
+    family firms, brainteaser, news links, legal text) are dropped.
+    """
+    return _fetch_optional_email(
+        "Goldman Sachs Briefings", "briefings@newsletter.mail.gs.com",
+        start_pats=[(_C(r"^The key\s+insights today", re.I), 0)],
+        end_pats=[_C(r"^Read (the )?(full|our)\b", re.I), _C(r"^Goldman Sachs in the News", re.I)],
+        drop_lines=[_C(r"^Briefings Brainteaser", re.I), _C(r"^Want to sign up", re.I),
+                    _C(r"^Source:", re.I)],
+        fallback_words=450, max_words=450,
+    )
+
+
+def fetch_mcclellan_email():
+    """
+    McClellan Financial Publications "Chart In Focus" (weekly technical analysis lesson).
+    Same sender sends other reports, so the subject must contain "Chart In Focus".
+    Newest within 7 days; the text starts with its title and is labelled "(Posted <date>)".
+    """
+    return _fetch_optional_email(
+        "McClellan Chart In Focus", "admin@mcoscillator.com", subject_contains="Chart In Focus",
+        max_age_days=MAX_AGE_DAYS_YARDENI,
+        start_pats=[(_C(r"^Chart In Focus$", re.I), 1)],
+        end_pats=[_C(r"^Tom McClellan$"), _C(r"^Related Charts", re.I)],
+        drop_lines=[_C(r"^(January|February|March|April|May|June|July|August|September|October|"
+                       r"November|December)\s+\d{1,2},\s+\d{4}$")],
         add_posted_label=True,
     )
