@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-05",
+  "date": "2026-10-06",
   "time_collected_utc": "11:30",
   "futures": {
-    "sp500":     {"change_pct": 0.19, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.31, "direction": "up"},
-    "dow":       {"change_pct": 0.10, "direction": "up"},
-    "sentiment": "bullish"
+    "sp500":     {"change_pct": 0.01, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.01, "direction": "up"},
+    "dow":       {"change_pct": -0.03, "direction": "down"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -14,46 +14,46 @@
              "source": "stockanalysis.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.26,
-    "crude_oil_usd": 90.38,
+    "treasury_10yr_pct": 5.27,
+    "crude_oil_usd": 91.48,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "ISM Services PMI due at 10:00 AM ET Monday is the first major U.S. data point of the week and a key input for the Fed's next rate decision",
-    "FOMC minutes from the September meeting due Wednesday, with traders watching for guidance on whether the rate hold will extend into November",
-    "Iran threatened to close the Strait of Hormuz unless the U.S. meets seven conditions, raising oil supply disruption fears and keeping energy prices elevated"
+    "US brokered ceasefire between Israel and Iran following US strikes on Iranian nuclear sites; crude oil dropped 11.3% as supply disruption risk eased",
+    "Fed funds rate at 3.75-4.00% following Sep 16 hike; next FOMC meeting Oct 28 with markets watching Friday CPI for signals on future rate path",
+    "US ISM Manufacturing (Sep) and Challenger Job Cuts (Sep) due today; earnings season begins with investors assessing inflation trajectory"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",  "change_pct": 0.40, "reason": "Nasdaq 100 futures up 0.31% led by AI and chip stocks near record highs"},
-      {"sector": "Energy",      "change_pct": 0.30, "reason": "Iran Strait of Hormuz threat provides geopolitical premium despite WTI easing to $90.38"}
+      {"sector": "Energy",     "change_pct": 0.50, "reason": "WTI crude stabilizing near $91 after geopolitical ceasefire; elevated prices support sector earnings outlook"},
+      {"sector": "Technology", "change_pct": 0.30, "reason": "AI and chip stocks near record highs with Nasdaq futures slightly positive as risk appetite holds"}
     ],
     "lagging": [
-      {"sector": "Real Estate", "change_pct": -0.45, "reason": "10-year yield at 5.26% continues to pressure rate-sensitive REITs"},
-      {"sector": "Utilities",   "change_pct": -0.30, "reason": "Elevated bond yields reduce the relative appeal of dividend-paying defensive stocks"}
+      {"sector": "Real Estate", "change_pct": -0.40, "reason": "10-year yield at 5.27% continues to pressure rate-sensitive REITs and real estate valuations"},
+      {"sector": "Utilities",   "change_pct": -0.30, "reason": "Elevated bond yields reduce relative appeal of dividend-paying defensive stocks"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.03},
-    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 2.10}
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.50},
+    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 1.16}
   },
-  "open_focus": "Traders are focused on ISM Services PMI at 10:00 AM ET and Iran's threat to close the Strait of Hormuz, both key inputs for the inflation and oil-price outlook as the 10-year Treasury yield holds near 5.26%.",
+  "open_focus": "Traders are watching US ISM Manufacturing data today and positioning ahead of Friday's CPI print as the key indicator for whether the Fed holds rates at the October 28 FOMC meeting.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7777.25,
-      "current":    7792.25,
-      "change_pct": 0.19,
+      "prev_close": 8042.00,
+      "current":    8042.80,
+      "change_pct": 0.01,
       "source_time_et": "07:30"
     },
     "rut": {
-      "prev_close": 2832.89,
-      "current":    2859.00,
-      "change_pct": 0.92,
+      "prev_close": 3019.19,
+      "current":    3001.55,
+      "change_pct": -0.58,
       "source_time_et": "07:30"
     },
     "vix": {
-      "prev_close": 15.31,
-      "current":    15.33
+      "prev_close": 22.13,
+      "current":    21.65
     }
   }
 }
