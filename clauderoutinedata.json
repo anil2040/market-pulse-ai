@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-06",
+  "date": "2026-10-07",
   "time_collected_utc": "11:30",
   "futures": {
-    "sp500":     {"change_pct": 0.01, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.01, "direction": "up"},
-    "dow":       {"change_pct": -0.03, "direction": "down"},
-    "sentiment": "neutral"
+    "sp500":     {"change_pct": 0.35, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.69, "direction": "up"},
+    "dow":       {"change_pct": 0.41, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -14,46 +14,46 @@
              "source": "stockanalysis.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.27,
-    "crude_oil_usd": 91.48,
+    "treasury_10yr_pct": 5.29,
+    "crude_oil_usd": 83.23,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "US brokered ceasefire between Israel and Iran following US strikes on Iranian nuclear sites; crude oil dropped 11.3% as supply disruption risk eased",
-    "Fed funds rate at 3.75-4.00% following Sep 16 hike; next FOMC meeting Oct 28 with markets watching Friday CPI for signals on future rate path",
-    "US ISM Manufacturing (Sep) and Challenger Job Cuts (Sep) due today; earnings season begins with investors assessing inflation trajectory"
+    "FOMC minutes from the September 15-16 meeting released today at 2pm ET; markets focused on signals for October 28 FOMC decision with Fed funds at 3.75-4.00%",
+    "WTI crude extends post-Iran ceasefire decline to near $83/bbl, pressuring Energy sector as geopolitical risk premium unwinds",
+    "September CPI due October 14 as next key inflation reading; earnings season underway with investors assessing the rate path"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",     "change_pct": 0.50, "reason": "WTI crude stabilizing near $91 after geopolitical ceasefire; elevated prices support sector earnings outlook"},
-      {"sector": "Technology", "change_pct": 0.30, "reason": "AI and chip stocks near record highs with Nasdaq futures slightly positive as risk appetite holds"}
+      {"sector": "Technology",             "change_pct": 0.50, "reason": "Nasdaq +0.69% leads futures gains as AI and semiconductor stocks attract buyers"},
+      {"sector": "Consumer Discretionary", "change_pct": 0.30, "reason": "Lower crude oil prices reduce input costs and support consumer spending outlook"}
     ],
     "lagging": [
-      {"sector": "Real Estate", "change_pct": -0.40, "reason": "10-year yield at 5.27% continues to pressure rate-sensitive REITs and real estate valuations"},
-      {"sector": "Utilities",   "change_pct": -0.30, "reason": "Elevated bond yields reduce relative appeal of dividend-paying defensive stocks"}
+      {"sector": "Energy",      "change_pct": -0.80, "reason": "WTI crude extending decline to ~$83/bbl as Iran ceasefire removes supply disruption premium"},
+      {"sector": "Real Estate", "change_pct": -0.30, "reason": "10-year Treasury yield at 5.29% continues to pressure rate-sensitive REITs"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.50},
-    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 1.16}
+    "europe": {"index": "STOXX600",  "direction": "up",   "change_pct": 0.48},
+    "asia":   {"index": "Hang Seng", "direction": "down", "change_pct": -1.37}
   },
-  "open_focus": "Traders are watching US ISM Manufacturing data today and positioning ahead of Friday's CPI print as the key indicator for whether the Fed holds rates at the October 28 FOMC meeting.",
+  "open_focus": "Traders are focused on FOMC minutes from the September meeting due at 2pm ET for rate path signals, while the continued crude oil decline following the Iran ceasefire keeps energy markets volatile.",
   "market_prices": {
     "sp500": {
-      "prev_close": 8042.00,
-      "current":    8042.80,
-      "change_pct": 0.01,
+      "prev_close": 8042.80,
+      "current":    8071.00,
+      "change_pct": 0.35,
       "source_time_et": "07:30"
     },
     "rut": {
-      "prev_close": 3019.19,
-      "current":    3001.55,
-      "change_pct": -0.58,
+      "prev_close": 3001.55,
+      "current":    3012.07,
+      "change_pct": 0.35,
       "source_time_et": "07:30"
     },
     "vix": {
-      "prev_close": 22.13,
-      "current":    21.65
+      "prev_close": 21.65,
+      "current":    21.00
     }
   }
 }
