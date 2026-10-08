@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-07",
-  "time_collected_utc": "11:30",
+  "date": "2026-10-08",
+  "time_collected_utc": "13:30",
   "futures": {
-    "sp500":     {"change_pct": 0.35, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.69, "direction": "up"},
-    "dow":       {"change_pct": 0.41, "direction": "up"},
-    "sentiment": "bullish"
+    "sp500":     {"change_pct": -0.30, "direction": "down"},
+    "nasdaq100": {"change_pct": -0.30, "direction": "down"},
+    "dow":       {"change_pct": -0.20, "direction": "down"},
+    "sentiment": "bearish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
     "EFA":  {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "stockanalysis.com"}
+             "source": "Robinhood (fallback)"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.29,
-    "crude_oil_usd": 83.23,
+    "treasury_10yr_pct": 5.32,
+    "crude_oil_usd": 92.50,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "FOMC minutes from the September 15-16 meeting released today at 2pm ET; markets focused on signals for October 28 FOMC decision with Fed funds at 3.75-4.00%",
-    "WTI crude extends post-Iran ceasefire decline to near $83/bbl, pressuring Energy sector as geopolitical risk premium unwinds",
-    "September CPI due October 14 as next key inflation reading; earnings season underway with investors assessing the rate path"
+    "Pentagon reportedly preparing potential military strikes on Iran, driving WTI crude up over 4% to $92.50/bbl and raising renewed inflation concerns",
+    "10-year Treasury yield tested near 24-year highs around 5.32-5.35% as elevated yields and Fed rate-hike signals pressured equity markets",
+    "Hurricane-related Gulf of Mexico crude production disruptions compounded global oil supply concerns alongside escalating Middle East tensions"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",             "change_pct": 0.50, "reason": "Nasdaq +0.69% leads futures gains as AI and semiconductor stocks attract buyers"},
-      {"sector": "Consumer Discretionary", "change_pct": 0.30, "reason": "Lower crude oil prices reduce input costs and support consumer spending outlook"}
+      {"sector": "Energy",    "change_pct": 3.50, "reason": "WTI crude surges 4%+ on Iran military strike fears and Gulf of Mexico hurricane production cuts"},
+      {"sector": "Materials", "change_pct": 0.40, "reason": "Commodity-linked stocks benefit from surging oil prices and rising inflation expectations"}
     ],
     "lagging": [
-      {"sector": "Energy",      "change_pct": -0.80, "reason": "WTI crude extending decline to ~$83/bbl as Iran ceasefire removes supply disruption premium"},
-      {"sector": "Real Estate", "change_pct": -0.30, "reason": "10-year Treasury yield at 5.29% continues to pressure rate-sensitive REITs"}
+      {"sector": "Utilities",  "change_pct": -1.20, "reason": "10-year yields near 5.35% weigh heavily on rate-sensitive utility stocks"},
+      {"sector": "Technology", "change_pct": -0.70, "reason": "Risk-off geopolitical sentiment and rising bond yields pressure growth stock valuations"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600",  "direction": "up",   "change_pct": 0.48},
-    "asia":   {"index": "Hang Seng", "direction": "down", "change_pct": -1.37}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -1.07},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -1.42}
   },
-  "open_focus": "Traders are focused on FOMC minutes from the September meeting due at 2pm ET for rate path signals, while the continued crude oil decline following the Iran ceasefire keeps energy markets volatile.",
+  "open_focus": "Traders are focused on reports that the Pentagon is preparing potential military strikes on Iran, which sparked a 4%+ surge in oil prices, pushed 10-year Treasury yields to near 24-year highs, and pulled equity futures lower into the open.",
   "market_prices": {
     "sp500": {
-      "prev_close": 8042.80,
-      "current":    8071.00,
-      "change_pct": 0.35,
-      "source_time_et": "07:30"
+      "prev_close": 7801.77,
+      "current":    7777.40,
+      "change_pct": -0.31,
+      "source_time_et": "09:32"
     },
     "rut": {
-      "prev_close": 3001.55,
-      "current":    3012.07,
-      "change_pct": 0.35,
-      "source_time_et": "07:30"
+      "prev_close": 2793.36,
+      "current":    2770.98,
+      "change_pct": -0.80,
+      "source_time_et": "09:32"
     },
     "vix": {
-      "prev_close": 21.65,
-      "current":    21.00
+      "prev_close": 15.08,
+      "current":    16.50
     }
   }
 }
