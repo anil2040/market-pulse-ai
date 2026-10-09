@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-08",
-  "time_collected_utc": "13:30",
+  "date": "2026-10-09",
+  "time_collected_utc": "12:51",
   "futures": {
-    "sp500":     {"change_pct": -0.30, "direction": "down"},
-    "nasdaq100": {"change_pct": -0.30, "direction": "down"},
-    "dow":       {"change_pct": -0.20, "direction": "down"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.31, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.50, "direction": "up"},
+    "dow":       {"change_pct": 0.20, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "Robinhood (fallback)"}
+    "EFA":  {"pe_ttm": 19.31, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "iShares/BlackRock"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.32,
-    "crude_oil_usd": 92.50,
+    "treasury_10yr_pct": 5.22,
+    "crude_oil_usd": 90.35,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Pentagon reportedly preparing potential military strikes on Iran, driving WTI crude up over 4% to $92.50/bbl and raising renewed inflation concerns",
-    "10-year Treasury yield tested near 24-year highs around 5.32-5.35% as elevated yields and Fed rate-hike signals pressured equity markets",
-    "Hurricane-related Gulf of Mexico crude production disruptions compounded global oil supply concerns alongside escalating Middle East tensions"
+    "September jobs report missed expectations (+29k vs ~85k forecast); unemployment rose to 4.2%, lowering Fed rate hike odds",
+    "10-year Treasury yield near 5.22%, approaching multi-decade highs and pressuring equity valuations",
+    "Middle East tensions drove Brent crude above $100/bbl earlier this week; oil prices easing Friday morning"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",    "change_pct": 3.50, "reason": "WTI crude surges 4%+ on Iran military strike fears and Gulf of Mexico hurricane production cuts"},
-      {"sector": "Materials", "change_pct": 0.40, "reason": "Commodity-linked stocks benefit from surging oil prices and rising inflation expectations"}
+      {"sector": "Health Care",  "change_pct": 0.80, "reason": "defensive rotation as investors seek shelter from elevated yields"},
+      {"sector": "Technology",   "change_pct": 0.50, "reason": "tech rebound led by Marvell and Micron after Thursday sell-off on OpenAI revenue miss"}
     ],
     "lagging": [
-      {"sector": "Utilities",  "change_pct": -1.20, "reason": "10-year yields near 5.35% weigh heavily on rate-sensitive utility stocks"},
-      {"sector": "Technology", "change_pct": -0.70, "reason": "Risk-off geopolitical sentiment and rising bond yields pressure growth stock valuations"}
+      {"sector": "Communication Services", "change_pct": -0.73, "reason": "streaming and social media pressured by rising discount rates on long-duration assets"},
+      {"sector": "Energy",                 "change_pct": -0.50, "reason": "crude oil prices ease Friday morning, pulling back from mid-week highs near $92/bbl"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -1.07},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -1.42}
+    "europe": {"index": "STOXX 600", "direction": "down", "change_pct": -0.28},
+    "asia":   {"index": "Nikkei 225", "direction": "up", "change_pct": 0.15}
   },
-  "open_focus": "Traders are focused on reports that the Pentagon is preparing potential military strikes on Iran, which sparked a 4%+ surge in oil prices, pushed 10-year Treasury yields to near 24-year highs, and pulled equity futures lower into the open.",
+  "open_focus": "Traders are watching whether the technology rebound holds heading into next week's CPI report, with 10-year Treasury yields near 5.22% and crude oil prices retreating from weekly highs.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7801.77,
-      "current":    7777.40,
-      "change_pct": -0.31,
-      "source_time_et": "09:32"
+      "prev_close": 7765.36,
+      "current":    7789.61,
+      "change_pct": 0.31,
+      "source_time_et": "08:51"
     },
     "rut": {
-      "prev_close": 2793.36,
-      "current":    2770.98,
-      "change_pct": -0.80,
-      "source_time_et": "09:32"
+      "prev_close": 2648.60,
+      "current":    2664.75,
+      "change_pct": 0.61,
+      "source_time_et": "08:51"
     },
     "vix": {
-      "prev_close": 15.08,
-      "current":    16.50
+      "prev_close": 15.41,
+      "current":    15.22
     }
   }
 }
