@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-09",
-  "time_collected_utc": "12:51",
+  "date": "2026-10-12",
+  "time_collected_utc": "12:30",
   "futures": {
-    "sp500":     {"change_pct": 0.31, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.50, "direction": "up"},
-    "dow":       {"change_pct": 0.20, "direction": "up"},
-    "sentiment": "bullish"
+    "sp500":     {"change_pct": 0.12, "direction": "up"},
+    "nasdaq100": {"change_pct": -0.05, "direction": "down"},
+    "dow":       {"change_pct": 0.06, "direction": "up"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 19.31, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "iShares/BlackRock"}
+    "EFA":  {"pe_ttm": 17.83, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "stockanalysis.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.22,
-    "crude_oil_usd": 90.35,
+    "treasury_10yr_pct": 5.24,
+    "crude_oil_usd": 90.26,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "September jobs report missed expectations (+29k vs ~85k forecast); unemployment rose to 4.2%, lowering Fed rate hike odds",
-    "10-year Treasury yield near 5.22%, approaching multi-decade highs and pressuring equity valuations",
-    "Middle East tensions drove Brent crude above $100/bbl earlier this week; oil prices easing Friday morning"
+    "10-year Treasury yield at 5.24% near 24-year highs; bond markets closed for Columbus Day; CME FedWatch shows 86% probability of December Fed rate hike",
+    "Major bank earnings season opens Tuesday with JPMorgan and Wells Fargo; September CPI report due mid-week as critical inflation test for Fed rate path",
+    "WTI crude near $90/bbl as Middle East tensions persist; Iran-Hormuz talks ongoing; Russia-Ukraine energy ceasefire hopes add supply uncertainty"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Health Care",  "change_pct": 0.80, "reason": "defensive rotation as investors seek shelter from elevated yields"},
-      {"sector": "Technology",   "change_pct": 0.50, "reason": "tech rebound led by Marvell and Micron after Thursday sell-off on OpenAI revenue miss"}
+      {"sector": "Energy",      "change_pct": 0.70, "reason": "crude oil elevated near $90/bbl on Middle East tensions; sector leads YTD at +38.9%"},
+      {"sector": "Real Estate", "change_pct": 1.18, "reason": "defensive rotation ahead of CPI and bank earnings; XLRE led the prior Friday session"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -0.73, "reason": "streaming and social media pressured by rising discount rates on long-duration assets"},
-      {"sector": "Energy",                 "change_pct": -0.50, "reason": "crude oil prices ease Friday morning, pulling back from mid-week highs near $92/bbl"}
+      {"sector": "Technology",            "change_pct": -0.46, "reason": "elevated 10-year yields near 5.24% pressure long-duration growth stocks; Nasdaq futures negative"},
+      {"sector": "Communication Services","change_pct": -0.30, "reason": "streaming and digital ad stocks weigh on sector amid higher discount rate environment"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX 600", "direction": "down", "change_pct": -0.28},
-    "asia":   {"index": "Nikkei 225", "direction": "up", "change_pct": 0.15}
+    "europe": {"index": "STOXX 600", "direction": "up", "change_pct": 0.43},
+    "asia":   {"index": "Hang Seng",  "direction": "up", "change_pct": 0.30}
   },
-  "open_focus": "Traders are watching whether the technology rebound holds heading into next week's CPI report, with 10-year Treasury yields near 5.22% and crude oil prices retreating from weekly highs.",
+  "open_focus": "Traders are focused on the start of major bank earnings Tuesday and September CPI due mid-week, with WTI crude near $90/bbl and bond markets closed for Columbus Day keeping the inflation-and-rates narrative front of mind.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7765.36,
-      "current":    7789.61,
-      "change_pct": 0.31,
-      "source_time_et": "08:51"
+      "prev_close": 7811.54,
+      "current":    7820.92,
+      "change_pct": 0.12,
+      "source_time_et": "08:30"
     },
     "rut": {
-      "prev_close": 2648.60,
-      "current":    2664.75,
-      "change_pct": 0.61,
-      "source_time_et": "08:51"
+      "prev_close": 2664.75,
+      "current":    2667.15,
+      "change_pct": 0.09,
+      "source_time_et": "08:30"
     },
     "vix": {
-      "prev_close": 15.41,
-      "current":    15.22
+      "prev_close": 15.22,
+      "current":    15.50
     }
   }
 }
