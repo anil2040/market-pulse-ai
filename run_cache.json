@@ -201,7 +201,7 @@
       "fallback_id": "DCOILWTICO",
       "prefix": "$",
       "insight": "Energy price \u00b7 >$85 = inflation pressure & input cost risk",
-      "current": "$93.0",
+      "current": "$93.7",
       "mo3": "$79.3",
       "mo12": "$61.8",
       "trend": "\u25b2",
@@ -224,7 +224,7 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,211",
+      "current": "$4,191",
       "mo3": "$4,070",
       "mo12": "$3,898",
       "trend": "\u25b2",
@@ -277,7 +277,7 @@
   },
   "fear_greed": {
     "value": {
-      "score": 46,
+      "score": 45,
       "label": "Neutral",
       "color": "#6b7280",
       "signal": "No strong directional sentiment signal",
@@ -293,24 +293,24 @@
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "15.31",
+        "value": "15.17",
         "label": "NORMAL",
         "color": "#6b7280",
         "signal": "\u2192 Normal -- market calm, no stress signal",
         "prev": "15.21"
       },
       "spx": {
-        "value": "7,810",
-        "chg": "+0.04%",
+        "value": "7,804",
+        "chg": "-0.04%",
         "label": "FLAT",
         "color": "#6b7280",
         "prev": "7,807"
       },
       "rut": {
-        "value": "2,792",
-        "chg": "-0.09%",
-        "label": "FLAT",
-        "color": "#6b7280",
+        "value": "2,781",
+        "chg": "-0.50%",
+        "label": "DOWN",
+        "color": "#e97316",
         "prev": "2,794"
       },
       "urth_pe": 24.7,
@@ -321,7 +321,7 @@
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P +0.04% (FLAT) \u00b7 Russell -0.09% (FLAT) \u00b7 VIX 15.3 (NORMAL) -- indecisive -- focus on individual catalysts"
+      "pulse": "S&P -0.04% (FLAT) \u00b7 Russell -0.50% (DOWN) \u00b7 VIX 15.2 (NORMAL) -- indecisive -- focus on individual catalysts"
     },
     "fetched": "2026-10-13",
     "as_of": "2026-10-13"
