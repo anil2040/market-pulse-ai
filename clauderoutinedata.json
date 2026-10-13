@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-12",
-  "time_collected_utc": "12:30",
+  "date": "2026-10-13",
+  "time_collected_utc": "14:44",
   "futures": {
-    "sp500":     {"change_pct": 0.12, "direction": "up"},
-    "nasdaq100": {"change_pct": -0.05, "direction": "down"},
-    "dow":       {"change_pct": 0.06, "direction": "up"},
+    "sp500":     {"change_pct": -0.10, "direction": "down"},
+    "nasdaq100": {"change_pct": -0.70, "direction": "down"},
+    "dow":       {"change_pct": 0.60, "direction": "up"},
     "sentiment": "neutral"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 17.83, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "stockanalysis.com"}
+    "EFA":  {"pe_ttm": 19.31, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "iShares/BlackRock"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.24,
-    "crude_oil_usd": 90.26,
+    "treasury_10yr_pct": 5.19,
+    "crude_oil_usd": 92.80,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "10-year Treasury yield at 5.24% near 24-year highs; bond markets closed for Columbus Day; CME FedWatch shows 86% probability of December Fed rate hike",
-    "Major bank earnings season opens Tuesday with JPMorgan and Wells Fargo; September CPI report due mid-week as critical inflation test for Fed rate path",
-    "WTI crude near $90/bbl as Middle East tensions persist; Iran-Hormuz talks ongoing; Russia-Ukraine energy ceasefire hopes add supply uncertainty"
+    "Q3 bank earnings season begins with JPMorgan, Goldman Sachs, and Citigroup reporting before the Tuesday open",
+    "September CPI report expected Wednesday with headline rate forecast at 3.6% year-over-year, a critical test for the Fed rate path",
+    "AI chipmaker selloff extends into Tuesday as South Korea's KOSPI fell over 5% on Chinese chip competition concerns"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",      "change_pct": 0.70, "reason": "crude oil elevated near $90/bbl on Middle East tensions; sector leads YTD at +38.9%"},
-      {"sector": "Real Estate", "change_pct": 1.18, "reason": "defensive rotation ahead of CPI and bank earnings; XLRE led the prior Friday session"}
+      {"sector": "Financials",  "change_pct": 0.80, "reason": "Q3 bank earnings season kicks off with big banks expected to report strong investment banking revenue"},
+      {"sector": "Health Care", "change_pct": 0.60, "reason": "defensive rotation as chipmakers drag tech and Nasdaq lower"}
     ],
     "lagging": [
-      {"sector": "Technology",            "change_pct": -0.46, "reason": "elevated 10-year yields near 5.24% pressure long-duration growth stocks; Nasdaq futures negative"},
-      {"sector": "Communication Services","change_pct": -0.30, "reason": "streaming and digital ad stocks weigh on sector amid higher discount rate environment"}
+      {"sector": "Technology",             "change_pct": -0.70, "reason": "AI chip stock selloff continues; Nasdaq 100 futures -0.7% on Chinese competition concerns"},
+      {"sector": "Communication Services", "change_pct": -0.40, "reason": "digital media and streaming stocks slide amid ongoing tech-sector pressure and elevated yields"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX 600", "direction": "up", "change_pct": 0.43},
-    "asia":   {"index": "Hang Seng",  "direction": "up", "change_pct": 0.30}
+    "europe": {"index": "STOXX 600", "direction": "down", "change_pct": -0.50},
+    "asia":   {"index": "Nikkei",    "direction": "down", "change_pct": -1.90}
   },
-  "open_focus": "Traders are focused on the start of major bank earnings Tuesday and September CPI due mid-week, with WTI crude near $90/bbl and bond markets closed for Columbus Day keeping the inflation-and-rates narrative front of mind.",
+  "open_focus": "Traders are focused on the start of Q3 bank earnings season with JPMorgan and Goldman Sachs reporting before the open, while a sharp AI chip stock selloff is dragging Nasdaq futures lower and has sent Asian markets sharply lower overnight.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7811.54,
-      "current":    7820.92,
-      "change_pct": 0.12,
-      "source_time_et": "08:30"
+      "prev_close": 7807.24,
+      "current":    7804.49,
+      "change_pct": -0.04,
+      "source_time_et": "10:44"
     },
     "rut": {
-      "prev_close": 2664.75,
-      "current":    2667.15,
-      "change_pct": 0.09,
-      "source_time_et": "08:30"
+      "prev_close": 2667.00,
+      "current":    2672.50,
+      "change_pct": 0.21,
+      "source_time_et": "10:44"
     },
     "vix": {
-      "prev_close": 15.22,
-      "current":    15.50
+      "prev_close": 15.50,
+      "current":    16.20
     }
   }
 }
