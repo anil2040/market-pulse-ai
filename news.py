@@ -258,7 +258,7 @@ def _receipt(label, text, info):
 
 _EJ_NAV = re.compile(r"(\| English$|\| French$|^Stock Market News Today \| Edward Jones$)")
 _EJ_DATE = re.compile(
-    r"(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s+(\d{1,2})/(\d{1,2})/(\d{4})")
+    r"(Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday)\s*,?\s+(\d{1,2})/(\d{1,2})/(\d{4})")
 
 
 def _clean_ej(text):
@@ -290,7 +290,7 @@ def scrape_edward_jones():
         lines = raw.splitlines()[:EJ_MAX_LINES]
         text  = _clean_ej("\n".join(lines))
 
-        # Real date of the recap, printed on the page ("Monday 9/28/2026 p.m.")
+        # Real date of the recap, printed on the page ("Monday, 10/12/2026 p.m."; older format had no comma)
         m = _EJ_DATE.search(text)
         if not m:
             print(f"   ✅ Edward Jones: {_n_words(text)} words (recap date not found on page)")

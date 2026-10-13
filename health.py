@@ -34,7 +34,7 @@ OK, WARN, BAD = "ok", "warn", "bad"
 # their limits are long. Daily series allow a long weekend.
 MAX_AGE_DAYS = {
     "daily":          6,
-    "calendar_daily": 4,
+    "calendar_daily": 6,   # Fed Funds (DFF): 5 days old on the Tuesday after a Monday holiday is normal
     "weekly":         14,
     "monthly":        100,
     "quarterly":      215,   # Q2 GDP (dated Apr 1) is replaced ~Oct 29 = 211 days
