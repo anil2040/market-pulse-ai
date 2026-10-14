@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-13",
-  "time_collected_utc": "14:44",
+  "date": "2026-10-14",
+  "time_collected_utc": "12:54",
   "futures": {
-    "sp500":     {"change_pct": -0.10, "direction": "down"},
-    "nasdaq100": {"change_pct": -0.70, "direction": "down"},
-    "dow":       {"change_pct": 0.60, "direction": "up"},
-    "sentiment": "neutral"
+    "sp500":     {"change_pct": -0.30, "direction": "down"},
+    "nasdaq100": {"change_pct": -0.60, "direction": "down"},
+    "dow":       {"change_pct": -0.10, "direction": "down"},
+    "sentiment": "bearish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -14,46 +14,46 @@
              "source": "iShares/BlackRock"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.19,
-    "crude_oil_usd": 92.80,
+    "treasury_10yr_pct": 5.25,
+    "crude_oil_usd": 94.71,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Q3 bank earnings season begins with JPMorgan, Goldman Sachs, and Citigroup reporting before the Tuesday open",
-    "September CPI report expected Wednesday with headline rate forecast at 3.6% year-over-year, a critical test for the Fed rate path",
-    "AI chipmaker selloff extends into Tuesday as South Korea's KOSPI fell over 5% on Chinese chip competition concerns"
+    "September CPI rose 3.7% YoY and 0.6% MoM (above 3.6% forecast), pushing December rate-hike probability to 86% on CME FedWatch",
+    "Q3 earnings season continues: JPMorgan, Goldman Sachs, and Bank of America report before the open; ASML also reports",
+    "Fed Beige Book published; NY Fed President Williams backed one more 2026 rate hike with no further tightening in 2027"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Financials",  "change_pct": 0.80, "reason": "Q3 bank earnings season kicks off with big banks expected to report strong investment banking revenue"},
-      {"sector": "Health Care", "change_pct": 0.60, "reason": "defensive rotation as chipmakers drag tech and Nasdaq lower"}
+      {"sector": "Energy",     "change_pct": 1.30, "reason": "WTI crude above $94 with Middle East supply concerns keeping oil prices elevated"},
+      {"sector": "Financials", "change_pct": 0.70, "reason": "Q3 bank earnings season opens with JPMorgan and Goldman Sachs posting strong investment banking revenue"}
     ],
     "lagging": [
-      {"sector": "Technology",             "change_pct": -0.70, "reason": "AI chip stock selloff continues; Nasdaq 100 futures -0.7% on Chinese competition concerns"},
-      {"sector": "Communication Services", "change_pct": -0.40, "reason": "digital media and streaming stocks slide amid ongoing tech-sector pressure and elevated yields"}
+      {"sector": "Technology", "change_pct": -1.10, "reason": "Semiconductor stocks in 6-session losing streak; ASML and memory names pressured by Chinese CXMT competition"},
+      {"sector": "Utilities",  "change_pct": -0.60, "reason": "Rate-sensitive sector sold off as hot CPI data pushes the 10-year Treasury yield above 5.2%"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX 600", "direction": "down", "change_pct": -0.50},
-    "asia":   {"index": "Nikkei",    "direction": "down", "change_pct": -1.90}
+    "europe": {"index": "EURO STOXX 50", "direction": "down", "change_pct": -0.34},
+    "asia":   {"index": "Nikkei",        "direction": "down", "change_pct": -0.50}
   },
-  "open_focus": "Traders are focused on the start of Q3 bank earnings season with JPMorgan and Goldman Sachs reporting before the open, while a sharp AI chip stock selloff is dragging Nasdaq futures lower and has sent Asian markets sharply lower overnight.",
+  "open_focus": "Traders are focused on the hotter-than-expected September CPI (3.7% YoY) released at 8:30 AM ET, which turned pre-market futures from gains into losses and pushed December rate-hike probability to 86%, alongside Q3 big bank earnings from JPMorgan and Goldman Sachs.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7807.24,
-      "current":    7804.49,
-      "change_pct": -0.04,
-      "source_time_et": "10:44"
+      "prev_close": 7805.45,
+      "current":    7782.02,
+      "change_pct": -0.30,
+      "source_time_et": "08:54"
     },
     "rut": {
-      "prev_close": 2667.00,
-      "current":    2672.50,
-      "change_pct": 0.21,
-      "source_time_et": "10:44"
+      "prev_close": 2672.50,
+      "current":    2656.47,
+      "change_pct": -0.60,
+      "source_time_et": "08:54"
     },
     "vix": {
-      "prev_close": 15.50,
-      "current":    16.20
+      "prev_close": 16.20,
+      "current":    17.80
     }
   }
 }
