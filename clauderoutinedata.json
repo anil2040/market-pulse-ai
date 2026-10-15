@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-14",
-  "time_collected_utc": "12:54",
+  "date": "2026-10-15",
+  "time_collected_utc": "08:00",
   "futures": {
     "sp500":     {"change_pct": -0.30, "direction": "down"},
-    "nasdaq100": {"change_pct": -0.60, "direction": "down"},
-    "dow":       {"change_pct": -0.10, "direction": "down"},
+    "nasdaq100": {"change_pct": -1.00, "direction": "down"},
+    "dow":       {"change_pct": 0.40, "direction": "up"},
     "sentiment": "bearish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 19.31, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "iShares/BlackRock"}
+    "EFA":  {"pe_ttm": 17.72, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "wealthsimple.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.25,
-    "crude_oil_usd": 94.71,
+    "treasury_10yr_pct": 5.10,
+    "crude_oil_usd": 93.10,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "September CPI rose 3.7% YoY and 0.6% MoM (above 3.6% forecast), pushing December rate-hike probability to 86% on CME FedWatch",
-    "Q3 earnings season continues: JPMorgan, Goldman Sachs, and Bank of America report before the open; ASML also reports",
-    "Fed Beige Book published; NY Fed President Williams backed one more 2026 rate hike with no further tightening in 2027"
+    "September CPI rose 3.7% YoY vs 3.6% forecast, pushing CME FedWatch December rate-hike odds to 86% and triggering a broad market selloff",
+    "Wholesale inflation (PPI) for September rose at its fastest pace since 2022, reinforcing concern that inflation is re-accelerating",
+    "Fed Governors Bowman and Hammack scheduled to speak today; markets watching for signals on whether the Fed will hike at its October or December meeting"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",     "change_pct": 1.30, "reason": "WTI crude above $94 with Middle East supply concerns keeping oil prices elevated"},
-      {"sector": "Financials", "change_pct": 0.70, "reason": "Q3 bank earnings season opens with JPMorgan and Goldman Sachs posting strong investment banking revenue"}
+      {"sector": "Healthcare",       "change_pct": 0.80, "reason": "Defensive rotation as investors seek shelter from elevated rate-hike risk after hot CPI data"},
+      {"sector": "Consumer Staples", "change_pct": 0.50, "reason": "Defensive sector outperforming as growth and rate-sensitive names sell off"}
     ],
     "lagging": [
-      {"sector": "Technology", "change_pct": -1.10, "reason": "Semiconductor stocks in 6-session losing streak; ASML and memory names pressured by Chinese CXMT competition"},
-      {"sector": "Utilities",  "change_pct": -0.60, "reason": "Rate-sensitive sector sold off as hot CPI data pushes the 10-year Treasury yield above 5.2%"}
+      {"sector": "Technology",             "change_pct": -1.50, "reason": "Chip sell-off deepens for second day with Nvidia -2% and AMD -4% premarket; Nasdaq futures down 1%"},
+      {"sector": "Consumer Discretionary", "change_pct": -0.70, "reason": "Rate-sensitive consumer spending stocks pressured as higher-for-longer rate fears return on hot inflation data"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "EURO STOXX 50", "direction": "down", "change_pct": -0.34},
-    "asia":   {"index": "Nikkei",        "direction": "down", "change_pct": -0.50}
+    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.43},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -5.13}
   },
-  "open_focus": "Traders are focused on the hotter-than-expected September CPI (3.7% YoY) released at 8:30 AM ET, which turned pre-market futures from gains into losses and pushed December rate-hike probability to 86%, alongside Q3 big bank earnings from JPMorgan and Goldman Sachs.",
+  "open_focus": "Traders are focused on whether Fed Governors Bowman and Hammack confirm another rate hike after September CPI surprised at 3.7%, and on the second consecutive day of a deepening chip-stock sell-off pushing Nasdaq futures down 1%.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7805.45,
-      "current":    7782.02,
+      "prev_close": 7718.94,
+      "current":    7695.72,
       "change_pct": -0.30,
-      "source_time_et": "08:54"
+      "source_time_et": "04:00"
     },
     "rut": {
-      "prev_close": 2672.50,
-      "current":    2656.47,
-      "change_pct": -0.60,
-      "source_time_et": "08:54"
+      "prev_close": 2729.53,
+      "current":    2734.72,
+      "change_pct": 0.19,
+      "source_time_et": "04:00"
     },
     "vix": {
-      "prev_close": 16.20,
-      "current":    17.80
+      "prev_close": 16.87,
+      "current":    17.50
     }
   }
 }
