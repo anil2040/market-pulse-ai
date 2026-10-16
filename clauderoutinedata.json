@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-15",
-  "time_collected_utc": "08:00",
+  "date": "2026-10-16",
+  "time_collected_utc": "12:00",
   "futures": {
-    "sp500":     {"change_pct": -0.30, "direction": "down"},
-    "nasdaq100": {"change_pct": -1.00, "direction": "down"},
-    "dow":       {"change_pct": 0.40, "direction": "up"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.12, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.05, "direction": "up"},
+    "dow":       {"change_pct": 0.20, "direction": "up"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -14,46 +14,46 @@
              "source": "wealthsimple.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.10,
-    "crude_oil_usd": 93.10,
+    "treasury_10yr_pct": 5.06,
+    "crude_oil_usd": 97.20,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "September CPI rose 3.7% YoY vs 3.6% forecast, pushing CME FedWatch December rate-hike odds to 86% and triggering a broad market selloff",
-    "Wholesale inflation (PPI) for September rose at its fastest pace since 2022, reinforcing concern that inflation is re-accelerating",
-    "Fed Governors Bowman and Hammack scheduled to speak today; markets watching for signals on whether the Fed will hike at its October or December meeting"
+    "Fed Chair Warsh speaks today; markets watching for rate-path signals after September CPI surprised at 3.7% YoY and PPI rose at its fastest pace since 2022",
+    "US Industrial Production (Sep) and Import/Export Prices (Sep) released today; Treasury yields cooling from multi-year highs near 5.36% as Bessent intensifies economic pressure on Iran",
+    "October monthly options expiration (OpEx Friday); AI stocks attempting to stabilize after a week-long sell-off tied to elevated borrowing costs and capex return concerns"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Healthcare",       "change_pct": 0.80, "reason": "Defensive rotation as investors seek shelter from elevated rate-hike risk after hot CPI data"},
-      {"sector": "Consumer Staples", "change_pct": 0.50, "reason": "Defensive sector outperforming as growth and rate-sensitive names sell off"}
+      {"sector": "Health Care",  "change_pct": 0.80, "reason": "Defensive rotation continues; UNH Q3 beat impressed this week with MCR below expectations and raised FY profit outlook"},
+      {"sector": "Financials",   "change_pct": 0.60, "reason": "Big-bank earnings week was strong: GS, BAC, JPM, MS all beat; Travelers (TRV) reports today"}
     ],
     "lagging": [
-      {"sector": "Technology",             "change_pct": -1.50, "reason": "Chip sell-off deepens for second day with Nvidia -2% and AMD -4% premarket; Nasdaq futures down 1%"},
-      {"sector": "Consumer Discretionary", "change_pct": -0.70, "reason": "Rate-sensitive consumer spending stocks pressured as higher-for-longer rate fears return on hot inflation data"}
+      {"sector": "Communication Services", "change_pct": -0.73, "reason": "AI-related names remain under pressure amid elevated Treasury yields and investor concern over returns on AI infrastructure investment"},
+      {"sector": "Technology",             "change_pct": -0.40, "reason": "Chip stocks and AI infrastructure names volatile after week-long meltdown; sector remains rate-sensitive with yields near 5%"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.43},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -5.13}
+    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.30},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.80}
   },
-  "open_focus": "Traders are focused on whether Fed Governors Bowman and Hammack confirm another rate hike after September CPI surprised at 3.7%, and on the second consecutive day of a deepening chip-stock sell-off pushing Nasdaq futures down 1%.",
+  "open_focus": "Traders are watching the Fed Chair Warsh speech and October monthly options expiration as Treasury yields pull back from multi-year highs and AI stocks attempt to stabilize after a week-long sell-off.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7718.94,
-      "current":    7695.72,
-      "change_pct": -0.30,
-      "source_time_et": "04:00"
+      "prev_close": 7744.06,
+      "current":    7753.35,
+      "change_pct": 0.12,
+      "source_time_et": "08:00"
     },
     "rut": {
-      "prev_close": 2729.53,
-      "current":    2734.72,
-      "change_pct": 0.19,
-      "source_time_et": "04:00"
+      "prev_close": 2767.27,
+      "current":    2772.80,
+      "change_pct": 0.20,
+      "source_time_et": "08:00"
     },
     "vix": {
-      "prev_close": 16.87,
-      "current":    17.50
+      "prev_close": 16.46,
+      "current":    16.20
     }
   }
 }
