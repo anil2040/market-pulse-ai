@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-16",
-  "time_collected_utc": "12:00",
+  "date": "2026-10-19",
+  "time_collected_utc": "11:54",
   "futures": {
-    "sp500":     {"change_pct": 0.12, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.05, "direction": "up"},
-    "dow":       {"change_pct": 0.20, "direction": "up"},
-    "sentiment": "neutral"
+    "sp500":     {"change_pct": 0.47, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.99, "direction": "up"},
+    "dow":       {"change_pct": 0.03, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -14,46 +14,46 @@
              "source": "wealthsimple.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.06,
-    "crude_oil_usd": 97.20,
+    "treasury_10yr_pct": 5.08,
+    "crude_oil_usd": 98.37,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed Chair Warsh speaks today; markets watching for rate-path signals after September CPI surprised at 3.7% YoY and PPI rose at its fastest pace since 2022",
-    "US Industrial Production (Sep) and Import/Export Prices (Sep) released today; Treasury yields cooling from multi-year highs near 5.36% as Bessent intensifies economic pressure on Iran",
-    "October monthly options expiration (OpEx Friday); AI stocks attempting to stabilize after a week-long sell-off tied to elevated borrowing costs and capex return concerns"
+    "US 10-year Treasury yield holds above 5% for the first time since 2007, raising borrowing cost concerns ahead of the Oct 27-28 FOMC meeting with the Fed in its blackout period",
+    "Q3 earnings season in full swing with ~70 S&P 500 companies reporting this week; AI capital expenditure sustainability in focus after tech sector fell 7.6% last week",
+    "Geopolitical tensions in the Middle East and persistent shipping disruptions keep oil elevated, with Brent above $107 and WTI near $98/bbl"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Health Care",  "change_pct": 0.80, "reason": "Defensive rotation continues; UNH Q3 beat impressed this week with MCR below expectations and raised FY profit outlook"},
-      {"sector": "Financials",   "change_pct": 0.60, "reason": "Big-bank earnings week was strong: GS, BAC, JPM, MS all beat; Travelers (TRV) reports today"}
+      {"sector": "Technology",  "change_pct": 1.20, "reason": "Semiconductor stocks rebounding premarket after 10-session losing streak; chip ETF up ~3.1% as buyers step in following AI capex selloff"},
+      {"sector": "Health Care", "change_pct": 0.50, "reason": "Positive Q3 earnings from UnitedHealth and Abbott lifting managed care and medical device names"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -0.73, "reason": "AI-related names remain under pressure amid elevated Treasury yields and investor concern over returns on AI infrastructure investment"},
-      {"sector": "Technology",             "change_pct": -0.40, "reason": "Chip stocks and AI infrastructure names volatile after week-long meltdown; sector remains rate-sensitive with yields near 5%"}
+      {"sector": "Energy",    "change_pct": -0.40, "reason": "WTI pulling back modestly from prior session highs; oil stocks pressured as risk appetite returns to growth names"},
+      {"sector": "Materials", "change_pct": -0.30, "reason": "Steel and metals under pressure on economic slowdown concerns and intensifying Chinese competition"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.30},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.80}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.55},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.62}
   },
-  "open_focus": "Traders are watching the Fed Chair Warsh speech and October monthly options expiration as Treasury yields pull back from multi-year highs and AI stocks attempt to stabilize after a week-long sell-off.",
+  "open_focus": "Traders are watching whether the premarket rebound in semiconductor stocks can hold at the open on October 19, the 39th anniversary of Black Monday, as the 10-year Treasury yield holds above 5% and investors assess Q3 earnings for clues on AI spending sustainability.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7744.06,
-      "current":    7753.35,
-      "change_pct": 0.12,
-      "source_time_et": "08:00"
+      "prev_close": 7659.44,
+      "current":    7697.08,
+      "change_pct": 0.49,
+      "source_time_et": "07:54"
     },
     "rut": {
-      "prev_close": 2767.27,
-      "current":    2772.80,
-      "change_pct": 0.20,
-      "source_time_et": "08:00"
+      "prev_close": 2721.37,
+      "current":    2729.53,
+      "change_pct": 0.30,
+      "source_time_et": "07:54"
     },
     "vix": {
-      "prev_close": 16.46,
-      "current":    16.20
+      "prev_close": 19.99,
+      "current":    18.28
     }
   }
 }
