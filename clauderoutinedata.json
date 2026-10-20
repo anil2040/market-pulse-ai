@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-19",
-  "time_collected_utc": "11:54",
+  "date": "2026-10-20",
+  "time_collected_utc": "11:33",
   "futures": {
-    "sp500":     {"change_pct": 0.47, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.99, "direction": "up"},
-    "dow":       {"change_pct": 0.03, "direction": "up"},
-    "sentiment": "bullish"
+    "sp500":     {"change_pct": -0.19, "direction": "down"},
+    "nasdaq100": {"change_pct": -0.50, "direction": "down"},
+    "dow":       {"change_pct": 0.22, "direction": "up"},
+    "sentiment": "bearish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 17.72, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "wealthsimple.com"}
+    "EFA":  {"pe_ttm": 19.76, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "robinhood.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.08,
-    "crude_oil_usd": 98.37,
+    "treasury_10yr_pct": 5.11,
+    "crude_oil_usd": 98.79,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "US 10-year Treasury yield holds above 5% for the first time since 2007, raising borrowing cost concerns ahead of the Oct 27-28 FOMC meeting with the Fed in its blackout period",
-    "Q3 earnings season in full swing with ~70 S&P 500 companies reporting this week; AI capital expenditure sustainability in focus after tech sector fell 7.6% last week",
-    "Geopolitical tensions in the Middle East and persistent shipping disruptions keep oil elevated, with Brent above $107 and WTI near $98/bbl"
+    "10-year Treasury yield near 5.11%, rising as investors weigh persistent US inflation ahead of the Oct 27-28 FOMC meeting",
+    "Brent crude surges above $111 on Strait of Hormuz shipping disruptions, lifting WTI near $99/bbl and rekindling stagflation concerns",
+    "Peak earnings week underway with Netflix reporting after Tuesday's close and Tesla and Meta on Wednesday, with AI capex sustainability in focus"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",  "change_pct": 1.20, "reason": "Semiconductor stocks rebounding premarket after 10-session losing streak; chip ETF up ~3.1% as buyers step in following AI capex selloff"},
-      {"sector": "Health Care", "change_pct": 0.50, "reason": "Positive Q3 earnings from UnitedHealth and Abbott lifting managed care and medical device names"}
+      {"sector": "Energy",     "change_pct": 1.50, "reason": "Crude surge on Strait of Hormuz supply disruption driving broad energy outperformance"},
+      {"sector": "Financials", "change_pct": 0.30, "reason": "Value rotation into financials as Dow outperforms Nasdaq; bank earnings broadly positive"}
     ],
     "lagging": [
-      {"sector": "Energy",    "change_pct": -0.40, "reason": "WTI pulling back modestly from prior session highs; oil stocks pressured as risk appetite returns to growth names"},
-      {"sector": "Materials", "change_pct": -0.30, "reason": "Steel and metals under pressure on economic slowdown concerns and intensifying Chinese competition"}
+      {"sector": "Technology",             "change_pct": -0.80, "reason": "AI-related stocks under pressure amid financing cost concerns and Treasury yields above 5%"},
+      {"sector": "Consumer Discretionary", "change_pct": -0.50, "reason": "Tesla and AI-adjacent names dragging sector lower ahead of Wednesday earnings"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.55},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.62}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.30},
+    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 0.50}
   },
-  "open_focus": "Traders are watching whether the premarket rebound in semiconductor stocks can hold at the open on October 19, the 39th anniversary of Black Monday, as the 10-year Treasury yield holds above 5% and investors assess Q3 earnings for clues on AI spending sustainability.",
+  "open_focus": "Traders are focused on surging oil prices above $111 Brent and Treasury yields near 5.1%, with Netflix reporting after Tuesday's close signaling peak earnings week and raising concerns about AI spending sustainability.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7659.44,
-      "current":    7697.08,
-      "change_pct": 0.49,
-      "source_time_et": "07:54"
+      "prev_close": 7690.73,
+      "current":    7676.12,
+      "change_pct": -0.19,
+      "source_time_et": "07:33"
     },
     "rut": {
-      "prev_close": 2721.37,
-      "current":    2729.53,
-      "change_pct": 0.30,
-      "source_time_et": "07:54"
+      "prev_close": 2728.30,
+      "current":    2722.84,
+      "change_pct": -0.20,
+      "source_time_et": "07:33"
     },
     "vix": {
-      "prev_close": 19.99,
-      "current":    18.28
+      "prev_close": 18.44,
+      "current":    18.73
     }
   }
 }
