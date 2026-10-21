@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-20",
-  "time_collected_utc": "11:33",
+  "date": "2026-10-21",
+  "time_collected_utc": "12:00",
   "futures": {
-    "sp500":     {"change_pct": -0.19, "direction": "down"},
-    "nasdaq100": {"change_pct": -0.50, "direction": "down"},
-    "dow":       {"change_pct": 0.22, "direction": "up"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.24, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.30, "direction": "up"},
+    "dow":       {"change_pct": -0.10, "direction": "down"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 19.76, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "robinhood.com"}
+    "EFA":  {"pe_ttm": 19.31, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "iShares/BlackRock"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.11,
-    "crude_oil_usd": 98.79,
+    "treasury_10yr_pct": 5.12,
+    "crude_oil_usd": 97.44,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "10-year Treasury yield near 5.11%, rising as investors weigh persistent US inflation ahead of the Oct 27-28 FOMC meeting",
-    "Brent crude surges above $111 on Strait of Hormuz shipping disruptions, lifting WTI near $99/bbl and rekindling stagflation concerns",
-    "Peak earnings week underway with Netflix reporting after Tuesday's close and Tesla and Meta on Wednesday, with AI capex sustainability in focus"
+    "SpaceX strong quarterly earnings revived AI and chip stock optimism, lifting Nasdaq futures pre-market",
+    "Iran extended nuclear talks with the US ahead of November midterm elections, easing near-term geopolitical risk",
+    "UK September CPI rose to 3.5% above expectations, adding to global inflation concerns and pressuring FTSE 100"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",     "change_pct": 1.50, "reason": "Crude surge on Strait of Hormuz supply disruption driving broad energy outperformance"},
-      {"sector": "Financials", "change_pct": 0.30, "reason": "Value rotation into financials as Dow outperforms Nasdaq; bank earnings broadly positive"}
+      {"sector": "Technology", "change_pct": 0.50, "reason": "AI chip stocks surge on SpaceX blowout earnings and SMCI pre-market gains"},
+      {"sector": "Energy",     "change_pct": 0.30, "reason": "Brent crude back above $110 on ongoing Middle East supply concerns"}
     ],
     "lagging": [
-      {"sector": "Technology",             "change_pct": -0.80, "reason": "AI-related stocks under pressure amid financing cost concerns and Treasury yields above 5%"},
-      {"sector": "Consumer Discretionary", "change_pct": -0.50, "reason": "Tesla and AI-adjacent names dragging sector lower ahead of Wednesday earnings"}
+      {"sector": "Healthcare",  "change_pct": -0.20, "reason": "Profit-taking after sector led Tuesday's session with a 2.4% gain"},
+      {"sector": "Utilities",   "change_pct": -0.10, "reason": "Elevated 10-year Treasury yield at 5.12% weighs on rate-sensitive sectors"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.30},
-    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 0.50}
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.27},
+    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 0.85}
   },
-  "open_focus": "Traders are focused on surging oil prices above $111 Brent and Treasury yields near 5.1%, with Netflix reporting after Tuesday's close signaling peak earnings week and raising concerns about AI spending sustainability.",
+  "open_focus": "Traders are focused on whether SpaceX's blowout earnings can sustain the AI chip rally ahead of Netflix's after-hours report, while monitoring Iran nuclear talk developments and the 10-year Treasury yield holding near 5.12%.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7690.73,
-      "current":    7676.12,
-      "change_pct": -0.19,
-      "source_time_et": "07:33"
+      "prev_close": 7712.57,
+      "current":    7734.59,
+      "change_pct": 0.29,
+      "source_time_et": "08:00"
     },
     "rut": {
       "prev_close": 2728.30,
-      "current":    2722.84,
-      "change_pct": -0.20,
-      "source_time_et": "07:33"
+      "current":    2776.61,
+      "change_pct": 1.77,
+      "source_time_et": "08:00"
     },
     "vix": {
-      "prev_close": 18.44,
-      "current":    18.73
+      "prev_close": 17.40,
+      "current":    16.94
     }
   }
 }
