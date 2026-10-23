@@ -15,8 +15,8 @@
       "obs_date": "2026-09-01",
       "sig": "Above historical avg and accelerating -- pushes Fed toward holding or hiking"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Core CPI": {
     "value": {
@@ -34,8 +34,8 @@
       "obs_date": "2026-09-01",
       "sig": "Moderate -- not forcing Fed's hand in either direction"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_PCE Inflation": {
     "value": {
@@ -53,8 +53,8 @@
       "obs_date": "2026-08-01",
       "sig": "PCE cooling -- early signal Fed may eventually get the all-clear"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Core PCE": {
     "value": {
@@ -72,8 +72,8 @@
       "obs_date": "2026-08-01",
       "sig": "Elevated but drifting toward target -- cuts possible in 2-3 meetings if trend holds"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_10Y Treasury": {
     "value": {
@@ -83,16 +83,16 @@
       "is_index": false,
       "group": "RATES",
       "insight": "Risk-free rate \u00b7 rising compresses P/E multiples \u00b7 avg ~4%",
-      "current": "5.12%",
-      "mo3": "4.55%",
-      "mo12": "4.13%",
+      "current": "5.13%",
+      "mo3": "4.60%",
+      "mo12": "4.18%",
       "trend": "\u25b2",
-      "date": "Oct 20 2026",
-      "obs_date": "2026-10-20",
+      "date": "Oct 21 2026",
+      "obs_date": "2026-10-21",
       "sig": "Surging past 5% -- PE multiples compress mechanically, bond math competes with equities"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_2Y Treasury": {
     "value": {
@@ -102,16 +102,16 @@
       "is_index": false,
       "group": "RATES",
       "insight": "Fed expectations proxy \u00b7 rising = no rate cuts priced in",
-      "current": "4.79%",
-      "mo3": "4.18%",
-      "mo12": "3.58%",
+      "current": "4.81%",
+      "mo3": "4.21%",
+      "mo12": "3.60%",
       "trend": "\u25b2",
-      "date": "Oct 20 2026",
-      "obs_date": "2026-10-20",
+      "date": "Oct 21 2026",
+      "obs_date": "2026-10-21",
       "sig": "Market pricing in zero rate cuts -- tight monetary policy embedded for the foreseeable future"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Yield Curve (10Y-2Y)": {
     "value": {
@@ -121,16 +121,16 @@
       "is_index": false,
       "group": "RATES",
       "insight": "Negative = inverted = recession signal 12-18mo ahead",
-      "current": "0.32%",
-      "mo3": "0.39%",
-      "mo12": "0.58%",
+      "current": "0.31%",
+      "mo3": "0.37%",
+      "mo12": "0.57%",
       "trend": "\u25bc",
-      "date": "Oct 21 2026",
-      "obs_date": "2026-10-21",
+      "date": "Oct 22 2026",
+      "obs_date": "2026-10-22",
       "sig": "Positive slope -- no inversion signal; normal credit environment for long-term investors"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Fed Funds Rate": {
     "value": {
@@ -144,12 +144,12 @@
       "mo3": "3.63%",
       "mo12": "4.11%",
       "trend": "\u25b2",
-      "date": "Oct 20 2026",
-      "obs_date": "2026-10-20",
+      "date": "Oct 21 2026",
+      "obs_date": "2026-10-21",
       "sig": "Fed has been HIKING -- tightening restarted; pressure on long-duration valuations and leveraged balance sheets"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_HY Credit Spread": {
     "value": {
@@ -159,16 +159,16 @@
       "is_index": false,
       "group": "CREDIT",
       "insight": "Junk bond premium \u00b7 <3%=calm \u00b7 >6%=credit fear/stress",
-      "current": "3.33%",
-      "mo3": "2.69%",
-      "mo12": "2.96%",
+      "current": "3.40%",
+      "mo3": "2.77%",
+      "mo12": "2.80%",
       "trend": "\u25b2",
-      "date": "Oct 20 2026",
-      "obs_date": "2026-10-20",
+      "date": "Oct 22 2026",
+      "obs_date": "2026-10-22",
       "sig": "Tight spreads confirm equity calm is credit-supported -- watch for any widening as an early warning"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Unemployment": {
     "value": {
@@ -186,8 +186,8 @@
       "obs_date": "2026-09-01",
       "sig": "Near historical norm -- labor not a swing factor for macro direction today"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_WTI Crude Oil": {
     "value": {
@@ -201,16 +201,16 @@
       "fallback_id": "DCOILWTICO",
       "prefix": "$",
       "insight": "Energy price \u00b7 >$85 = inflation pressure & input cost risk",
-      "current": "$99.9",
-      "mo3": "$92.2",
-      "mo12": "$58.9",
+      "current": "$102.0",
+      "mo3": "$89.3",
+      "mo12": "$59.5",
       "trend": "\u25b2",
-      "date": "Oct 22 2026",
-      "obs_date": "2026-10-22",
-      "sig": "Energy price surge -- feeds directly into CPI and PPI; gives Fed another reason to hold"
+      "date": "Oct 23 2026",
+      "obs_date": "2026-10-23",
+      "sig": "Above $100 and rising -- stagflation risk: energy tax on consumers, input cost spike for industry"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Gold Price": {
     "value": {
@@ -224,16 +224,16 @@
       "prefix": "$",
       "no_pct": true,
       "insight": "Fear/inflation hedge \u00b7 rising+lowVIX = stealth fear signal",
-      "current": "$4,079",
-      "mo3": "$4,050",
-      "mo12": "$4,000",
-      "trend": "\u25b2",
-      "date": "Oct 22 2026",
-      "obs_date": "2026-10-22",
-      "sig": "Gold +2% yr -- modest hedge; not yet a panic signal"
+      "current": "$4,041",
+      "mo3": "$4,071",
+      "mo12": "$4,133",
+      "trend": "\u25bc",
+      "date": "Oct 23 2026",
+      "obs_date": "2026-10-23",
+      "sig": "Gold retreating -- fear premium fading; risk appetite improving"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Consumer Sentiment": {
     "value": {
@@ -252,8 +252,8 @@
       "obs_date": "2026-08-01",
       "sig": "Consumer deeply pessimistic -- spending contraction risk; watch retail and discretionary sectors"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_Shiller CAPE (US)": {
     "value": {
@@ -264,54 +264,54 @@
       "group": "VALUATION",
       "no_pct": true,
       "insight": "Cyclically Adj PE \u00b7 10yr smoothed \u00b7 hist avg 17x \u00b7 ~41 = 2nd highest ever",
-      "current": "41.1",
+      "current": "40.6",
       "mo3": "41.0",
       "mo12": "39.2",
-      "trend": "\u2192",
-      "date": "Oct 21 2026",
-      "obs_date": "2026-10-21",
+      "trend": "\u25bc",
+      "date": "Oct 22 2026",
+      "obs_date": "2026-10-22",
       "sig": "2.4x the 145yr avg -- only dot-com peak (44.2x, Dec 1999) was higher; 10yr forward returns historically near zero from this level"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fear_greed": {
     "value": {
-      "score": 26,
-      "label": "Fear",
-      "color": "#e97316",
-      "signal": "Pessimism elevated -- watch for entry setups",
-      "prev_close": 31,
-      "prev_week": 30,
-      "prev_month": 35,
-      "prev_year": 26,
+      "score": 19,
+      "label": "Extreme Fear",
+      "color": "#c81e1e",
+      "signal": "Historically strong buying opportunity for mean reversion",
+      "prev_close": 20,
+      "prev_week": 22,
+      "prev_month": 33,
+      "prev_year": 28,
       "cached": false
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "market_indicators": {
     "value": {
       "vix": {
-        "value": "17.85",
-        "label": "NORMAL",
-        "color": "#6b7280",
-        "signal": "\u2192 Normal -- market calm, no stress signal",
-        "prev": "16.68"
+        "value": "20.08",
+        "label": "CAUTIOUS",
+        "color": "#e97316",
+        "signal": "\u2192 Slightly elevated -- no broad panic signal",
+        "prev": "19.03"
       },
       "spx": {
-        "value": "7,683",
-        "chg": "-0.96%",
+        "value": "7,628",
+        "chg": "-0.46%",
         "label": "DOWN",
         "color": "#e97316",
-        "prev": "7,757"
+        "prev": "7,663"
       },
       "rut": {
-        "value": "2,766",
-        "chg": "-0.53%",
+        "value": "2,776",
+        "chg": "-0.29%",
         "label": "DOWN",
         "color": "#e97316",
-        "prev": "2,781"
+        "prev": "2,784"
       },
       "urth_pe": 24.7,
       "urth_pe_stale": false,
@@ -321,10 +321,10 @@
       "efa_pe_source": "Claude Routine",
       "market_state": "OPEN",
       "market_status_label": "",
-      "pulse": "S&P -0.96% (DOWN) \u00b7 Russell -0.53% (DOWN) \u00b7 VIX 17.9 (NORMAL) -- mixed -- stay selective"
+      "pulse": "S&P -0.46% (DOWN) \u00b7 Russell -0.29% (DOWN) \u00b7 VIX 20.1 (CAUTIOUS) -- mixed -- stay selective"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "screens_si": {
     "value": {
@@ -429,7 +429,7 @@
       "CTSH": 4,
       "GDS": 2
     },
-    "fetched": "2026-10-22",
+    "fetched": "2026-10-23",
     "as_of": "2026-09-30"
   },
   "screens_mf": {
@@ -451,31 +451,31 @@
         4
       ],
       [
-        "BBWI",
+        "AU",
         5
       ],
       [
-        "BHC",
+        "BBWI",
         6
       ],
       [
-        "BMY",
+        "BHC",
         7
       ],
       [
-        "BKE",
+        "BMY",
         8
       ],
       [
-        "CARG",
+        "BKE",
         9
       ],
       [
-        "GIB",
+        "CARG",
         10
       ],
       [
-        "CTSH",
+        "GIB",
         11
       ],
       [
@@ -499,15 +499,15 @@
         16
       ],
       [
-        "FOXA",
+        "FLR",
         17
       ],
       [
-        "GTX",
+        "FOXA",
         18
       ],
       [
-        "IT",
+        "GTX",
         19
       ],
       [
@@ -519,124 +519,124 @@
         21
       ],
       [
-        "GDDY",
+        "HRB",
         22
       ],
       [
-        "HRB",
+        "HRMY",
         23
       ],
       [
-        "HRMY",
+        "HPQ",
         24
       ],
       [
-        "HPQ",
+        "INCY",
         25
       ],
       [
-        "INCY",
+        "WLY",
         26
       ],
       [
-        "WLY",
+        "KNTNF",
         27
       ],
       [
-        "KNTNF",
+        "KGC",
         28
       ],
       [
-        "KBR",
+        "KFY",
         29
       ],
       [
-        "KFY",
+        "LULU",
         30
       ],
       [
-        "LULU",
+        "LUGDF",
         31
       ],
       [
-        "LUGDF",
+        "MU",
         32
       ],
       [
-        "MU",
+        "NRIX",
         33
       ],
       [
-        "NRIX",
+        "OTEX",
         34
       ],
       [
-        "OMC",
+        "PARR",
         35
       ],
       [
-        "OTEX",
+        "MD",
         36
       ],
       [
-        "PARR",
+        "PNR",
         37
       ],
       [
-        "MD",
+        "PRDO",
         38
       ],
       [
-        "PNR",
+        "PBI",
         39
       ],
       [
-        "PRDO",
+        "SIRI",
         40
       ],
       [
-        "PBI",
+        "SSRM",
         41
       ],
       [
-        "SIRI",
+        "SGHC",
         42
       ],
       [
-        "SSRM",
+        "TPR",
         43
       ],
       [
-        "SGHC",
+        "TDC",
         44
       ],
       [
-        "TDC",
+        "CI",
         45
       ],
       [
-        "CI",
+        "TNET",
         46
       ],
       [
-        "TNET",
+        "VSNT",
         47
       ],
       [
-        "VSNT",
+        "VNT",
         48
       ],
       [
-        "VNT",
+        "WDOFF",
         49
       ],
       [
-        "WDOFF",
+        "ZD",
         50
       ]
     ],
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "screens_am": {
     "value": [
@@ -646,27 +646,31 @@
       ],
       [
         "EQNR",
-        "3.60"
-      ],
-      [
-        "APA",
-        "6.00"
+        "3.50"
       ],
       [
         "PBR",
-        "6.00"
+        "6.10"
+      ],
+      [
+        "APA",
+        "6.10"
       ],
       [
         "CF",
-        "6.90"
+        "7.00"
       ],
       [
         "YPF",
-        "7.10"
+        "7.00"
+      ],
+      [
+        "SQM",
+        "7.40"
       ],
       [
         "SKHY",
-        "7.60"
+        "7.50"
       ],
       [
         "BP",
@@ -678,19 +682,19 @@
       ],
       [
         "SNY",
-        "8.20"
-      ],
-      [
-        "HPQ",
-        "8.50"
-      ],
-      [
-        "FOXA",
-        "8.50"
+        "8.30"
       ],
       [
         "SHEL",
-        "8.60"
+        "8.70"
+      ],
+      [
+        "FOXA",
+        "8.70"
+      ],
+      [
+        "DINO",
+        "8.80"
       ],
       [
         "FSLR",
@@ -698,10 +702,10 @@
       ],
       [
         "CMCSA",
-        "8.90"
+        "9.00"
       ],
       [
-        "DINO",
+        "HPQ",
         "9.00"
       ],
       [
@@ -709,36 +713,36 @@
         "9.10"
       ],
       [
-        "PHM",
+        "MU",
         "9.30"
       ],
       [
+        "RYAAY",
+        "9.50"
+      ],
+      [
+        "PHM",
+        "9.50"
+      ],
+      [
         "CTSH",
-        "9.40"
+        "9.50"
       ],
       [
         "ERIC",
-        "9.40"
-      ],
-      [
-        "RYAAY",
         "9.60"
       ],
       [
-        "MU",
-        "9.70"
-      ],
-      [
         "CI",
-        "9.80"
-      ],
-      [
-        "BMY",
         "10.00"
       ],
       [
+        "BMY",
+        "10.20"
+      ],
+      [
         "MO",
-        "10.10"
+        "10.20"
       ],
       [
         "THC",
@@ -750,99 +754,95 @@
       ],
       [
         "LDOS",
-        "10.60"
-      ],
-      [
-        "ZTS",
-        "11.40"
+        "10.90"
       ],
       [
         "VZ",
+        "11.40"
+      ],
+      [
+        "ZTS",
         "11.50"
       ],
       [
         "EIX",
-        "11.50"
-      ],
-      [
-        "CQP",
         "11.60"
       ],
       [
-        "BBY",
+        "CQP",
         "11.70"
       ],
       [
-        "VICI",
-        "11.80"
+        "SBS",
+        "11.90"
       ],
       [
         "SNX",
         "11.90"
       ],
       [
-        "SBS",
+        "VICI",
         "12.00"
       ],
       [
+        "BBY",
+        "12.10"
+      ],
+      [
         "CVS",
-        "12.30"
+        "12.40"
       ],
       [
         "UPS",
-        "12.90"
-      ],
-      [
-        "KR",
         "13.00"
       ],
       [
         "BTI",
-        "13.10"
-      ],
-      [
-        "HAS",
         "13.30"
       ],
       [
-        "LNG",
+        "KR",
+        "13.40"
+      ],
+      [
+        "HAS",
         "13.50"
       ],
       [
-        "GEHC",
-        "13.90"
+        "LNG",
+        "13.60"
       ],
       [
         "SONY",
-        "14.00"
+        "14.10"
+      ],
+      [
+        "GEHC",
+        "14.10"
       ],
       [
         "FIS",
-        "14.20"
+        "14.30"
       ],
       [
         "LOW",
-        "14.70"
-      ],
-      [
-        "KVUE",
-        "15.00"
+        "14.90"
       ],
       [
         "FDX",
-        "15.00"
+        "15.10"
       ],
       [
-        "WCC",
+        "KVUE",
+        "15.40"
+      ],
+      [
+        "SSNC",
         "15.70"
-      ],
-      [
-        "TEL",
-        "16.10"
       ]
     ],
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "weekly_calendar": {
     "week_of": "2026-10-19",
@@ -1008,6 +1008,11 @@
       "date": "2026-10-22",
       "score": 77,
       "label": "OVERHEATED"
+    },
+    {
+      "date": "2026-10-23",
+      "score": 58,
+      "label": "SELECTIVE"
     }
   ],
   "fred_Jobless Claims (ICSA)": {
@@ -1027,8 +1032,8 @@
       "obs_date": "2026-10-17",
       "sig": "4-wk avg: 197,750 | Very tight labor -- consumer spending well supported; wage inflation risk remains"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_GDP Growth YoY": {
     "value": {
@@ -1046,8 +1051,8 @@
       "obs_date": "2026-04-01",
       "sig": "At/above trend growth -- healthy macro backdrop; not a headwind for mean reversion"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   },
   "fred_US Dollar Index (Broad)": {
     "value": {
@@ -1067,7 +1072,7 @@
       "obs_date": "2026-10-16",
       "sig": "Dollar stable -- currency not adding incremental tailwind or headwind today"
     },
-    "fetched": "2026-10-22",
-    "as_of": "2026-10-22"
+    "fetched": "2026-10-23",
+    "as_of": "2026-10-23"
   }
 }
