@@ -1,10 +1,10 @@
 {
-  "date": "2026-10-22",
-  "time_collected_utc": "12:15",
+  "date": "2026-10-23",
+  "time_collected_utc": "11:30",
   "futures": {
-    "sp500":     {"change_pct": -0.94, "direction": "down"},
-    "nasdaq100": {"change_pct": -1.60, "direction": "down"},
-    "dow":       {"change_pct": -0.57, "direction": "down"},
+    "sp500":     {"change_pct": -0.27, "direction": "down"},
+    "nasdaq100": {"change_pct": -0.14, "direction": "down"},
+    "dow":       {"change_pct": -0.64, "direction": "down"},
     "sentiment": "bearish"
   },
   "etf_pe": {
@@ -14,46 +14,46 @@
              "source": "iShares/BlackRock"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.03,
-    "crude_oil_usd": 99.26,
+    "treasury_10yr_pct": 4.97,
+    "crude_oil_usd": 100.40,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Reports that the US and Israel have drafted plans to strike Iran after November midterms sent oil above $99 and sparked a global risk-off selloff",
-    "Tesla Q3 2026 earnings released after the Oct 21 close disappoint, driving Nasdaq 100 futures down 1.6% pre-market",
-    "10-year Treasury yield falls 11 bps to 5.03% as safe-haven demand rises on Middle East escalation"
+    "Oil crosses $100/bbl as Houthi attacks threaten Saudi energy infrastructure and US-Iran tensions continue to escalate",
+    "Meta Platforms fell 6% Thursday on AI capital spending concerns, dragging Nasdaq futures lower pre-market Friday",
+    "Fed rate hike expectations pushed to January 2027, with the 10-year Treasury yield retreating to 4.97% after Thursday's sharp 19 bps decline"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",    "change_pct": 2.50, "reason": "WTI crude near $100 on US-Iran strike reports and Strait of Hormuz tanker threats"},
-      {"sector": "Utilities", "change_pct": 0.40, "reason": "Defensive rotation as 10-year yield drops 11 bps on safe-haven bid"}
+      {"sector": "Energy",     "change_pct": 1.20, "reason": "Oil above $100 on Strait of Hormuz threats and Houthi attacks on Saudi infrastructure"},
+      {"sector": "Financials", "change_pct": 0.83, "reason": "Yield curve dynamics and rotation out of growth stocks into value"}
     ],
     "lagging": [
-      {"sector": "Technology",             "change_pct": -1.80, "reason": "Tesla earnings miss and AI capex concerns drag Nasdaq futures down 1.6%"},
-      {"sector": "Consumer Discretionary", "change_pct": -0.90, "reason": "Risk-off sentiment and rising oil prices weigh on consumer spending outlook"}
+      {"sector": "Technology",            "change_pct": -2.96, "reason": "AI infrastructure funding concerns and chip stock selloff on Thursday"},
+      {"sector": "Communication Services","change_pct": -2.50, "reason": "Meta -6% on outsized AI capex spending plans dragged sector lower"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.90},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -2.60}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -1.00},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.70}
   },
-  "open_focus": "Traders are focused on potential US-Israeli strikes on Iran after the midterms, with WTI crude near $100 and tech futures under heavy pressure from Tesla's earnings miss.",
+  "open_focus": "Traders are focused on whether oil can hold above $100 per barrel as US-Iran tensions escalate, and whether Meta's 6% Thursday decline will trigger further selling in technology and communication services at the open.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7757.17,
-      "current":    7733.00,
-      "change_pct": -0.31,
-      "source_time_et": "08:15"
+      "prev_close": 7663.44,
+      "current":    7642.72,
+      "change_pct": -0.27,
+      "source_time_et": "07:30"
     },
     "rut": {
-      "prev_close": 2785.00,
-      "current":    2768.00,
-      "change_pct": -0.61,
-      "source_time_et": "08:15"
+      "prev_close": 2782.00,
+      "current":    2775.60,
+      "change_pct": -0.23,
+      "source_time_et": "07:30"
     },
     "vix": {
-      "prev_close": 16.94,
-      "current":    18.36
+      "prev_close": 19.03,
+      "current":    19.78
     }
   }
 }
