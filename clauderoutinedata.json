@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-23",
-  "time_collected_utc": "11:30",
+  "date": "2026-10-26",
+  "time_collected_utc": "13:52",
   "futures": {
-    "sp500":     {"change_pct": -0.27, "direction": "down"},
-    "nasdaq100": {"change_pct": -0.14, "direction": "down"},
-    "dow":       {"change_pct": -0.64, "direction": "down"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.26, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.21, "direction": "up"},
+    "dow":       {"change_pct": 0.31, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 19.40, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "iShares/BlackRock"}
+    "EFA":  {"pe_ttm": 19.51, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "SoFi"}
   },
   "rates_commodities": {
     "treasury_10yr_pct": 4.97,
-    "crude_oil_usd": 100.40,
+    "crude_oil_usd": 101.04,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Oil crosses $100/bbl as Houthi attacks threaten Saudi energy infrastructure and US-Iran tensions continue to escalate",
-    "Meta Platforms fell 6% Thursday on AI capital spending concerns, dragging Nasdaq futures lower pre-market Friday",
-    "Fed rate hike expectations pushed to January 2027, with the 10-year Treasury yield retreating to 4.97% after Thursday's sharp 19 bps decline"
+    "Fed starts its two-day FOMC meeting October 27-28 with rate decision expected Wednesday; markets pricing in no change as Powell weighs persistent inflation near 5% Treasury yields",
+    "Oil retreats 2% from six-month highs as Trump rules out Iran strike, but Houthi attacks on Saudi energy infrastructure keep supply-risk premium elevated",
+    "Critical week of Big Tech earnings: Alphabet, Microsoft, and Amazon all report this week, with AI capital-spending returns in sharp focus after Meta's 6% selloff last week"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",     "change_pct": 1.20, "reason": "Oil above $100 on Strait of Hormuz threats and Houthi attacks on Saudi infrastructure"},
-      {"sector": "Financials", "change_pct": 0.83, "reason": "Yield curve dynamics and rotation out of growth stocks into value"}
+      {"sector": "Technology",      "change_pct": 0.50, "reason": "AI earnings optimism ahead of Alphabet and Microsoft reports, relief rally after prior week selloff"},
+      {"sector": "Energy",          "change_pct": 0.38, "reason": "WTI crude near $101/bbl keeps energy stocks elevated despite 2% intraday pullback"}
     ],
     "lagging": [
-      {"sector": "Technology",            "change_pct": -2.96, "reason": "AI infrastructure funding concerns and chip stock selloff on Thursday"},
-      {"sector": "Communication Services","change_pct": -2.50, "reason": "Meta -6% on outsized AI capex spending plans dragged sector lower"}
+      {"sector": "Consumer Staples","change_pct": -0.18, "reason": "Defensive rotation out as risk appetite returns ahead of busy earnings week"},
+      {"sector": "Utilities",       "change_pct": -0.15, "reason": "Treasury yields near 5% continue to weigh on rate-sensitive dividend sectors"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -1.00},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.70}
+    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.40},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.50}
   },
-  "open_focus": "Traders are focused on whether oil can hold above $100 per barrel as US-Iran tensions escalate, and whether Meta's 6% Thursday decline will trigger further selling in technology and communication services at the open.",
+  "open_focus": "Traders are focused on a critical week of mega-cap tech earnings from Alphabet, Microsoft, and Amazon alongside the Fed rate decision starting Tuesday, with AI capital-spending returns the central question.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7663.44,
-      "current":    7642.72,
-      "change_pct": -0.27,
-      "source_time_et": "07:30"
+      "prev_close": 7623.68,
+      "current":    7643.50,
+      "change_pct": 0.26,
+      "source_time_et": "09:52"
     },
     "rut": {
-      "prev_close": 2782.00,
-      "current":    2775.60,
-      "change_pct": -0.23,
-      "source_time_et": "07:30"
+      "prev_close": 2776.00,
+      "current":    2781.83,
+      "change_pct": 0.21,
+      "source_time_et": "09:52"
     },
     "vix": {
-      "prev_close": 19.03,
-      "current":    19.78
+      "prev_close": 19.45,
+      "current":    19.69
     }
   }
 }
