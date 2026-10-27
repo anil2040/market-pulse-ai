@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-26",
-  "time_collected_utc": "13:52",
+  "date": "2026-10-27",
+  "time_collected_utc": "13:42",
   "futures": {
-    "sp500":     {"change_pct": 0.26, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.21, "direction": "up"},
-    "dow":       {"change_pct": 0.31, "direction": "up"},
+    "sp500":     {"change_pct": 0.23, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.34, "direction": "up"},
+    "dow":       {"change_pct": 0.21, "direction": "up"},
     "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 19.51, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "SoFi"}
+    "EFA":  {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "robinhood.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.97,
-    "crude_oil_usd": 101.04,
-    "crude_oil_type": "WTI"
+    "treasury_10yr_pct": 4.99,
+    "crude_oil_usd": 115.13,
+    "crude_oil_type": "Brent"
   },
   "macro_events": [
-    "Fed starts its two-day FOMC meeting October 27-28 with rate decision expected Wednesday; markets pricing in no change as Powell weighs persistent inflation near 5% Treasury yields",
-    "Oil retreats 2% from six-month highs as Trump rules out Iran strike, but Houthi attacks on Saudi energy infrastructure keep supply-risk premium elevated",
-    "Critical week of Big Tech earnings: Alphabet, Microsoft, and Amazon all report this week, with AI capital-spending returns in sharp focus after Meta's 6% selloff last week"
+    "Federal Reserve two-day FOMC meeting underway (Oct 27-28), rate decision expected Wednesday with markets pricing in no change as 10-year yield holds near 5%",
+    "Mega-cap tech earnings in focus: Microsoft, Alphabet, and Amazon all report this week, with AI infrastructure spending returns under heavy scrutiny",
+    "US-Iran diplomatic talks involving Saudi Arabia, Turkey, and Pakistan ease Middle East supply fears, but Houthi attacks keep Brent crude elevated above $115/bbl"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",      "change_pct": 0.50, "reason": "AI earnings optimism ahead of Alphabet and Microsoft reports, relief rally after prior week selloff"},
-      {"sector": "Energy",          "change_pct": 0.38, "reason": "WTI crude near $101/bbl keeps energy stocks elevated despite 2% intraday pullback"}
+      {"sector": "Technology",      "change_pct": 1.70, "reason": "chip stocks and AI names rallied for a second straight day ahead of mega-cap earnings"},
+      {"sector": "Industrials",     "change_pct": 0.50, "reason": "broad market gains as risk appetite improved following prior session rally"}
     ],
     "lagging": [
-      {"sector": "Consumer Staples","change_pct": -0.18, "reason": "Defensive rotation out as risk appetite returns ahead of busy earnings week"},
-      {"sector": "Utilities",       "change_pct": -0.15, "reason": "Treasury yields near 5% continue to weigh on rate-sensitive dividend sectors"}
+      {"sector": "Communication Services", "change_pct": -1.60, "reason": "sector rotation out of telecom; HSBC earnings miss weighed on global sentiment"},
+      {"sector": "Consumer Staples",       "change_pct": -0.30, "reason": "defensive sectors underperformed as investors rotated into risk assets"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.40},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.50}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.35},
+    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 2.00}
   },
-  "open_focus": "Traders are focused on a critical week of mega-cap tech earnings from Alphabet, Microsoft, and Amazon alongside the Fed rate decision starting Tuesday, with AI capital-spending returns the central question.",
+  "open_focus": "Traders are focused on the start of the Federal Reserve two-day policy meeting and a packed mega-cap tech earnings week, with Microsoft, Alphabet, and Amazon all due to report as investors watch whether AI infrastructure spending is generating sustainable revenue growth.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7623.68,
-      "current":    7643.50,
-      "change_pct": 0.26,
-      "source_time_et": "09:52"
+      "prev_close": 7676.77,
+      "current":    7706.17,
+      "change_pct": 0.38,
+      "source_time_et": "09:42"
     },
     "rut": {
-      "prev_close": 2776.00,
-      "current":    2781.83,
-      "change_pct": 0.21,
-      "source_time_et": "09:52"
+      "prev_close": 2786.42,
+      "current":    2786.42,
+      "change_pct": 0.00,
+      "source_time_et": "09:42"
     },
     "vix": {
-      "prev_close": 19.45,
-      "current":    19.69
+      "prev_close": 19.69,
+      "current":    17.85
     }
   }
 }
