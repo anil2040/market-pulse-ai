@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-27",
-  "time_collected_utc": "13:42",
+  "date": "2026-10-28",
+  "time_collected_utc": "13:53",
   "futures": {
-    "sp500":     {"change_pct": 0.23, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.34, "direction": "up"},
-    "dow":       {"change_pct": 0.21, "direction": "up"},
+    "sp500":     {"change_pct": 0.21, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.41, "direction": "up"},
+    "dow":       {"change_pct": 0.10, "direction": "up"},
     "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 17.98, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "robinhood.com"}
+    "EFA":  {"pe_ttm": 18.27, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "etfdb.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.99,
-    "crude_oil_usd": 115.13,
-    "crude_oil_type": "Brent"
+    "treasury_10yr_pct": 5.01,
+    "crude_oil_usd": 101.13,
+    "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Federal Reserve two-day FOMC meeting underway (Oct 27-28), rate decision expected Wednesday with markets pricing in no change as 10-year yield holds near 5%",
-    "Mega-cap tech earnings in focus: Microsoft, Alphabet, and Amazon all report this week, with AI infrastructure spending returns under heavy scrutiny",
-    "US-Iran diplomatic talks involving Saudi Arabia, Turkey, and Pakistan ease Middle East supply fears, but Houthi attacks keep Brent crude elevated above $115/bbl"
+    "Federal Reserve two-day policy meeting concludes with rate decision at 2pm ET; consensus expects rates held at 3.75%-4% range",
+    "SK Hynix reported record quarterly operating profit, lifting chip stocks globally and boosting Nikkei 225 and Kospi",
+    "Oil prices rose above $100 on Houthi strikes against Saudi Arabia infrastructure and US threats to renew Iran sanctions"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",      "change_pct": 1.70, "reason": "chip stocks and AI names rallied for a second straight day ahead of mega-cap earnings"},
-      {"sector": "Industrials",     "change_pct": 0.50, "reason": "broad market gains as risk appetite improved following prior session rally"}
+      {"sector": "Technology",  "change_pct": 0.50, "reason": "SK Hynix earnings beat drove chip rally; Alphabet and Microsoft earnings due after close"},
+      {"sector": "Energy",      "change_pct": 0.30, "reason": "WTI crude above $100 on Middle East supply concerns from Houthi strikes"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -1.60, "reason": "sector rotation out of telecom; HSBC earnings miss weighed on global sentiment"},
-      {"sector": "Consumer Staples",       "change_pct": -0.30, "reason": "defensive sectors underperformed as investors rotated into risk assets"}
+      {"sector": "Real Estate", "change_pct": -0.30, "reason": "10-year Treasury yield above 5% pressures rate-sensitive REITs"},
+      {"sector": "Utilities",   "change_pct": -0.20, "reason": "Rising rates reduce yield appeal of utility shares"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.35},
-    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 2.00}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.30},
+    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 1.10}
   },
-  "open_focus": "Traders are focused on the start of the Federal Reserve two-day policy meeting and a packed mega-cap tech earnings week, with Microsoft, Alphabet, and Amazon all due to report as investors watch whether AI infrastructure spending is generating sustainable revenue growth.",
+  "open_focus": "Traders are focused on the Federal Reserve's 2pm ET rate decision and after-close earnings from Microsoft and Alphabet, with chip stocks buoyed by SK Hynix's record quarterly profit.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7676.77,
-      "current":    7706.17,
-      "change_pct": 0.38,
-      "source_time_et": "09:42"
+      "prev_close": 7722.60,
+      "current":    7738.83,
+      "change_pct": 0.21,
+      "source_time_et": "09:53"
     },
     "rut": {
-      "prev_close": 2786.42,
-      "current":    2786.42,
-      "change_pct": 0.00,
-      "source_time_et": "09:42"
+      "prev_close": 2940.09,
+      "current":    2948.03,
+      "change_pct": 0.27,
+      "source_time_et": "09:53"
     },
     "vix": {
-      "prev_close": 19.69,
-      "current":    17.85
+      "prev_close": 18.09,
+      "current":    17.75
     }
   }
 }
