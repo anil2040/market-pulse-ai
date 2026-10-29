@@ -4,7 +4,7 @@
   "futures": {
     "sp500":     {"change_pct": -0.30, "direction": "down"},
     "nasdaq100": {"change_pct": -1.10, "direction": "down"},
-    "dow":       {"change_pct": 0.44,  "direction": "up"},
+    "dow":       {"change_pct": 0.44, "direction": "up"},
     "sentiment": "bearish"
   },
   "etf_pe": {
@@ -14,46 +14,46 @@
              "source": "stockanalysis.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.00,
-    "crude_oil_usd": 101.86,
+    "treasury_10yr_pct": 5.03,
+    "crude_oil_usd": 101.45,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed held rates steady at 3.75%-4.00% at October 29 FOMC meeting",
-    "Alphabet (GOOGL) missed cloud revenue estimates; stock fell 10%+ post-earnings",
-    "PCE inflation data due today; prior GDP reading came in at 3.4%"
+    "Fed held rates at 3.75%-4.00% in 10-2 vote on Oct 28, signaling no near-term cuts",
+    "September PCE inflation data due at 8:30 AM ET Oct 29, key input for Fed rate path",
+    "Alphabet missed cloud revenue expectations, shares fell ~10% pre-market on earnings miss"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",    "change_pct": 0.88, "reason": "WTI above $101 on Middle East refinery attack and supply disruption fears"},
-      {"sector": "Utilities", "change_pct": 0.88, "reason": "10-year yield easing slightly from highs benefits rate-sensitive sectors"}
+      {"sector": "Technology",  "change_pct": 0.80, "reason": "Microsoft cloud beat offset Alphabet drag"},
+      {"sector": "Financials",  "change_pct": 0.45, "reason": "Rising yield environment benefits bank net interest margins"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -2.50, "reason": "Alphabet cloud revenue miss dragging sector sharply lower"},
-      {"sector": "Technology",             "change_pct": -1.05, "reason": "Tech selloff on Alphabet miss and AI capex concerns spill over"}
+      {"sector": "Communication Services", "change_pct": -0.40, "reason": "Alphabet -10% pre-market on cloud revenue miss"},
+      {"sector": "Utilities",              "change_pct": -0.84, "reason": "Rising Treasury yields pressure rate-sensitive dividend sectors"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.10},
-    "asia":   {"index": "Nikkei",   "direction": "up", "change_pct": 1.08}
+    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.20},
+    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 0.30}
   },
-  "open_focus": "Traders are watching the October PCE inflation print due today and digesting Alphabet's cloud revenue miss, which is pressuring Nasdaq futures and the broader tech sector at the open.",
+  "open_focus": "Traders are watching the 8:30 AM ET September PCE inflation report and the fallout from Alphabet's ~10% pre-market plunge on an earnings miss, both of which will shape expectations for the Fed's next rate decision.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7743.98,
-      "current":    7720.75,
-      "change_pct": -0.30,
+      "prev_close": 7726.40,
+      "current":    7706.33,
+      "change_pct": -0.26,
       "source_time_et": "09:53"
     },
     "rut": {
       "prev_close": 2830.51,
-      "current":    2837.87,
-      "change_pct": 0.26,
+      "current":    2824.66,
+      "change_pct": -0.21,
       "source_time_et": "09:53"
     },
     "vix": {
       "prev_close": 16.91,
-      "current":    16.98
+      "current":    17.50
     }
   }
 }
