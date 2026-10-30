@@ -1,59 +1,59 @@
 {
-  "date": "2026-10-29",
-  "time_collected_utc": "13:53",
+  "date": "2026-10-30",
+  "time_collected_utc": "11:14",
   "futures": {
-    "sp500":     {"change_pct": -0.30, "direction": "down"},
-    "nasdaq100": {"change_pct": -1.10, "direction": "down"},
-    "dow":       {"change_pct": 0.44, "direction": "up"},
+    "sp500":     {"change_pct": -0.02, "direction": "down"},
+    "nasdaq100": {"change_pct": -0.04, "direction": "down"},
+    "dow":       {"change_pct": -0.12, "direction": "down"},
     "sentiment": "bearish"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 22.42, "proxy_for": "MSCI World",
+    "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 17.76, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "stockanalysis.com"}
+    "EFA":  {"pe_ttm": 18.27, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "etfdb.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 5.03,
-    "crude_oil_usd": 101.45,
+    "treasury_10yr_pct": 4.91,
+    "crude_oil_usd": 103.00,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed held rates at 3.75%-4.00% in 10-2 vote on Oct 28, signaling no near-term cuts",
-    "September PCE inflation data due at 8:30 AM ET Oct 29, key input for Fed rate path",
-    "Alphabet missed cloud revenue expectations, shares fell ~10% pre-market on earnings miss"
+    "Fed held rates at 3.75%-4.00% at Oct 27-28 FOMC; markets now pricing ~75% chance of December rate hike per CME FedWatch",
+    "Alphabet fell 12.64% in its worst single session ever after Q3 earnings revealed AI capex surge without proportional revenue growth",
+    "New attacks on vessels in the Strait of Hormuz drove WTI crude above $103/bbl to five-month highs"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",  "change_pct": 0.80, "reason": "Microsoft cloud beat offset Alphabet drag"},
-      {"sector": "Financials",  "change_pct": 0.45, "reason": "Rising yield environment benefits bank net interest margins"}
+      {"sector": "Energy",      "change_pct": 1.20, "reason": "Strait of Hormuz supply-disruption fears boosting geopolitical risk premium"},
+      {"sector": "Health Care", "change_pct": 0.80, "reason": "Defensive rotation out of mega-cap tech following Alphabet and Big Tech earnings concerns"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -0.40, "reason": "Alphabet -10% pre-market on cloud revenue miss"},
-      {"sector": "Utilities",              "change_pct": -0.84, "reason": "Rising Treasury yields pressure rate-sensitive dividend sectors"}
+      {"sector": "Communication Services", "change_pct": -1.50, "reason": "Alphabet record 12.64% drop on AI spending concerns continuing into session"},
+      {"sector": "Technology",             "change_pct": -0.80, "reason": "Amazon and Intel after-hours declines adding to AI profitability skepticism"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "up",   "change_pct": 0.20},
-    "asia":   {"index": "Nikkei",   "direction": "up",   "change_pct": 0.30}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.30},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.80}
   },
-  "open_focus": "Traders are watching the 8:30 AM ET September PCE inflation report and the fallout from Alphabet's ~10% pre-market plunge on an earnings miss, both of which will shape expectations for the Fed's next rate decision.",
+  "open_focus": "Traders are focused on whether Amazon's after-hours decline and continued fallout from Alphabet's record 12.64% drop will broaden the AI-spending selloff across the rest of mega-cap tech at the open.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7726.40,
-      "current":    7706.33,
-      "change_pct": -0.26,
-      "source_time_et": "09:53"
+      "prev_close": 7720.39,
+      "current":    7669.00,
+      "change_pct": -0.67,
+      "source_time_et": "07:14"
     },
     "rut": {
-      "prev_close": 2830.51,
-      "current":    2824.66,
-      "change_pct": -0.21,
-      "source_time_et": "09:53"
+      "prev_close": 2859.22,
+      "current":    2840.07,
+      "change_pct": -0.67,
+      "source_time_et": "07:14"
     },
     "vix": {
-      "prev_close": 16.91,
-      "current":    17.50
+      "prev_close": 17.20,
+      "current":    18.66
     }
   }
 }
