@@ -1,11 +1,11 @@
 {
-  "date": "2026-10-30",
-  "time_collected_utc": "11:14",
+  "date": "2026-11-02",
+  "time_collected_utc": "14:27",
   "futures": {
-    "sp500":     {"change_pct": -0.02, "direction": "down"},
-    "nasdaq100": {"change_pct": -0.04, "direction": "down"},
-    "dow":       {"change_pct": -0.12, "direction": "down"},
-    "sentiment": "bearish"
+    "sp500":     {"change_pct": 0.50, "direction": "up"},
+    "nasdaq100": {"change_pct": 0.80, "direction": "up"},
+    "dow":       {"change_pct": 0.40, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
     "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
@@ -15,45 +15,45 @@
   },
   "rates_commodities": {
     "treasury_10yr_pct": 4.91,
-    "crude_oil_usd": 103.00,
+    "crude_oil_usd": 97.70,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "Fed held rates at 3.75%-4.00% at Oct 27-28 FOMC; markets now pricing ~75% chance of December rate hike per CME FedWatch",
-    "Alphabet fell 12.64% in its worst single session ever after Q3 earnings revealed AI capex surge without proportional revenue growth",
-    "New attacks on vessels in the Strait of Hormuz drove WTI crude above $103/bbl to five-month highs"
+    "October ISM Manufacturing PMI released today, projected at 54.6 vs prior 54.5, a key read on growth and inflation for Fed policy expectations",
+    "US midterm elections tomorrow (November 3) keeping investors cautious; markets pricing in uncertainty over House and Senate balance of power",
+    "WTI crude oil fell more than 4% on hopes of diplomatic progress toward ending the US-Iran conflict, relieving the geopolitical risk premium"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Energy",      "change_pct": 1.20, "reason": "Strait of Hormuz supply-disruption fears boosting geopolitical risk premium"},
-      {"sector": "Health Care", "change_pct": 0.80, "reason": "Defensive rotation out of mega-cap tech following Alphabet and Big Tech earnings concerns"}
+      {"sector": "Technology",  "change_pct": 0.80, "reason": "Memory and semiconductor stocks rebounding after last week's AI-capex selloff; SK Hynix and Samsung up sharply in Asia"},
+      {"sector": "Health Care", "change_pct": 0.40, "reason": "Continued defensive rotation as investors await Apple earnings and ISM data before adding risk"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -1.50, "reason": "Alphabet record 12.64% drop on AI spending concerns continuing into session"},
-      {"sector": "Technology",             "change_pct": -0.80, "reason": "Amazon and Intel after-hours declines adding to AI profitability skepticism"}
+      {"sector": "Energy",                 "change_pct": -1.50, "reason": "WTI crude fell more than 4% on diplomatic de-escalation of US-Iran conflict, compressing the geopolitical risk premium"},
+      {"sector": "Communication Services", "change_pct": -0.30, "reason": "Lingering selling pressure following Alphabet's record 12.64% single-session drop on AI spending concerns last week"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.30},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.80}
+    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.10},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.30}
   },
-  "open_focus": "Traders are focused on whether Amazon's after-hours decline and continued fallout from Alphabet's record 12.64% drop will broaden the AI-spending selloff across the rest of mega-cap tech at the open.",
+  "open_focus": "Traders are focused on Apple's after-close earnings and this morning's ISM Manufacturing PMI, which together will test whether the October tech selloff and growth fears are overdone ahead of Tuesday's US midterm elections.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7720.39,
-      "current":    7669.00,
-      "change_pct": -0.67,
-      "source_time_et": "07:14"
+      "prev_close": 7580.07,
+      "current":    7618.12,
+      "change_pct": 0.50,
+      "source_time_et": "09:27"
     },
     "rut": {
-      "prev_close": 2859.22,
-      "current":    2840.07,
-      "change_pct": -0.67,
-      "source_time_et": "07:14"
+      "prev_close": 2811.84,
+      "current":    2825.89,
+      "change_pct": 0.50,
+      "source_time_et": "09:27"
     },
     "vix": {
-      "prev_close": 17.20,
-      "current":    18.66
+      "prev_close": 19.42,
+      "current":    18.95
     }
   }
 }
