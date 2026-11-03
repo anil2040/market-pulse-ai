@@ -692,6 +692,8 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
     label "MEAN REVERSION INSIGHTS"; (e) audit skill: replace the 9 "MacroPulse" mentions; (f) session skill: new raw address
     and new name mean-reversion-insights-session. (g) Next run: check the hidden block has the ICSA line and no POSTURE.
 
+22. **Edward Jones recap is empty** (found Nov 3, true since at least Oct 23): see Session 16 part 2. Pick A, B or C.
+
 ---
 
 ## SESSION HISTORY
@@ -1229,6 +1231,26 @@ removed, "MARKET PULSE:" label renamed "S&P AND RUSSELL TODAY:"), daily.yml (nam
 concurrency group; triggers unchanged), main.py, the other .py headers, CLAUDE.md, README.md, this log.
 **Tested (Python 3.13):** all files compile; shadow test on run_cache.json, old vs new hidden block: only the POSTURE line
 (removed) and the LABOR line (ICSA added) differ, all other lines identical.
+
+---
+
+### Session 16 part 2 -- Nov 3 2026: data health warnings traced in the run logs
+**What the Actions logs showed (last 8 push runs, Oct 23 to Nov 2):**
+- **Edward Jones:** 83 words every day since at least Oct 23 ("recap date not found on page"). The recap page is now titled
+  "Daily market snapshot" and loads its text by JavaScript, so requests only gets the page frame. The briefing has had no Edward
+  Jones recap since then. Not fixed yet; options: (A) find the data address the page loads, (B) Playwright (adds about 45 to 60
+  seconds per run), (C) drop Edward Jones. Owner to pick.
+- **HY Credit Spread (BAMLH0A0HYM2):** failed once (Nov 2), worked every other day. FRED shows the series (latest Oct 30, 3.44);
+  since April 2026 ICE series keep only 3 years on FRED and are marked "Copyrighted: Pre-Approval Required" (see open item 16).
+- **Acquirer's Multiple:** login says "Logged in: False" on some days (Oct 29, Nov 2) and True on others; without a login the
+  screener page has no table, so 0 tickers and the saved copy is used.
+
+**Fixes (branch feed-retries, waiting for the owner's go):** fred.py prints FRED's own error and retries once after 3 seconds with
+a 1,000 day window; screens.py moves the login into _am_login() and retries once with a fresh session after 5 seconds. Success path
+unchanged. Tested with fake responses (first call fails, second works; both fail).
+**Also today:** routine recreated by Claude (the old one could not be edited from Claude Code), Sonnet 5.5; Finviz Research
+Assistant 3.5 fixed two paste bugs (CREDIT line lost "<3%=calm,Wide>"; Damodaran industry "null"); Learning tab topics on branches
+and pull requests and on UTC schedules (Workbench version 71).
 
 ---
 
