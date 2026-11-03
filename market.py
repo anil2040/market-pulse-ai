@@ -1,6 +1,6 @@
 # ============================================================
 # market.py -- Market data, PE config, MHS, ERP
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py):
@@ -490,33 +490,27 @@ def compute_mhs(fred_data, fg_data, mkt_data):
 
     score = max(0, min(100, round(raw)))
 
-    # MHS posture text: macro observation only, no stock-picking prescription
+    # MHS band label and color only. The POSTURE text was removed on Nov 2 2026 (owner's
+    # decision): the posture is the owner's own mental model and is not shown or sent anywhere.
     if score >= 86:
         lbl    = "🚨 EXTREME OVERHEATED"
         col    = "#7f1d1d"
-        action = "Macro is at its most stretched since dot-com."
     elif score >= 66:
         lbl    = "⛔ OVERHEATED"
         col    = "#c81e1e"
-        action = (
-            "Build cash. Trim winners. "
-            "New positions only with Left Leg 0-2, MoS >25%, and a clear catalyst."
-        )
     elif score >= 34:
         lbl    = "🟠 SELECTIVE"
         col    = "#b45309"
-        action = "Best setups only. Left Leg <4, MoS >25%. Measured pace. Keep 25%+ cash."
     else:
         lbl    = "🟢 DEPLOY"
         col    = "#057a55"
-        action = "Aggressive deployment. Macro confirms STRONG BUY. Full position pace."
 
     print(f"\n📊 MHS (Macro Heat Score): {score}/100 ({lbl})")
     for b in breakdown:
         print(f"   {b}")
 
     return {"score": score, "label": lbl, "color": col,
-            "breakdown": breakdown, "action": action}
+            "breakdown": breakdown}
 
 # ============================================================
 # EQUITY RISK PREMIUM

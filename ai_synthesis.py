@@ -1,6 +1,6 @@
 # ============================================================
 # ai_synthesis.py -- AI briefing synthesis
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py):
@@ -496,9 +496,9 @@ NEWS:
 
 DASHBOARD NUMBERS (for the final bullet only):
 
-MACRO HEAT SCORE: {mhs['score']}/100 -- {mhs['label']} | Posture: {mhs['action']}
+MACRO HEAT SCORE: {mhs['score']}/100 -- {mhs['label']}
 VALUATION: US CAPE={cape_val} (hist avg 17x) | {urth_str} | {efa_str}
-MARKET PULSE: {mkt_data.get('pulse', 'N/A')}
+S&P AND RUSSELL TODAY: {mkt_data.get('pulse', 'N/A')}
 
 MACRO INDICATORS:
 {fred_summary}

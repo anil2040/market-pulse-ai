@@ -1,6 +1,6 @@
 # ============================================================
 # news.py -- News and email fetchers
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py). Each returns text + a meta dict:

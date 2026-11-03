@@ -1,4 +1,4 @@
-# Mean Reversion Macro Insights -- Session Log 15
+# Mean Reversion Insights -- Session Log 16
 
 Paste this file at the start of any new session so Claude has full context.
 No need to summarize the previous chat.
@@ -11,7 +11,7 @@ No need to summarize the previous chat.
 Send this as your first message:
 
 > Fetch the session log from
-> https://raw.githubusercontent.com/anil2040/market-pulse-ai/main/SESSION_LOG.md
+> https://raw.githubusercontent.com/anil2040/mean-reversion-insights/main/SESSION_LOG.md
 > and confirm you have full context before we start.
 > I am working on [module name] and the task is [specific task].
 
@@ -70,8 +70,8 @@ Do NOT paste all modules at once -- that blows the context window immediately.
 
 ## INFRASTRUCTURE SNAPSHOT
 
-- **Live site:** https://anil2040.github.io/market-pulse-ai
-- **Repo:** https://github.com/anil2040/market-pulse-ai (public)
+- **Live site:** https://anil2040.github.io/mean-reversion-insights
+- **Repo:** https://github.com/anil2040/mean-reversion-insights (public; was market-pulse-ai until Nov 2 2026)
 - **Owner:** Anil Abraham -- deep-value mean reversion investor, Boise ID
 - **Style:** Greenblatt / Carlisle / Howard Marks / Burry / Pabrai
 - **Local:** VS Code on Windows 11 Home (never give Mac instructions or shortcuts)
@@ -592,7 +592,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
 ## OPEN ITEMS / NEXT SESSION
 
 1. **Watch the next push-triggered run (Thu Oct 1 2026, about 7:40 to 7:50 AM MT) with Haiku first:**
-   - After the routine's push, a "MarketPulse Daily Briefing" run starts within about a minute (event shows "push").
+   - After the routine's push, a "Mean Reversion Insights Daily Briefing" run starts within about a minute (event shows "push").
    - Top of page: grey line "Data health OK · Briefing by Claude Haiku 4.5". The Actions log shows a Cost line of about $0.007
      to $0.015 and no "hit the 2000-token limit" warning.
    - Page footer lists Haiku 4.5, then Gemini 3.6 Flash (fixed in Session 15).
@@ -684,6 +684,13 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
     and Chinese export suspensions appear in no newsletter or routine file I could read. The Edward Jones recap (not visible to the
     assistant) may carry them, because the run happened after the Oct 1 close. If it keeps happening, print the first and last
     words of the Edward Jones text in the receipt, or ask the owner to compare with the Edward Jones page.
+
+21. **After the Session 16 rename (owner, Nov 2 2026):** (a) rename the repo on GitHub (Settings, Repository name:
+    mean-reversion-insights); the old live link anil2040.github.io/market-pulse-ai stops working (owner accepted this);
+    (b) in VS Code run `git remote set-url origin https://github.com/anil2040/mean-reversion-insights.git`;
+    (c) update the Claude Routine's repo to the new name; (d) Finviz Research Assistant extension: new live address and block
+    label "MEAN REVERSION INSIGHTS"; (e) audit skill: replace the 9 "MacroPulse" mentions; (f) session skill: new raw address
+    and new name mean-reversion-insights-session. (g) Next run: check the hidden block has the ICSA line and no POSTURE.
 
 ---
 
@@ -1192,6 +1199,29 @@ replaced in code (_no_dashes), so the prompt rule is no longer relied on.
 **Files changed:** news.py, main.py, ai_synthesis.py, html_builder.py (health.py unchanged this round), plus this log.
 **Tested (Python 3.13):** all earlier tests plus new ones for the shared login (one login, dead connection replaced, failed login not
 retried), dash removal, numbered list, no footer, 13F line, and the prompt without dashboard data.
+
+### Session 16 -- Nov 2 2026: rename to Mean Reversion Insights, POSTURE removed, ICSA in the market context
+**First session run from Claude Code in the cloud** (branch plus pull request, owner merges) instead of copy and paste in VS Code.
+
+**Owner decisions:**
+- Name is **Mean Reversion Insights** everywhere (pairs with the Mean Reversion Audit). Replaces MarketPulse, MacroPulse and
+  "Mean Reversion Macro Insights". The repo is renamed too (option B); the owner accepts that the old live link breaks.
+  The dashboard card "Macro Insights" keeps its name (it names the card, not the project).
+- **POSTURE removed everywhere** (the owner's own mental model, not for the page or the AI): market.py no longer creates it,
+  and it is gone from the hidden block, the Macro Heat Score card and the AI prompt. The MHS score, bands, labels and colors
+  are unchanged (v1.0 still locked). "Fed Posture" inside the MHS breakdown is a different thing and stays.
+- **ICSA added to the hidden market-context block** (the audit skill expected it and never got it): the LABOR line now ends with
+  `|ICSA=194,000[3m:...,12m:...]dn/dn|ICSA_4wk=196,750(200-250K=healthy,>300K=stress)`. Thresholds match the audit skill.
+- Unused block lines (CREDIT, COMMODITIES, CURRENCY, SENTIMENT, VALUATION, data health) stay; check on the laptop what the
+  extension forwards before trimming anything.
+- Macro Indicators table: no change (same 17 rows, values, colors, insight text).
+
+**Files changed:** market.py (POSTURE text and "action" key removed), html_builder.py (POSTURE line and card line removed, ICSA
+line added, title and header renamed), fred.py (ICSA row now carries its 4-week average as "ma4"), ai_synthesis.py ("Posture:"
+removed, "MARKET PULSE:" label renamed "S&P AND RUSSELL TODAY:"), daily.yml (names only: workflow, step, bot, commit message,
+concurrency group; triggers unchanged), main.py, the other .py headers, CLAUDE.md, README.md, this log.
+**Tested (Python 3.13):** all files compile; shadow test on run_cache.json, old vs new hidden block: only the POSTURE line
+(removed) and the LABOR line (ICSA added) differ, all other lines identical.
 
 ---
 

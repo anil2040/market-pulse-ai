@@ -1,6 +1,6 @@
 # ============================================================
 # fetch_cache.py -- refresh dataroma_cache.json from YOUR PC
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # WHAT THIS IS (simplified Sep 2026):
@@ -16,7 +16,7 @@
 #   run this on your PC and commit the updated dataroma_cache.json.
 #
 # HOW TO RUN (VS Code terminal, PowerShell):
-#   1. Open the market-pulse-ai folder in VS Code
+#   1. Open the mean-reversion-insights folder in VS Code
 #   2. Press Ctrl+` to open the terminal
 #   3. Type:  python fetch_cache.py   and press Enter
 #   4. Source Control icon (Ctrl+Shift+G) -> type a message -> Commit -> Sync Changes

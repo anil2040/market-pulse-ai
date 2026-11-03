@@ -1,5 +1,5 @@
 # ============================================================
-# MarketPulse Daily Briefing -- GitHub Actions workflow
+# Mean Reversion Insights Daily Briefing -- GitHub Actions workflow
 # ============================================================
 #
 # WHEN IT RUNS (three triggers):
@@ -32,7 +32,7 @@
 # PYTHON: 3.13, the same as the owner's laptop. Test on the version used here.
 # ============================================================
 
-name: MarketPulse Daily Briefing
+name: Mean Reversion Insights Daily Briefing
 
 on:
   push:
@@ -44,7 +44,7 @@ on:
   workflow_dispatch:
 
 concurrency:
-  group: marketpulse
+  group: mean-reversion-insights
   cancel-in-progress: false
 
 jobs:
@@ -94,7 +94,7 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: pip install requests beautifulsoup4 google-genai anthropic
 
-      - name: Run MarketPulse AI
+      - name: Run Mean Reversion Insights
         if: steps.gate.outputs.run == 'true'
         env:
           GEMINI_API_KEY:      ${{ secrets.GEMINI_API_KEY }}
@@ -113,7 +113,7 @@ jobs:
       - name: Commit and push dashboard
         if: always() && steps.gate.outputs.run == 'true'
         run: |
-          git config user.name  "MarketPulse Bot"
+          git config user.name  "Mean Reversion Insights Bot"
           git config user.email "actions@github.com"
           for f in index.html run_cache.json dataroma_cache.json; do
             [ -f "$f" ] && git add "$f"
@@ -122,7 +122,7 @@ jobs:
             echo "Nothing changed, nothing to commit."
             exit 0
           fi
-          git commit -m "Auto-update: MarketPulse briefing $(TZ=America/Boise date +'%Y-%m-%d')"
+          git commit -m "Auto-update: Mean Reversion Insights briefing $(TZ=America/Boise date +'%Y-%m-%d')"
           for i in 1 2 3; do
             if git push; then
               exit 0

@@ -1,6 +1,6 @@
 # ============================================================
 # html_builder.py -- HTML dashboard builder
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # PUBLIC FUNCTION (called by main.py):
@@ -587,18 +587,22 @@ def _build_market_context(fred_data, fg_data, mkt_data, mhs,
     fg_score = fg_data.get("score", 50); fg_lbl = fg_data.get("label", "N/A")
     erp_ctx  = (f"|ERP={erp:+.2f}%(CAPEyield{cape_yield:.2f}%-10Y{ten_y_rate:.2f}%)"
                 if erp is not None else "")
+    # ICSA 4-week average (fred.py stores it as "ma4"); thresholds match the audit skill
+    icsa_row = next((x for x in fred_data if x["label"] == "Jobless Claims (ICSA)"), None)
+    icsa_4wk = (f"|ICSA_4wk={icsa_row['ma4']:,.0f}(200-250K=healthy,>300K=stress)"
+                if icsa_row and icsa_row.get("ma4") else "")
     mhs_clean = (mhs["label"]
                  .replace("🟢 ","").replace("🟠 ","").replace("⛔ ","").replace("🚨 ",""))
 
     return (
         f"MHS={mhs['score']}/100({mhs_clean})|Scale:0=max_fear/deploy,100=max_greed/overheated\n"
-        f"POSTURE={mhs['action']}\n"
         f"INFLATION:{_ctx('CPI Inflation','CPI')}|{_ctx('Core CPI','CoreCPI')}|"
         f"{_ctx('PCE Inflation','PCE')}|{_ctx('Core PCE','CorePCE')}\n"
         f"RATES:{_ctx('10Y Treasury','10Y')}|{_ctx('2Y Treasury','2Y')}|"
         f"{_ctx('Yield Curve (10Y-2Y)','YldCurve')}|{_ctx('Fed Funds Rate','FedFunds')}\n"
         f"CREDIT:{_ctx('HY Credit Spread','HYSpread')}(Tight<3%=calm,Wide>6%=stress)\n"
-        f"LABOR:{_ctx('Unemployment','Unemp')}(avg~5.7%historic)\n"
+        f"LABOR:{_ctx('Unemployment','Unemp')}(avg~5.7%historic)|"
+        f"{_ctx('Jobless Claims (ICSA)','ICSA')}{icsa_4wk}\n"
         f"COMMODITIES:{_ctx('WTI Crude Oil','WTI')}(>$85=inflation_risk)|"
         f"{_ctx('Gold Price','Gold')}(rising+lowVIX=stealth_fear)\n"
         f"CURRENCY:{_ctx('US Dollar Index (Broad)','USD_BROAD')}(Fed_broad_dollar_index_26_currencies_NOT_ICE_DXY,weak_dollar=tailwind_intl_ADRs)\n"
@@ -1226,7 +1230,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 
     # MHS
     mhs_score  = mhs["score"]; mhs_lbl = mhs["label"]
-    mhs_col    = mhs["color"]; mhs_action = mhs["action"]
+    mhs_col    = mhs["color"]
     mhs_bdown  = (
         '<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">Base +50</span>'
         + "".join(f'<span style="font-size:.63rem;color:#6b7280;margin-right:8px;">{b}</span>'
@@ -1533,7 +1537,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Mean Reversion Macro Insights · {today}</title>
+<title>Mean Reversion Insights · {today}</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📈</text></svg>">
 <style>
 :root{{--blue:#1a56db;--green:#057a55;--red:#c81e1e;--amber:#b45309;--ink:#111928;--muted:#6b7280;--border:#e5e7eb;--bg:#f3f4f6;--card:#fff;}}
@@ -1570,7 +1574,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
 <div id="market-context" style="display:none;white-space:pre;">{mctx}</div>
 
 <div class="hero">
-  <h1>📈 MEAN REVERSION MACRO INSIGHTS</h1>
+  <h1>📈 MEAN REVERSION INSIGHTS</h1>
   <div class="sub">{today} &nbsp;·&nbsp; Updated {now_str} MT</div>
 </div>
 
@@ -1580,7 +1584,7 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
   <!-- 2. Weekly Calendar -- what events matter this week, read before anything else -->
   {calendar_html}
 
-  <!-- 3. MHS -- macro posture, sets the decision framework -->
+  <!-- 3. MHS -- macro heat score, sets the decision framework -->
   <div class="card" style="margin-bottom:12px;border-left:4px solid {mhs_col};">
     <h2>🌡 Macro Heat Score</h2>
     <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
@@ -1596,7 +1600,6 @@ body{{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var
                     width:220px;overflow:hidden;">
           <div style="width:{mhs_score}%;background:{mhs_col};height:100%;border-radius:99px;"></div>
         </div>
-        <div style="font-size:.7rem;color:#374151;margin-top:5px;">📋 {mhs_action}</div>
       </div>
       <div style="font-size:.63rem;color:var(--muted);flex:1;min-width:200px;line-height:1.8;">
         {mhs_bdown}

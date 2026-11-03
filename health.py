@@ -1,6 +1,6 @@
 # ============================================================
 # health.py -- Data health checks ("never be blindsided")
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # WHY THIS EXISTS (Sep 29 2026):

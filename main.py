@@ -1,6 +1,6 @@
 # ============================================================
 # main.py -- Pipeline orchestrator
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # WHAT THIS DOES:
@@ -606,7 +606,7 @@ def _print_and_summarize(items):
 # ============================================================
 
 if __name__ == "__main__":
-    print("🚀 Mean Reversion Macro Insights -- Starting...")
+    print("🚀 Mean Reversion Insights -- Starting...")
     print("=" * 50)
     print(f"📧 Email: {'set' if YAHOO_EMAIL else 'NOT SET'}")
     print(f"🔑 Anthropic key: {'set' if ANTHROPIC_API_KEY else 'NOT SET -- Claude models unavailable'}")
@@ -695,8 +695,8 @@ if __name__ == "__main__":
     _save_cache(cache)
 
     print("\n" + "=" * 50)
-    print("✅ Mean Reversion Macro Insights Complete!")
-    print("🌐 https://anil2040.github.io/market-pulse-ai")
+    print("✅ Mean Reversion Insights Complete!")
+    print("🌐 https://anil2040.github.io/mean-reversion-insights")
     print("=" * 50)
 
     # Step 11: red X + email if something needs your attention

@@ -1,6 +1,6 @@
 # ============================================================
 # screens.py -- Value screen fetchers
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # PUBLIC FUNCTIONS (called by main.py). Each returns (data, meta):

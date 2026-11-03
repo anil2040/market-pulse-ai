@@ -1,6 +1,6 @@
 # ============================================================
 # fred.py -- Macro indicator fetching
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # PUBLIC FUNCTION (called by main.py):
@@ -685,16 +685,18 @@ def _fetch_fred_standard(cfg, start_date, end_date):
         pub = d.strftime("%b %Y") if freq == "monthly" else d.strftime("%b %d %Y")
 
         sig = _insight(label, dc, dm3, dm12, trend)
+        ma4_val = None   # ICSA 4-week average, used by the hidden market-context block
         # ICSA: prefix insight with 4-week moving average for trend context
         if sid == "ICSA" and len(obs) >= 4:
             try:
                 ma4 = round(sum(float(obs[i]["value"]) for i in range(4)) / 4)
                 sig = f"4-wk avg: {ma4:,.0f} | {sig}"
+                ma4_val = ma4
             except Exception:
                 pass
 
         return {**cfg, "current": dc, "mo3": dm3, "mo12": dm12, "trend": trend,
-                "date": pub, "obs_date": obs_date, "sig": sig}
+                "date": pub, "obs_date": obs_date, "sig": sig, "ma4": ma4_val}
 
     except Exception as e:
         return {**empty, "sig": str(e)[:50]}
