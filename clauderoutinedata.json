@@ -1,59 +1,59 @@
 {
-  "date": "2026-11-02",
-  "time_collected_utc": "14:27",
+  "date": "2026-11-03",
+  "time_collected_utc": "16:45",
   "futures": {
-    "sp500":     {"change_pct": 0.50, "direction": "up"},
+    "sp500":     {"change_pct": 0.20, "direction": "up"},
     "nasdaq100": {"change_pct": 0.80, "direction": "up"},
-    "dow":       {"change_pct": 0.40, "direction": "up"},
-    "sentiment": "bullish"
+    "dow":       {"change_pct": -0.20, "direction": "down"},
+    "sentiment": "neutral"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 24.70, "proxy_for": "MSCI World",
+    "URTH": {"pe_ttm": 21.64, "proxy_for": "MSCI World",
              "source": "stockanalysis.com"},
     "EFA":  {"pe_ttm": 18.27, "proxy_for": "MSCI EAFE ex-US Developed",
              "source": "etfdb.com"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.91,
-    "crude_oil_usd": 97.70,
+    "treasury_10yr_pct": 4.94,
+    "crude_oil_usd": 95.77,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "October ISM Manufacturing PMI released today, projected at 54.6 vs prior 54.5, a key read on growth and inflation for Fed policy expectations",
-    "US midterm elections tomorrow (November 3) keeping investors cautious; markets pricing in uncertainty over House and Senate balance of power",
-    "WTI crude oil fell more than 4% on hopes of diplomatic progress toward ending the US-Iran conflict, relieving the geopolitical risk premium"
+    "US midterm elections today (November 3) with results expected tonight, keeping investors cautious on the House and Senate balance of power",
+    "Oil volatile on US-Iran headlines: reports of a limited US strike on Qeshm Island reversed part of Monday's sharp drop while Trump says Iran wants a settlement",
+    "RBA raised rates 25bp to 4.85%, and two Fed presidents said last week that rates need to move higher with elevated oil adding to inflation"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",  "change_pct": 0.80, "reason": "Memory and semiconductor stocks rebounding after last week's AI-capex selloff; SK Hynix and Samsung up sharply in Asia"},
-      {"sector": "Health Care", "change_pct": 0.40, "reason": "Continued defensive rotation as investors await Apple earnings and ISM data before adding risk"}
+      {"sector": "Technology",  "change_pct": 1.00, "reason": "Semiconductors rebounding (Micron, AMD, Intel, Nvidia up) after Monday's Nasdaq 100 slide into correction"},
+      {"sector": "Consumer Staples", "change_pct": 0.30, "reason": "Defensive buying ahead of the election, with Coca-Cola cited as a gainer"}
     ],
     "lagging": [
-      {"sector": "Energy",                 "change_pct": -1.50, "reason": "WTI crude fell more than 4% on diplomatic de-escalation of US-Iran conflict, compressing the geopolitical risk premium"},
-      {"sector": "Communication Services", "change_pct": -0.30, "reason": "Lingering selling pressure following Alphabet's record 12.64% single-session drop on AI spending concerns last week"}
+      {"sector": "Communication Services", "change_pct": -0.40, "reason": "Pressure from AI-spending return concerns and weak software earnings reactions"},
+      {"sector": "Industrials", "change_pct": -0.30, "reason": "Dow-heavy cyclicals soft as Apple and other large caps dragged the Dow lower"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "STOXX600", "direction": "down", "change_pct": -0.10},
-    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -0.30}
+    "europe": {"index": "Euro Stoxx 50", "direction": "up", "change_pct": 0.78},
+    "asia":   {"index": "KOSPI",         "direction": "down", "change_pct": -3.59}
   },
-  "open_focus": "Traders are focused on Apple's after-close earnings and this morning's ISM Manufacturing PMI, which together will test whether the October tech selloff and growth fears are overdone ahead of Tuesday's US midterm elections.",
+  "open_focus": "Traders are focused on today's US midterm election results and whether the chip rebound can hold after Apple's weak margin guidance and Palantir's slowing contract growth, with AMD earnings due after the close.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7580.07,
-      "current":    7618.12,
-      "change_pct": 0.50,
-      "source_time_et": "09:27"
+      "prev_close": 7541.40,
+      "current":    7585.13,
+      "change_pct": 0.58,
+      "source_time_et": "11:40"
     },
     "rut": {
-      "prev_close": 2811.84,
-      "current":    2825.89,
-      "change_pct": 0.50,
-      "source_time_et": "09:27"
+      "prev_close": 2805.87,
+      "current":    2834.87,
+      "change_pct": 1.03,
+      "source_time_et": "11:40"
     },
     "vix": {
-      "prev_close": 19.42,
-      "current":    18.95
+      "prev_close": 21.15,
+      "current":    20.42
     }
   }
 }
