@@ -14,6 +14,10 @@ Do not use em dashes or en dashes in anything you write for him (replies, commen
    anything involving passwords, API keys, tokens or GitHub secrets.
 4. Make the smallest change that solves the problem. Do not rewrite or reformat files he did not ask about.
 5. After a change, give a short plain-English summary of every file you changed and what changed.
+6. How changes reach GitHub (owner's decision, Nov 2 2026): for normal changes, run a shadow test (old code vs new
+   code on the same data), show him the difference, wait for his go, then pull and push straight to main. Use a
+   branch and pull request only for risky changes: the workflow triggers in daily.yml, GitHub secrets, API keys or
+   tokens, or deleting files. Always include a ready-to-use commit message.
 
 ## Project facts
 - Live site: https://anil2040.github.io/mean-reversion-insights
