@@ -692,7 +692,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
     label "MEAN REVERSION INSIGHTS"; (e) audit skill: replace the 9 "MacroPulse" mentions; (f) session skill: new raw address
     and new name mean-reversion-insights-session. (g) Next run: check the hidden block has the ICSA line and no POSTURE.
 
-22. **Edward Jones recap is empty** (found Nov 3, true since at least Oct 23): see Session 16 part 2. Pick A, B or C.
+22. ~~Edward Jones recap is empty~~ FIXED Nov 3 (Session 16 part 3): the recap was in the page all along, inside a JSON script block.
 
 ---
 
@@ -1251,6 +1251,15 @@ unchanged. Tested with fake responses (first call fails, second works; both fail
 **Also today:** routine recreated by Claude (the old one could not be edited from Claude Code), Sonnet 5.5; Finviz Research
 Assistant 3.5 fixed two paste bugs (CREDIT line lost "<3%=calm,Wide>"; Damodaran industry "null"); Learning tab topics on branches
 and pull requests and on UTC schedules (Workbench version 71).
+
+### Session 16 part 3 -- Nov 3 2026: feed-retries merged, Edward Jones fixed (option A)
+- **feed-retries** fast-forwarded into main after the owner's go (no conflicts; both files compile on Python 3.13).
+- **Edward Jones:** opening the page in a real browser showed the recap is NOT loaded from a separate address. It is already in
+  the HTML that requests downloads, inside `<script type="application/json">` under the rich-text-editor widget (key
+  `rteContent`, about 580 words with the "Monday, 11/2/2026 p.m." date line). The scraper removed every script tag first, so it
+  threw the recap away. news.py now reads that block first (`_ej_recap_from_json`) and falls back to the old page-text method if
+  the block is missing. Shadow test on a saved copy of the page: old 16 words, no date; new 160 words, date 2026-11-02. No
+  Playwright needed. Lesson: before reaching for Playwright, search the raw HTML for a sentence you can see on the page.
 
 ---
 

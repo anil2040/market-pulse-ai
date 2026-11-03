@@ -60,6 +60,7 @@
 
 import os
 import re
+import json
 import imaplib
 import email
 import requests
@@ -273,6 +274,22 @@ def _clean_ej(text):
     return "\n".join(out)
 
 
+def _ej_recap_from_json(soup):
+    """Since late Oct 2026 the recap text sits inside a JSON block
+    (<script type="application/json"> under the "rich-text-editor" widget, key "rteContent").
+    The page's own JavaScript turns it into visible text in a browser. Read it from there
+    before the script tags are removed. Returns "" if the block is not found."""
+    parts = []
+    for tag in soup.select('[data-widget="rich-text-editor"] > script[type="application/json"]'):
+        try:
+            html = json.loads(tag.string or "{}").get("rteContent", "")
+        except ValueError:
+            continue
+        if html.strip():
+            parts.append(BeautifulSoup(html, "html.parser").get_text("\n", strip=True))
+    return "\n".join(parts)
+
+
 def scrape_edward_jones():
     print("\n🔍 Scraping Edward Jones...")
     url  = ("https://www.edwardjones.com/us-en/market-news-insights"
@@ -284,9 +301,10 @@ def scrape_edward_jones():
         if resp.status_code != 200:
             return "", _meta("error", detail=f"Edward Jones page returned HTTP {resp.status_code}")
         soup = BeautifulSoup(resp.text, "html.parser")
+        recap = _ej_recap_from_json(soup)
         for tag in soup(["script", "style", "nav", "footer", "header"]):
             tag.decompose()
-        raw   = _clean_text(soup.get_text("\n", strip=True))
+        raw   = _clean_text(recap if recap else soup.get_text("\n", strip=True))
         lines = raw.splitlines()[:EJ_MAX_LINES]
         text  = _clean_ej("\n".join(lines))
 
