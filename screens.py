@@ -381,6 +381,45 @@ def fetch_magic_formula():
 # ACQUIRER'S MULTIPLE (Carlisle)
 # ============================================================
 
+def _am_login():
+    """Log in to acquirersmultiple.com once. Returns (session, logged_in).
+    Split out on Nov 3 2026 so fetch_acquirers_multiple can retry with a fresh session
+    (the login failed on Oct 29 and Nov 2 but worked on other days)."""
+    sess = requests.Session()
+    sess.headers.update({
+        "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    })
+
+    r0    = sess.get("https://acquirersmultiple.com/login/", timeout=30)
+    soup0 = BeautifulSoup(r0.text, "html.parser")
+    print(f"   Login page: {r0.status_code} | Cookies: {len(sess.cookies)}")
+
+    nonce_tag = soup0.find("input", {"name": "rcp_login_nonce"})
+    nonce     = nonce_tag["value"] if nonce_tag else ""
+    print(f"   Nonce: {nonce[:12]}..." if nonce
+          else "   ⚠️ No nonce found -- login may fail")
+
+    r1 = sess.post("https://acquirersmultiple.com/login/", data={
+        "rcp_user_login": AM_EMAIL,
+        "rcp_user_pass":  AM_PASSWORD,
+        "rcp_action":     "login",
+        "rcp_redirect":   "https://acquirersmultiple.com/login/",
+        "rcp_login_nonce": nonce,
+    }, timeout=30, allow_redirects=True)
+    print(f"   Login POST: {r1.status_code} | URL: {r1.url}")
+
+    logged_in = "logout" in r1.text.lower() or "log-out" in r1.text.lower()
+    print(f"   Logged in: {logged_in}")
+    if not logged_in:
+        soup_err = BeautifulSoup(r1.text, "html.parser")
+        err = soup_err.find(class_=re.compile(r"rcp.error|rcp.notice|error"))
+        if err:
+            print(f"   Error: {err.get_text(strip=True)[:120]}")
+    return sess, logged_in
+
+
 def fetch_acquirers_multiple():
     """
     Fetch Acquirer's Multiple large-cap screen from acquirersmultiple.com.
@@ -393,38 +432,11 @@ def fetch_acquirers_multiple():
     print("\n📐 Fetching Acquirer's Multiple large-cap stocks...")
 
     try:
-        sess = requests.Session()
-        sess.headers.update({
-            "User-Agent":      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
-            "Accept":          "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-        })
-
-        r0    = sess.get("https://acquirersmultiple.com/login/", timeout=30)
-        soup0 = BeautifulSoup(r0.text, "html.parser")
-        print(f"   Login page: {r0.status_code} | Cookies: {len(sess.cookies)}")
-
-        nonce_tag = soup0.find("input", {"name": "rcp_login_nonce"})
-        nonce     = nonce_tag["value"] if nonce_tag else ""
-        print(f"   Nonce: {nonce[:12]}..." if nonce
-              else "   ⚠️ No nonce found -- login may fail")
-
-        r1 = sess.post("https://acquirersmultiple.com/login/", data={
-            "rcp_user_login": AM_EMAIL,
-            "rcp_user_pass":  AM_PASSWORD,
-            "rcp_action":     "login",
-            "rcp_redirect":   "https://acquirersmultiple.com/login/",
-            "rcp_login_nonce": nonce,
-        }, timeout=30, allow_redirects=True)
-        print(f"   Login POST: {r1.status_code} | URL: {r1.url}")
-
-        logged_in = "logout" in r1.text.lower() or "log-out" in r1.text.lower()
-        print(f"   Logged in: {logged_in}")
+        sess, logged_in = _am_login()
         if not logged_in:
-            soup_err = BeautifulSoup(r1.text, "html.parser")
-            err = soup_err.find(class_=re.compile(r"rcp.error|rcp.notice|error"))
-            if err:
-                print(f"   Error: {err.get_text(strip=True)[:120]}")
+            print("   ↻ Login failed, retrying once with a fresh session in 5 seconds")
+            time.sleep(5)
+            sess, logged_in = _am_login()
 
         r2    = sess.get("https://acquirersmultiple.com/screener/large-cap/", timeout=30)
         soup2 = BeautifulSoup(r2.text, "html.parser")

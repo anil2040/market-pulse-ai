@@ -55,6 +55,7 @@
 import os
 import re
 import concurrent.futures
+import time
 from datetime import datetime, timedelta, date, timezone
 import requests
 from bs4 import BeautifulSoup
@@ -616,9 +617,24 @@ def _fetch_fred_standard(cfg, start_date, end_date):
             f"&sort_order=desc&limit=500"
         )
         resp = requests.get(url, timeout=20)
-        obs  = [o for o in resp.json().get("observations", []) if o["value"] != "."]
+        body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+        obs  = [o for o in body.get("observations", []) if o["value"] != "."]
         if not obs:
-            return empty
+            # Nov 3 2026: HY Credit Spread came back empty on Nov 2 with no reason shown. Print FRED's
+            # own error, then retry once after 3 seconds with a 1,000 day window (ICE series such as
+            # BAMLH0A0HYM2 only keep 3 years on FRED since April 2026).
+            print(f"   ⚠️ {cfg['label']}: FRED gave no observations (HTTP {resp.status_code}: "
+                  f"{str(body.get('error_message', resp.text))[:120]}) -- retrying once")
+            time.sleep(3)
+            short_start = (date.today() - timedelta(days=1000)).strftime("%Y-%m-%d")
+            resp = requests.get(url.replace(f"observation_start={start_date}",
+                                            f"observation_start={short_start}"), timeout=20)
+            body = resp.json() if resp.headers.get("content-type", "").startswith("application/json") else {}
+            obs  = [o for o in body.get("observations", []) if o["value"] != "."]
+            if not obs:
+                print(f"   ❌ {cfg['label']}: retry also empty (HTTP {resp.status_code}: "
+                      f"{str(body.get('error_message', resp.text))[:120]})")
+                return {**empty, "sig": f"FRED HTTP {resp.status_code}"}
         obs_date = obs[0]["date"]
 
         # ── GDPC1: quarterly GDP YoY special handling ──────────────────────
