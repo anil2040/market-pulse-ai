@@ -29,9 +29,9 @@
 #     Haiku used them in spite of the instruction.
 #
 # CLAUDE ROUTINE INTEGRATION:
-#   Pre-market intelligence (futures, sentiment, rates, sector
+#   Market intelligence (futures, sentiment, rates, sector
 #   movers, global markets, macro events, open_focus) from the
-#   7:40am Claude Routine is injected into the prompt. When fresh,
+#   9:30 AM Boise time Claude Routine is injected into the prompt. When fresh,
 #   this provides today's context. When stale, it is included
 #   with a staleness note so the AI can weight it accordingly.
 #

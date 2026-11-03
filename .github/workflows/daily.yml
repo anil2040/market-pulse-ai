@@ -5,14 +5,16 @@
 # WHEN IT RUNS (three triggers):
 #
 #   1. PUSH (the normal way). The Claude Routine ("Daily Market Warmup", weekdays
-#      7:40 AM Mountain, set in the Claude app) saves clauderoutinedata.json and
+#      9:30 AM Boise time, set with the Boise time zone so daylight saving is
+#      automatic; two hours after the open) saves clauderoutinedata.json and
 #      pushes it. That push starts this workflow within a minute. No clock is involved,
 #      so GitHub's scheduler delays (hours, since late Aug 2026) do not matter, and
 #      there is no daylight saving problem. Running the routine by hand, or editing
 #      that file yourself, starts the workflow too. Code pushes do NOT start it.
 #
-#   2. BACKUP SCHEDULE, weekdays 15:17 UTC (9:17 AM MDT in summer, 8:17 AM MST in
-#      winter; both are fine, it only needs to be after the routine). It is for days
+#   2. BACKUP SCHEDULE, weekdays 18:17 UTC (12:17 PM MDT in summer, 11:17 AM MST in
+#      winter; GitHub schedules are UTC only, so this time is after the 9:30 AM routine
+#      in both seasons, and the page is still built before the 2:00 PM close). It is for days
 #      when the routine did not run. It does nothing if today's page was already built.
 #      GitHub may start it late; that is acceptable for a backup.
 #
@@ -40,7 +42,7 @@ on:
     paths:
       - "clauderoutinedata.json"
   schedule:
-    - cron: "17 15 * * 1-5"   # backup only, see above
+    - cron: "17 18 * * 1-5"   # backup only, see above
   workflow_dispatch:
 
 concurrency:

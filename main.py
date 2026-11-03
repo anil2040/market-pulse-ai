@@ -5,7 +5,7 @@
 #
 # WHAT THIS DOES:
 #   Runs on GitHub Actions whenever the Claude Routine pushes a new
-#   clauderoutinedata.json (weekdays about 7:45 AM Boise time), plus one
+#   clauderoutinedata.json (weekdays about 9:30 AM Boise time), plus one
 #   backup schedule in case the routine does not run. See daily.yml.
 #   Fetches macro data, sentiment, value screens, news emails,
 #   synthesizes with AI, checks the health of every data source, and
@@ -138,7 +138,7 @@ def _routine_commit_info():
 
 def load_claude_routine():
     """
-    Load clauderoutinedata.json from repo root (written by the 7:40 AM MDT
+    Load clauderoutinedata.json from repo root (written by the 9:30 AM Boise time
     Claude Routine before this pipeline runs).
 
     Returns (routine_data_dict, is_fresh_bool, status_str, commit_info).
