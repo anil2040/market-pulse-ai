@@ -599,7 +599,7 @@ mhs_history:          [{date, score, label}, ...] -- up to 252 entries, appended
    - The backup run around 9:17 AM is a quick green "already built today" skip.
    - If the top line shows Gemini plus an error, Haiku had a problem: read the error text on the page and tell the assistant.
 
-   **To-dos for the owner:** (a) after Nov 2, glance at the routine time (should still be 7:40 local); (b) after Nov 17, watch for
+   **To-dos for the owner:** (a) DONE Nov 2: the routine was on a UTC clock and slipped to 6:40 AM after daylight saving ended; it now runs 9:30 AM Boise time with the time zone built in (Session 16); (b) after Nov 17, watch for
    the amber 13F reminder, the pipeline retries daily, else run `python fetch_cache.py` on the PC and commit dataroma_cache.json;
    (c) DONE: test_haiku.py and validate_routine.py were deleted (commit 63e1294); (d) when a real Axios Markets / WSJ Markets A.M.
    issue arrives, copy the sender address so it can be added to news.py; (e) decide later whether to keep the routine's
@@ -1215,6 +1215,13 @@ retried), dash removal, numbered list, no footer, 13F line, and the prompt witho
 - Unused block lines (CREDIT, COMMODITIES, CURRENCY, SENTIMENT, VALUATION, data health) stay; check on the laptop what the
   extension forwards before trimming anything.
 - Macro Indicators table: no change (same 17 rows, values, colors, insight text).
+- **Run time moved to 9:30 AM Boise time** (11:30 AM ET, two hours after the open, past the choppy opening hour, 4.5 hours
+  before the close). The Daily Market Warmup routine now uses CRON_TZ=America/Boise, so daylight saving is automatic (it had
+  slipped to 6:40 AM because its clock was UTC). Routine wording changed from "pre-market" to "today so far"; JSON keys
+  unchanged. daily.yml backup moved from 15:17 to 18:17 UTC (11:17 AM MST / 12:17 PM MDT) so it is always after the routine
+  (branch and pull request, per the trigger rule). No logic change: the Pre-Market banner only shows when Yahoo says PRE.
+- **Changes now go straight to main** after a shadow test and the owner's go (CLAUDE.md rule 6); branch and pull request
+  only for risky changes (workflow triggers, secrets, deleting files).
 
 **Files changed:** market.py (POSTURE text and "action" key removed), html_builder.py (POSTURE line and card line removed, ICSA
 line added, title and header renamed), fred.py (ICSA row now carries its 4-week average as "ma4"), ai_synthesis.py ("Posture:"

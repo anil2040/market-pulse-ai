@@ -1109,7 +1109,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
 
     # ── Market values ────────────────────────────────────────────────────────
     # Primary source: routine_data["market_prices"] written by Claude Routine
-    # at ~7:45am MT (by the Claude Routine).
+    # at about 9:30 AM Boise time (by the Claude Routine).
     # Fallback: mkt_data from market.py (fetched server-side by pipeline).
     # classify helpers
     def _classify_idx(c):
@@ -1144,7 +1144,7 @@ def build_html(briefing, ai_failed, ej_text, cnbc_text, yahoo_text,
     routine_fresh_prices = bool(routine_fresh and mp and mp.get("sp500", {}).get("current"))
 
     if routine_fresh_prices:
-        # ── Use Claude Routine prices (accurate, collected by the Claude Routine at ~7:45am MT)
+        # ── Use Claude Routine prices (accurate, collected by the Claude Routine at about 9:30 AM Boise time)
         _spx = mp["sp500"]
         _rut = mp.get("rut", {})
         _vix = mp.get("vix", {})
