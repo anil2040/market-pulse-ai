@@ -1,6 +1,6 @@
 # ============================================================
 # timeutil.py -- Boise (Mountain) time that follows daylight saving
-# Mean Reversion Macro Insights
+# Mean Reversion Insights
 # ============================================================
 #
 # WHY THIS EXISTS:

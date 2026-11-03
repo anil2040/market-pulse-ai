@@ -1,4 +1,4 @@
-# Rules for Claude Code in this project (Mean Reversion Macro Insights)
+# Rules for Claude Code in this project (Mean Reversion Insights)
 
 ## Who you are working with
 The owner is a deep-value investor, NOT a programmer. Explain everything in plain English.
@@ -16,7 +16,7 @@ Do not use em dashes or en dashes in anything you write for him (replies, commen
 5. After a change, give a short plain-English summary of every file you changed and what changed.
 
 ## Project facts
-- Live site: https://anil2040.github.io/market-pulse-ai
+- Live site: https://anil2040.github.io/mean-reversion-insights
 - Read SESSION_LOG.md first. It holds the architecture rules, decisions and open items.
   Update it after meaningful changes.
 - The GitHub workflow runs Python 3.13. Test with the same version.

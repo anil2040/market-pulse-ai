@@ -180,7 +180,7 @@ def test_ishares_api():
 
 
 if __name__ == "__main__":
-    print("ETF PE Debug Script -- Mean Reversion Macro Insights")
+    print("ETF PE Debug Script -- Mean Reversion Insights")
     print("Run date:", __import__("datetime").date.today())
     print()
     print("Testing all candidate sources for URTH and EFA P/E ratios...")
