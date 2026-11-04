@@ -1,59 +1,59 @@
 {
-  "date": "2026-11-03",
-  "time_collected_utc": "16:45",
+  "date": "2026-11-04",
+  "time_collected_utc": "16:55",
   "futures": {
-    "sp500":     {"change_pct": 0.20, "direction": "up"},
-    "nasdaq100": {"change_pct": 0.80, "direction": "up"},
-    "dow":       {"change_pct": -0.20, "direction": "down"},
-    "sentiment": "neutral"
+    "sp500":     {"change_pct": 1.55, "direction": "up"},
+    "nasdaq100": {"change_pct": 2.02, "direction": "up"},
+    "dow":       {"change_pct": 2.04, "direction": "up"},
+    "sentiment": "bullish"
   },
   "etf_pe": {
-    "URTH": {"pe_ttm": 21.64, "proxy_for": "MSCI World",
-             "source": "stockanalysis.com"},
-    "EFA":  {"pe_ttm": 18.27, "proxy_for": "MSCI EAFE ex-US Developed",
-             "source": "etfdb.com"}
+    "URTH": {"pe_ttm": 26.31, "proxy_for": "MSCI World",
+             "source": "iShares fact sheet (as of 2026-09-30); stockanalysis.com page returned stale data dated 2026-08-24"},
+    "EFA":  {"pe_ttm": 19.10, "proxy_for": "MSCI EAFE ex-US Developed",
+             "source": "iShares fact sheet (as of 2026-09-30)"}
   },
   "rates_commodities": {
-    "treasury_10yr_pct": 4.94,
-    "crude_oil_usd": 95.77,
+    "treasury_10yr_pct": 4.96,
+    "crude_oil_usd": 93.57,
     "crude_oil_type": "WTI"
   },
   "macro_events": [
-    "US midterm elections today (November 3) with results expected tonight, keeping investors cautious on the House and Senate balance of power",
-    "Oil volatile on US-Iran headlines: reports of a limited US strike on Qeshm Island reversed part of Monday's sharp drop while Trump says Iran wants a settlement",
-    "RBA raised rates 25bp to 4.85%, and two Fed presidents said last week that rates need to move higher with elevated oil adding to inflation"
+    "Democrats won control of both the House and Senate in the midterms, easing election uncertainty but raising worries about AI and data center scrutiny; Trump said he would veto Democratic legislation",
+    "ADP private payrolls rose 86,000 in October (est. 75,000); October jobs report due Friday Nov 6 and CPI on Nov 10, with futures pricing about 81% odds of a Fed hike in December",
+    "Oil fell about 2.6% as Iran war de-escalation hopes grew, though four tankers hit mines in the Strait of Hormuz; RBA raised rates on Tuesday"
   ],
   "sector_movers": {
     "leading": [
-      {"sector": "Technology",  "change_pct": 1.00, "reason": "Semiconductors rebounding (Micron, AMD, Intel, Nvidia up) after Monday's Nasdaq 100 slide into correction"},
-      {"sector": "Consumer Staples", "change_pct": 0.30, "reason": "Defensive buying ahead of the election, with Coca-Cola cited as a gainer"}
+      {"sector": "Technology", "change_pct": 2.30, "reason": "Mega-cap rebound (Microsoft, Apple, Alphabet up 5% to 7%) as AMD beat earnings; approximate, based on Nasdaq and stock moves"},
+      {"sector": "Health Care", "change_pct": 2.00, "reason": "Hospitals and insurers (HCA, Centene up 5% to 7%) on expected Medicaid and policy changes under a Democratic Congress; approximate"}
     ],
     "lagging": [
-      {"sector": "Communication Services", "change_pct": -0.40, "reason": "Pressure from AI-spending return concerns and weak software earnings reactions"},
-      {"sector": "Industrials", "change_pct": -0.30, "reason": "Dow-heavy cyclicals soft as Apple and other large caps dragged the Dow lower"}
+      {"sector": "Energy", "change_pct": -0.50, "reason": "Crude down about 2.6% on Iran de-escalation hopes and defense names softer; approximate"},
+      {"sector": "Consumer Staples", "change_pct": 0.50, "reason": "Defensive group lagging the risk-on rally after hitting a record high; approximate"}
     ]
   },
   "global_markets": {
-    "europe": {"index": "Euro Stoxx 50", "direction": "up", "change_pct": 0.78},
-    "asia":   {"index": "KOSPI",         "direction": "down", "change_pct": -3.59}
+    "europe": {"index": "STOXX600", "direction": "up", "change_pct": 0.44},
+    "asia":   {"index": "Nikkei",   "direction": "down", "change_pct": -1.42}
   },
-  "open_focus": "Traders are focused on today's US midterm election results and whether the chip rebound can hold after Apple's weak margin guidance and Palantir's slowing contract growth, with AMD earnings due after the close.",
+  "open_focus": "Traders are focused on the relief rally after Democrats won Congress, whether the AI and chip rebound holds amid regulation worries, and Friday's October jobs report ahead of a possible December Fed hike.",
   "market_prices": {
     "sp500": {
-      "prev_close": 7541.40,
-      "current":    7585.13,
-      "change_pct": 0.58,
-      "source_time_et": "11:40"
+      "prev_close": 7568.92,
+      "current":    7686.38,
+      "change_pct": 1.55,
+      "source_time_et": "10:30"
     },
     "rut": {
-      "prev_close": 2805.87,
-      "current":    2834.87,
-      "change_pct": 1.03,
-      "source_time_et": "11:40"
+      "prev_close": 2812.45,
+      "current":    2849.01,
+      "change_pct": 1.30,
+      "source_time_et": "10:30"
     },
     "vix": {
-      "prev_close": 21.15,
-      "current":    20.42
+      "prev_close": 20.83,
+      "current":    16.89
     }
   }
 }
